@@ -7,7 +7,7 @@ An Embedded Data Acquisition System using LPC1768 and Raspberry Pi 3.
 
 # Workflow:
 The LPC1768 generates 2 dummy values - 
-1. An analog sensor value (From 0 to 1024)
+1. An analog sensor value (From 0 to 4096)
 2. Digital Sensor state (0 or 1)
 
 This is then combined into a Packet, and sent to the Server over a UDP-IP Protocol, with the Ethernet as the Physical layer.
