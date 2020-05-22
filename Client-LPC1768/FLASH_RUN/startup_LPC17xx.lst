@@ -1,0 +1,351 @@
+   1              	# 1 "startup_LPC17xx.S"
+   1              	/*****************************************************************************/
+   0              	
+   0              	
+   2              	/* startup_LPC17xx.s: Startup file for LPC17xx device series                 */
+   3              	/*****************************************************************************/
+   4              	/* Version: CodeSourcery Sourcery G++ Lite (with CS3)                        */
+   5              	/*****************************************************************************/
+   6              	
+   7              	/* mthomas:
+   8              	   - replaced CM3 _start with data-copy, bss-init
+   9              	   - added syntax unified
+  10              	   - moved NMI to UsageFault handlers in reset section to minimize checksum
+  11              	     modifications
+  12              	*/
+  13              	
+  14              	/* 
+  15              	//*** <<< Use Configuration Wizard in Context Menu >>> *** 
+  16              	*/
+  17              	
+  18              	
+  19              	/*
+  20              	// <h> Stack Configuration
+  21              	//   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
+  22              	// </h>
+  23              	*/
+  24              	
+  25              	.syntax unified
+  26              	
+  27              	    .equ    Stack_Size, 0x00000300
+  28              	    .section ".stack", "w"
+  29              	    .align  3
+  30              	    .globl  __cs3_stack_mem
+  31              	    .globl  __cs3_stack_size
+  32              	__cs3_stack_mem:
+  33              	    .if     Stack_Size
+  34 0000 00000000 	    .space  Stack_Size
+  34      00000000 
+  34      00000000 
+  34      00000000 
+  34      00000000 
+  35              	    .endif
+  37              	    .set    __cs3_stack_size, . - __cs3_stack_mem
+  38              	
+  39              	
+  40              	/*
+  41              	// <h> Heap Configuration
+  42              	//   <o>  Heap Size (in Bytes) <0x0-0xFFFFFFFF:8>
+  43              	// </h>
+  44              	*/
+  45              	
+  46              	    .equ    Heap_Size,  0x00000700
+  47              	    
+  48              	    .section ".heap", "w"
+  49              	    .align  3
+  50              	    .globl  __cs3_heap_start
+  51              	    .globl  __cs3_heap_end
+  52              	__cs3_heap_start:
+  53              	    .if     Heap_Size
+  54 0000 00000000 	    .space  Heap_Size
+  54      00000000 
+  54      00000000 
+  54      00000000 
+  54      00000000 
+  55              	    .endif
+  56              	__cs3_heap_end:
+  57              	
+  58              	
+  59              	/* Vector Table */
+  60              	
+  61              	    .section ".cs3.interrupt_vector"
+  62              	    .globl  __cs3_interrupt_vector_cortex_m
+  64              	
+  65              	__cs3_interrupt_vector_cortex_m:
+  66 0000 00000000 	    .long   __cs3_stack                 /* Top of Stack                 */
+  67 0004 00000000 	    .long   __cs3_reset                 /* Reset Handler                */
+  68 0008 00000000 	    .long   NMI_Handler                 /* NMI Handler                  */
+  69 000c 00000000 	    .long   HardFault_Handler           /* Hard Fault Handler           */
+  70 0010 00000000 	    .long   MemManage_Handler           /* MPU Fault Handler            */
+  71 0014 00000000 	    .long   BusFault_Handler            /* Bus Fault Handler            */
+  72 0018 00000000 	    .long   UsageFault_Handler          /* Usage Fault Handler          */
+  73 001c BE79FFEF 	    .long   0xefff79be                  /* Checksum, see LPC1xxx manual */
+  74 0020 00000000 	    .long   0                           /* Reserved                     */
+  75 0024 00000000 	    .long   0                           /* Reserved                     */
+  76 0028 00000000 	    .long   0                           /* Reserved                     */
+  77 002c 00000000 	    .long   SVC_Handler                 /* SVCall Handler               */
+  78 0030 00000000 	    .long   DebugMon_Handler            /* Debug Monitor Handler        */
+  79 0034 00000000 	    .long   0                           /* Reserved                     */
+  80 0038 00000000 	    .long   PendSV_Handler              /* PendSV Handler               */
+  81 003c 00000000 	    .long   SysTick_Handler             /* SysTick Handler              */
+  82              	
+  83              	    /* External Interrupts */
+  84 0040 00000000 	    .long   WDT_IRQHandler              /* 16: Watchdog Timer               */
+  85 0044 00000000 	    .long   TIMER0_IRQHandler           /* 17: Timer0                       */
+  86 0048 00000000 	    .long   TIMER1_IRQHandler           /* 18: Timer1                       */
+  87 004c 00000000 	    .long   TIMER2_IRQHandler           /* 19: Timer2                       */
+  88 0050 00000000 	    .long   TIMER3_IRQHandler           /* 20: Timer3                       */
+  89 0054 00000000 	    .long   UART0_IRQHandler            /* 21: UART0                        */
+  90 0058 00000000 	    .long   UART1_IRQHandler            /* 22: UART1                        */
+  91 005c 00000000 	    .long   UART2_IRQHandler            /* 23: UART2                        */
+  92 0060 00000000 	    .long   UART3_IRQHandler            /* 24: UART3                        */
+  93 0064 00000000 	    .long   PWM1_IRQHandler             /* 25: PWM1                         */
+  94 0068 00000000 	    .long   I2C0_IRQHandler             /* 26: I2C0                         */
+  95 006c 00000000 	    .long   I2C1_IRQHandler             /* 27: I2C1                         */
+  96 0070 00000000 	    .long   I2C2_IRQHandler             /* 28: I2C2                         */
+  97 0074 00000000 	    .long   SPI_IRQHandler              /* 29: SPI                          */
+  98 0078 00000000 	    .long   SSP0_IRQHandler             /* 30: SSP0                         */
+  99 007c 00000000 	    .long   SSP1_IRQHandler             /* 31: SSP1                         */
+ 100 0080 00000000 	    .long   PLL0_IRQHandler             /* 32: PLL0 Lock (Main PLL)         */
+ 101 0084 00000000 	    .long   RTC_IRQHandler              /* 33: Real Time Clock              */
+ 102 0088 00000000 	    .long   EINT0_IRQHandler            /* 34: External Interrupt 0         */
+ 103 008c 00000000 	    .long   EINT1_IRQHandler            /* 35: External Interrupt 1         */
+ 104 0090 00000000 	    .long   EINT2_IRQHandler            /* 36: External Interrupt 2         */
+ 105 0094 00000000 	    .long   EINT3_IRQHandler            /* 37: External Interrupt 3         */
+ 106 0098 00000000 	    .long   ADC_IRQHandler              /* 38: A/D Converter                */
+ 107 009c 00000000 	    .long   BOD_IRQHandler              /* 39: Brown-Out Detect             */
+ 108 00a0 00000000 	    .long   USB_IRQHandler              /* 40: USB                          */
+ 109 00a4 00000000 	    .long   CAN_IRQHandler              /* 41: CAN                          */
+ 110 00a8 00000000 	    .long   DMA_IRQHandler              /* 42: General Purpose DMA          */
+ 111 00ac 00000000 	    .long   I2S_IRQHandler              /* 43: I2S                          */
+ 112 00b0 00000000 	    .long   ENET_IRQHandler             /* 44: Ethernet                     */
+ 113 00b4 00000000 	    .long   RIT_IRQHandler              /* 45: Repetitive Interrupt Timer   */
+ 114 00b8 00000000 	    .long   MCPWM_IRQHandler            /* 46: Motor Control PWM            */
+ 115 00bc 00000000 	    .long   QEI_IRQHandler              /* 47: Quadrature Encoder Interface */
+ 116 00c0 00000000 	    .long   PLL1_IRQHandler             /* 48: PLL1 Lock (USB PLL)          */
+ 117              	
+ 119              	
+ 120              	
+ 121              	    .thumb
+ 122              	
+ 123              	
+ 124              	/* Reset Handler */
+ 125              	
+ 126              	    .section .cs3.reset,"x",%progbits
+ 127              	    .thumb_func
+ 128              	    .globl  __cs3_reset_cortex_m
+ 130              	__cs3_reset_cortex_m:
+ 131              	    .fnstart
+ 132              	
+ 133              	/* delay at startup to let JTAG-connection catch-up */
+ 134 0000 0C48     		LDR R0, =startup_delay
+ 135 0002 8047     		BLX R0
+ 136              	
+ 137              	/* Copy the data segment initializers from flash to SRAM */
+ 138              	.extern _etext
+ 139              	.extern _sdata
+ 140              	.extern _edata
+ 141 0004 0C49     	    ldr   r1, =_etext
+ 142 0006 0D4A     	    ldr   r2, =_sdata
+ 143 0008 0D4B     	    ldr   r3, =_edata
+ 144 000a 9A42     	1:  cmp   r2, r3
+ 145 000c 3EBF     	    ittt  lo
+ 146 000e 51F8040B 	    ldrlo r0, [r1], #4
+ 147 0012 42F8040B 	    strlo r0, [r2], #4
+ 148 0016 F8E7     	    blo   1b
+ 149              	
+ 150              	/* Zero fill the bss segment. */
+ 151              	.extern _sbss
+ 152              	.extern _ebss
+ 153 0018 0020     	    movs  r0, #0
+ 154 001a 0A49     	    ldr   r1, =_sbss
+ 155 001c 0A4A     	    ldr   r2, =_ebss
+ 156 001e 9142     	2:  cmp   r1, r2
+ 157 0020 3CBF     	    itt   lo
+ 158 0022 41F8040B 	    strlo r0, [r1], #4
+ 159 0026 FAE7     	    blo   2b
+ 160              	
+ 161              	/* call __libc_init_array - needed for C++ support */
+ 162              	/*    LDR     R0, =__libc_init_array */
+ 163              	/*    BLX     R0 */
+ 164              	
+ 165              	/* call system init in NXP's Device CMSIS code */
+ 166 0028 0848     	    LDR     R0, =SystemInit
+ 167 002a 8047     	    BLX     R0
+ 168              	
+ 169              	/* call main() */
+ 170 002c 0848     	    LDR     R0,=main
+ 171 002e 0047     	    BX      R0
+ 172              	
+ 173 0030 FEE7     	    B .
+ 174              	
+ 175 0032 00000000 	    .pool
+ 175      00000000 
+ 175      00000000 
+ 175      00000000 
+ 175      00000000 
+ 176              	    .cantunwind
+ 177              	    .fnend
+ 179              	
+ 180              	/* Exception Handlers */
+ 181              	
+ 182              	    .weak   NMI_Handler
+ 184              	NMI_Handler:
+ 185 0054 FEE7     	    B       .
+ 187              	
+ 188              	    .weak   HardFault_Handler
+ 190              	HardFault_Handler:
+ 191 0056 FEE7     	    B       .
+ 193              	
+ 194              	    .weak   MemManage_Handler
+ 196              	MemManage_Handler:
+ 197 0058 FEE7     	    B       .
+ 199              	
+ 200              	    .weak   BusFault_Handler
+ 202              	BusFault_Handler:
+ 203 005a FEE7     	    B       .
+ 205              	
+ 206              	    .weak   UsageFault_Handler
+ 208              	UsageFault_Handler:
+ 209 005c FEE7     	    B       .
+ 211              	
+ 212              	
+ 213              	
+ 214              	
+ 215 005e 00BF     	    .section ".text"
+ 216              	
+ 217              	    .weak   SVC_Handler
+ 219              	SVC_Handler:
+ 220 0000 FEE7     	    B       .
+ 222              	
+ 223              	    .weak   DebugMon_Handler
+ 225              	DebugMon_Handler:
+ 226 0002 FEE7     	    B       .
+ 228              	
+ 229              	    .weak   PendSV_Handler
+ 231              	PendSV_Handler:
+ 232 0004 FEE7     	    B       .
+ 234              	
+ 235              	    .weak   SysTick_Handler
+ 237              	SysTick_Handler:
+ 238 0006 FEE7     	    B       .
+ 240              	
+ 241              	
+ 242              	/* IRQ Handlers */
+ 243              	
+ 244              	    .globl  Default_Handler
+ 246              	Default_Handler:
+ 247 0008 FEE7     	    B       .
+ 249              	
+ 250              	    .macro  IRQ handler
+ 251              	    .weak   \handler
+ 252              	    .set    \handler, Default_Handler
+ 253              	    .endm
+ 254              	
+ 255              	    IRQ     WDT_IRQHandler
+ 256              	    IRQ     TIMER0_IRQHandler
+ 257              	    IRQ     TIMER1_IRQHandler
+ 258              	    IRQ     TIMER2_IRQHandler
+ 259              	    IRQ     TIMER3_IRQHandler
+ 260              	    IRQ     UART0_IRQHandler
+ 261              	    IRQ     UART1_IRQHandler
+ 262              	    IRQ     UART2_IRQHandler
+ 263              	    IRQ     UART3_IRQHandler
+ 264              	    IRQ     PWM1_IRQHandler
+ 265              	    IRQ     I2C0_IRQHandler
+ 266              	    IRQ     I2C1_IRQHandler
+ 267              	    IRQ     I2C2_IRQHandler
+ 268              	    IRQ     SPI_IRQHandler
+ 269              	    IRQ     SSP0_IRQHandler
+ 270              	    IRQ     SSP1_IRQHandler
+ 271              	    IRQ     PLL0_IRQHandler
+ 272              	    IRQ     RTC_IRQHandler
+ 273              	    IRQ     EINT0_IRQHandler
+ 274              	    IRQ     EINT1_IRQHandler
+ 275              	    IRQ     EINT2_IRQHandler
+ 276              	    IRQ     EINT3_IRQHandler
+ 277              	    IRQ     ADC_IRQHandler
+ 278              	    IRQ     BOD_IRQHandler
+ 279              	    IRQ     USB_IRQHandler
+ 280              	    IRQ     CAN_IRQHandler
+ 281              	    IRQ     DMA_IRQHandler
+ 282              	    IRQ     I2S_IRQHandler
+ 283              	    IRQ     ENET_IRQHandler
+ 284              	    IRQ     RIT_IRQHandler
+ 285              	    IRQ     MCPWM_IRQHandler
+ 286              	    IRQ     QEI_IRQHandler
+ 287              	    IRQ     PLL1_IRQHandler
+ 288              	
+ 289              	    .end
+DEFINED SYMBOLS
+   startup_LPC17xx.S:27     *ABS*:00000300 Stack_Size
+   startup_LPC17xx.S:29     .stack:00000000 $d
+   startup_LPC17xx.S:32     .stack:00000000 __cs3_stack_mem
+                            *ABS*:00000300 __cs3_stack_size
+   startup_LPC17xx.S:46     *ABS*:00000700 Heap_Size
+   startup_LPC17xx.S:49     .heap:00000000 $d
+   startup_LPC17xx.S:52     .heap:00000000 __cs3_heap_start
+   startup_LPC17xx.S:56     .heap:00000700 __cs3_heap_end
+   startup_LPC17xx.S:65     .cs3.interrupt_vector:00000000 __cs3_interrupt_vector_cortex_m
+   startup_LPC17xx.S:184    .cs3.reset:00000054 NMI_Handler
+   startup_LPC17xx.S:190    .cs3.reset:00000056 HardFault_Handler
+   startup_LPC17xx.S:196    .cs3.reset:00000058 MemManage_Handler
+   startup_LPC17xx.S:202    .cs3.reset:0000005a BusFault_Handler
+   startup_LPC17xx.S:208    .cs3.reset:0000005c UsageFault_Handler
+   startup_LPC17xx.S:219    .text:00000000 SVC_Handler
+   startup_LPC17xx.S:225    .text:00000002 DebugMon_Handler
+   startup_LPC17xx.S:231    .text:00000004 PendSV_Handler
+   startup_LPC17xx.S:237    .text:00000006 SysTick_Handler
+   startup_LPC17xx.S:246    .text:00000008 WDT_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 TIMER0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 TIMER1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 TIMER2_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 TIMER3_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 UART0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 UART1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 UART2_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 UART3_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 PWM1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 I2C0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 I2C1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 I2C2_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 SPI_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 SSP0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 SSP1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 PLL0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 RTC_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 EINT0_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 EINT1_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 EINT2_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 EINT3_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 ADC_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 BOD_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 USB_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 CAN_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 DMA_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 I2S_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 ENET_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 RIT_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 MCPWM_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 QEI_IRQHandler
+   startup_LPC17xx.S:246    .text:00000008 PLL1_IRQHandler
+   startup_LPC17xx.S:130    .cs3.reset:00000000 __cs3_reset_cortex_m
+   startup_LPC17xx.S:134    .cs3.reset:00000000 $t
+   startup_LPC17xx.S:175    .cs3.reset:00000032 $d
+   startup_LPC17xx.S:175    .cs3.reset:00000034 $d
+             .ARM.exidx.cs3.reset:00000000 $d
+   startup_LPC17xx.S:185    .cs3.reset:00000054 $t
+   startup_LPC17xx.S:220    .text:00000000 $t
+   startup_LPC17xx.S:246    .text:00000008 Default_Handler
+
+UNDEFINED SYMBOLS
+__cs3_stack
+__cs3_reset
+startup_delay
+_etext
+_sdata
+_edata
+_sbss
+_ebss
+SystemInit
+main

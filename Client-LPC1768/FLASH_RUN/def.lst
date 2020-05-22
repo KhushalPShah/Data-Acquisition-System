@@ -1,0 +1,314 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"def.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.lwip_htons,"ax",%progbits
+  20              		.align	2
+  21              		.global	lwip_htons
+  22              		.thumb
+  23              		.thumb_func
+  25              	lwip_htons:
+  26              	.LFB17:
+  27              		.file 1 "Libraries/lwip-1.4.0/core/def.c"
+   1:Libraries/lwip-1.4.0/core/def.c **** /**
+   2:Libraries/lwip-1.4.0/core/def.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/def.c ****  * Common functions used throughout the stack.
+   4:Libraries/lwip-1.4.0/core/def.c ****  *
+   5:Libraries/lwip-1.4.0/core/def.c ****  */
+   6:Libraries/lwip-1.4.0/core/def.c **** 
+   7:Libraries/lwip-1.4.0/core/def.c **** /*
+   8:Libraries/lwip-1.4.0/core/def.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/def.c ****  * All rights reserved.
+  10:Libraries/lwip-1.4.0/core/def.c ****  *
+  11:Libraries/lwip-1.4.0/core/def.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  12:Libraries/lwip-1.4.0/core/def.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/def.c ****  *
+  14:Libraries/lwip-1.4.0/core/def.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/def.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/def.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/def.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/def.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/def.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/def.c ****  *    derived from this software without specific prior written permission.
+  21:Libraries/lwip-1.4.0/core/def.c ****  *
+  22:Libraries/lwip-1.4.0/core/def.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  23:Libraries/lwip-1.4.0/core/def.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  24:Libraries/lwip-1.4.0/core/def.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  25:Libraries/lwip-1.4.0/core/def.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  26:Libraries/lwip-1.4.0/core/def.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  27:Libraries/lwip-1.4.0/core/def.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:Libraries/lwip-1.4.0/core/def.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:Libraries/lwip-1.4.0/core/def.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  30:Libraries/lwip-1.4.0/core/def.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  31:Libraries/lwip-1.4.0/core/def.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/def.c ****  *
+  33:Libraries/lwip-1.4.0/core/def.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/def.c ****  *
+  35:Libraries/lwip-1.4.0/core/def.c ****  * Author: Simon Goldschmidt
+  36:Libraries/lwip-1.4.0/core/def.c ****  *
+  37:Libraries/lwip-1.4.0/core/def.c ****  */
+  38:Libraries/lwip-1.4.0/core/def.c **** 
+  39:Libraries/lwip-1.4.0/core/def.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/def.c **** #include "lwip/def.h"
+  41:Libraries/lwip-1.4.0/core/def.c **** 
+  42:Libraries/lwip-1.4.0/core/def.c **** /**
+  43:Libraries/lwip-1.4.0/core/def.c ****  * These are reference implementations of the byte swapping functions.
+  44:Libraries/lwip-1.4.0/core/def.c ****  * Again with the aim of being simple, correct and fully portable.
+  45:Libraries/lwip-1.4.0/core/def.c ****  * Byte swapping is the second thing you would want to optimize. You will
+  46:Libraries/lwip-1.4.0/core/def.c ****  * need to port it to your architecture and in your cc.h:
+  47:Libraries/lwip-1.4.0/core/def.c ****  * 
+  48:Libraries/lwip-1.4.0/core/def.c ****  * #define LWIP_PLATFORM_BYTESWAP 1
+  49:Libraries/lwip-1.4.0/core/def.c ****  * #define LWIP_PLATFORM_HTONS(x) <your_htons>
+  50:Libraries/lwip-1.4.0/core/def.c ****  * #define LWIP_PLATFORM_HTONL(x) <your_htonl>
+  51:Libraries/lwip-1.4.0/core/def.c ****  *
+  52:Libraries/lwip-1.4.0/core/def.c ****  * Note ntohs() and ntohl() are merely references to the htonx counterparts.
+  53:Libraries/lwip-1.4.0/core/def.c ****  */
+  54:Libraries/lwip-1.4.0/core/def.c **** 
+  55:Libraries/lwip-1.4.0/core/def.c **** #if (LWIP_PLATFORM_BYTESWAP == 0) && (BYTE_ORDER == LITTLE_ENDIAN)
+  56:Libraries/lwip-1.4.0/core/def.c **** 
+  57:Libraries/lwip-1.4.0/core/def.c **** /**
+  58:Libraries/lwip-1.4.0/core/def.c ****  * Convert an u16_t from host- to network byte order.
+  59:Libraries/lwip-1.4.0/core/def.c ****  *
+  60:Libraries/lwip-1.4.0/core/def.c ****  * @param n u16_t in host byte order
+  61:Libraries/lwip-1.4.0/core/def.c ****  * @return n in network byte order
+  62:Libraries/lwip-1.4.0/core/def.c ****  */
+  63:Libraries/lwip-1.4.0/core/def.c **** u16_t
+  64:Libraries/lwip-1.4.0/core/def.c **** lwip_htons(u16_t n)
+  65:Libraries/lwip-1.4.0/core/def.c **** {
+  28              		.loc 1 65 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 8
+  31              		@ frame_needed = 1, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  33 0000 80B4     		push	{r7}
+  34              		.cfi_def_cfa_offset 4
+  35              		.cfi_offset 7, -4
+  36 0002 83B0     		sub	sp, sp, #12
+  37              		.cfi_def_cfa_offset 16
+  38 0004 00AF     		add	r7, sp, #0
+  39              		.cfi_def_cfa_register 7
+  40 0006 0346     		mov	r3, r0
+  41 0008 FB80     		strh	r3, [r7, #6]	@ movhi
+  66:Libraries/lwip-1.4.0/core/def.c ****   return ((n & 0xff) << 8) | ((n & 0xff00) >> 8);
+  42              		.loc 1 66 0
+  43 000a FB88     		ldrh	r3, [r7, #6]
+  44 000c 1B02     		lsls	r3, r3, #8
+  45 000e 1AB2     		sxth	r2, r3
+  46 0010 FB88     		ldrh	r3, [r7, #6]
+  47 0012 1B0A     		lsrs	r3, r3, #8
+  48 0014 9BB2     		uxth	r3, r3
+  49 0016 1BB2     		sxth	r3, r3
+  50 0018 1343     		orrs	r3, r3, r2
+  51 001a 1BB2     		sxth	r3, r3
+  52 001c 9BB2     		uxth	r3, r3
+  67:Libraries/lwip-1.4.0/core/def.c **** }
+  53              		.loc 1 67 0
+  54 001e 1846     		mov	r0, r3
+  55 0020 0C37     		adds	r7, r7, #12
+  56              		.cfi_def_cfa_offset 4
+  57 0022 BD46     		mov	sp, r7
+  58              		.cfi_def_cfa_register 13
+  59              		@ sp needed
+  60 0024 80BC     		pop	{r7}
+  61              		.cfi_restore 7
+  62              		.cfi_def_cfa_offset 0
+  63 0026 7047     		bx	lr
+  64              		.cfi_endproc
+  65              	.LFE17:
+  67              		.section	.text.lwip_ntohs,"ax",%progbits
+  68              		.align	2
+  69              		.global	lwip_ntohs
+  70              		.thumb
+  71              		.thumb_func
+  73              	lwip_ntohs:
+  74              	.LFB18:
+  68:Libraries/lwip-1.4.0/core/def.c **** 
+  69:Libraries/lwip-1.4.0/core/def.c **** /**
+  70:Libraries/lwip-1.4.0/core/def.c ****  * Convert an u16_t from network- to host byte order.
+  71:Libraries/lwip-1.4.0/core/def.c ****  *
+  72:Libraries/lwip-1.4.0/core/def.c ****  * @param n u16_t in network byte order
+  73:Libraries/lwip-1.4.0/core/def.c ****  * @return n in host byte order
+  74:Libraries/lwip-1.4.0/core/def.c ****  */
+  75:Libraries/lwip-1.4.0/core/def.c **** u16_t
+  76:Libraries/lwip-1.4.0/core/def.c **** lwip_ntohs(u16_t n)
+  77:Libraries/lwip-1.4.0/core/def.c **** {
+  75              		.loc 1 77 0
+  76              		.cfi_startproc
+  77              		@ args = 0, pretend = 0, frame = 8
+  78              		@ frame_needed = 1, uses_anonymous_args = 0
+  79 0000 80B5     		push	{r7, lr}
+  80              		.cfi_def_cfa_offset 8
+  81              		.cfi_offset 7, -8
+  82              		.cfi_offset 14, -4
+  83 0002 82B0     		sub	sp, sp, #8
+  84              		.cfi_def_cfa_offset 16
+  85 0004 00AF     		add	r7, sp, #0
+  86              		.cfi_def_cfa_register 7
+  87 0006 0346     		mov	r3, r0
+  88 0008 FB80     		strh	r3, [r7, #6]	@ movhi
+  78:Libraries/lwip-1.4.0/core/def.c ****   return lwip_htons(n);
+  89              		.loc 1 78 0
+  90 000a FB88     		ldrh	r3, [r7, #6]
+  91 000c 1846     		mov	r0, r3
+  92 000e FFF7FEFF 		bl	lwip_htons
+  93 0012 0346     		mov	r3, r0
+  79:Libraries/lwip-1.4.0/core/def.c **** }
+  94              		.loc 1 79 0
+  95 0014 1846     		mov	r0, r3
+  96 0016 0837     		adds	r7, r7, #8
+  97              		.cfi_def_cfa_offset 8
+  98 0018 BD46     		mov	sp, r7
+  99              		.cfi_def_cfa_register 13
+ 100              		@ sp needed
+ 101 001a 80BD     		pop	{r7, pc}
+ 102              		.cfi_endproc
+ 103              	.LFE18:
+ 105              		.section	.text.lwip_htonl,"ax",%progbits
+ 106              		.align	2
+ 107              		.global	lwip_htonl
+ 108              		.thumb
+ 109              		.thumb_func
+ 111              	lwip_htonl:
+ 112              	.LFB19:
+  80:Libraries/lwip-1.4.0/core/def.c **** 
+  81:Libraries/lwip-1.4.0/core/def.c **** /**
+  82:Libraries/lwip-1.4.0/core/def.c ****  * Convert an u32_t from host- to network byte order.
+  83:Libraries/lwip-1.4.0/core/def.c ****  *
+  84:Libraries/lwip-1.4.0/core/def.c ****  * @param n u32_t in host byte order
+  85:Libraries/lwip-1.4.0/core/def.c ****  * @return n in network byte order
+  86:Libraries/lwip-1.4.0/core/def.c ****  */
+  87:Libraries/lwip-1.4.0/core/def.c **** u32_t
+  88:Libraries/lwip-1.4.0/core/def.c **** lwip_htonl(u32_t n)
+  89:Libraries/lwip-1.4.0/core/def.c **** {
+ 113              		.loc 1 89 0
+ 114              		.cfi_startproc
+ 115              		@ args = 0, pretend = 0, frame = 8
+ 116              		@ frame_needed = 1, uses_anonymous_args = 0
+ 117              		@ link register save eliminated.
+ 118 0000 80B4     		push	{r7}
+ 119              		.cfi_def_cfa_offset 4
+ 120              		.cfi_offset 7, -4
+ 121 0002 83B0     		sub	sp, sp, #12
+ 122              		.cfi_def_cfa_offset 16
+ 123 0004 00AF     		add	r7, sp, #0
+ 124              		.cfi_def_cfa_register 7
+ 125 0006 7860     		str	r0, [r7, #4]
+  90:Libraries/lwip-1.4.0/core/def.c ****   return ((n & 0xff) << 24) |
+ 126              		.loc 1 90 0
+ 127 0008 7B68     		ldr	r3, [r7, #4]
+ 128 000a 1A06     		lsls	r2, r3, #24
+  91:Libraries/lwip-1.4.0/core/def.c ****     ((n & 0xff00) << 8) |
+ 129              		.loc 1 91 0
+ 130 000c 7B68     		ldr	r3, [r7, #4]
+ 131 000e 1B02     		lsls	r3, r3, #8
+ 132 0010 03F47F03 		and	r3, r3, #16711680
+  90:Libraries/lwip-1.4.0/core/def.c ****   return ((n & 0xff) << 24) |
+ 133              		.loc 1 90 0
+ 134 0014 1A43     		orrs	r2, r2, r3
+  92:Libraries/lwip-1.4.0/core/def.c ****     ((n & 0xff0000UL) >> 8) |
+ 135              		.loc 1 92 0
+ 136 0016 7B68     		ldr	r3, [r7, #4]
+ 137 0018 1B0A     		lsrs	r3, r3, #8
+ 138 001a 03F47F43 		and	r3, r3, #65280
+  91:Libraries/lwip-1.4.0/core/def.c ****     ((n & 0xff00) << 8) |
+ 139              		.loc 1 91 0
+ 140 001e 1A43     		orrs	r2, r2, r3
+  93:Libraries/lwip-1.4.0/core/def.c ****     ((n & 0xff000000UL) >> 24);
+ 141              		.loc 1 93 0
+ 142 0020 7B68     		ldr	r3, [r7, #4]
+ 143 0022 1B0E     		lsrs	r3, r3, #24
+  90:Libraries/lwip-1.4.0/core/def.c ****     ((n & 0xff00) << 8) |
+ 144              		.loc 1 90 0
+ 145 0024 1343     		orrs	r3, r3, r2
+  94:Libraries/lwip-1.4.0/core/def.c **** }
+ 146              		.loc 1 94 0
+ 147 0026 1846     		mov	r0, r3
+ 148 0028 0C37     		adds	r7, r7, #12
+ 149              		.cfi_def_cfa_offset 4
+ 150 002a BD46     		mov	sp, r7
+ 151              		.cfi_def_cfa_register 13
+ 152              		@ sp needed
+ 153 002c 80BC     		pop	{r7}
+ 154              		.cfi_restore 7
+ 155              		.cfi_def_cfa_offset 0
+ 156 002e 7047     		bx	lr
+ 157              		.cfi_endproc
+ 158              	.LFE19:
+ 160              		.section	.text.lwip_ntohl,"ax",%progbits
+ 161              		.align	2
+ 162              		.global	lwip_ntohl
+ 163              		.thumb
+ 164              		.thumb_func
+ 166              	lwip_ntohl:
+ 167              	.LFB20:
+  95:Libraries/lwip-1.4.0/core/def.c **** 
+  96:Libraries/lwip-1.4.0/core/def.c **** /**
+  97:Libraries/lwip-1.4.0/core/def.c ****  * Convert an u32_t from network- to host byte order.
+  98:Libraries/lwip-1.4.0/core/def.c ****  *
+  99:Libraries/lwip-1.4.0/core/def.c ****  * @param n u32_t in network byte order
+ 100:Libraries/lwip-1.4.0/core/def.c ****  * @return n in host byte order
+ 101:Libraries/lwip-1.4.0/core/def.c ****  */
+ 102:Libraries/lwip-1.4.0/core/def.c **** u32_t
+ 103:Libraries/lwip-1.4.0/core/def.c **** lwip_ntohl(u32_t n)
+ 104:Libraries/lwip-1.4.0/core/def.c **** {
+ 168              		.loc 1 104 0
+ 169              		.cfi_startproc
+ 170              		@ args = 0, pretend = 0, frame = 8
+ 171              		@ frame_needed = 1, uses_anonymous_args = 0
+ 172 0000 80B5     		push	{r7, lr}
+ 173              		.cfi_def_cfa_offset 8
+ 174              		.cfi_offset 7, -8
+ 175              		.cfi_offset 14, -4
+ 176 0002 82B0     		sub	sp, sp, #8
+ 177              		.cfi_def_cfa_offset 16
+ 178 0004 00AF     		add	r7, sp, #0
+ 179              		.cfi_def_cfa_register 7
+ 180 0006 7860     		str	r0, [r7, #4]
+ 105:Libraries/lwip-1.4.0/core/def.c ****   return lwip_htonl(n);
+ 181              		.loc 1 105 0
+ 182 0008 7868     		ldr	r0, [r7, #4]
+ 183 000a FFF7FEFF 		bl	lwip_htonl
+ 184 000e 0346     		mov	r3, r0
+ 106:Libraries/lwip-1.4.0/core/def.c **** }
+ 185              		.loc 1 106 0
+ 186 0010 1846     		mov	r0, r3
+ 187 0012 0837     		adds	r7, r7, #8
+ 188              		.cfi_def_cfa_offset 8
+ 189 0014 BD46     		mov	sp, r7
+ 190              		.cfi_def_cfa_register 13
+ 191              		@ sp needed
+ 192 0016 80BD     		pop	{r7, pc}
+ 193              		.cfi_endproc
+ 194              	.LFE20:
+ 196              		.text
+ 197              	.Letext0:
+ 198              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 199              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 200              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 def.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:20     .text.lwip_htons:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:25     .text.lwip_htons:00000000 lwip_htons
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:68     .text.lwip_ntohs:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:73     .text.lwip_ntohs:00000000 lwip_ntohs
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:106    .text.lwip_htonl:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:111    .text.lwip_htonl:00000000 lwip_htonl
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:161    .text.lwip_ntohl:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccj0eKpk.s:166    .text.lwip_ntohl:00000000 lwip_ntohl
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

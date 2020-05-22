@@ -1,0 +1,1436 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"lpc17xx_emac.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.EMAC_Init,"ax",%progbits
+  20              		.align	2
+  21              		.global	EMAC_Init
+  22              		.thumb
+  23              		.thumb_func
+  25              	EMAC_Init:
+  26              	.LFB29:
+  27              		.file 1 "Libraries/NXP/Drivers/source/lpc17xx_emac.c"
+   1:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*
+   2:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  *  CodeRed - minor modifications for port to RDB1768 development board
+   3:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  */
+   4:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #include <string.h>
+   5:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #include "CMSIS/LPC17xx.h"
+   6:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #include "lpc17xx_emac.h"
+   7:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+   8:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /* The following macro definitions may be used to select the speed
+   9:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    of the physical link:
+  10:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  11:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   _10MBIT_   - connect at 10 MBit only
+  12:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   _100MBIT_  - connect at 100 MBit only
+  13:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  14:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   By default an autonegotiation of the link speed is used. This may take 
+  15:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   longer to connect, but it works for 10MBit and 100MBit physical links.     */
+  16:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   
+  17:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /* Local Function Prototypes */  
+  18:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void   rx_descr_init(void);
+  19:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void   tx_descr_init(void);
+  20:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void write_PHY (UNS_32 PhyReg, UNS_32 Value);
+  21:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static UNS_16 read_PHY (UNS_8 PhyReg) ;
+  22:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  23:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  24:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  25:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*************************************************
+  26:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  * CodeRed - PHY definitions for RDB1768 rev 2
+  27:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  * which uses SMSC LAN8720 PHY instead of DP83848C
+  28:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  *************************************************/
+  29:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #define LAN8720_ID          0x0007C0F0  /* PHY Identifier                    */
+  30:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  31:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- EMAC_Init ---------------------------------*/
+  32:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  33:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** BOOL_32 EMAC_Init(void)
+  34:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+  28              		.loc 1 34 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 32
+  31              		@ frame_needed = 1, uses_anonymous_args = 0
+  32 0000 80B5     		push	{r7, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 7, -8
+  35              		.cfi_offset 14, -4
+  36 0002 88B0     		sub	sp, sp, #32
+  37              		.cfi_def_cfa_offset 40
+  38 0004 00AF     		add	r7, sp, #0
+  39              		.cfi_def_cfa_register 7
+  35:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    /* Initialize the EMAC ethernet controller. */
+  36:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   UNS_32 regv, id1,id2;
+  37:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   volatile unsigned int tout;
+  38:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   unsigned phy_id;
+  39:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   unsigned phy_linkstatus_reg;
+  40:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   unsigned phy_linkstatus_mask;
+  41:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  42:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    /* Power Up the EMAC controller. */
+  43:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_SC->PCONP |= 0x40000000;
+  40              		.loc 1 43 0
+  41 0006 B14A     		ldr	r2, .L35
+  42 0008 B04B     		ldr	r3, .L35
+  43 000a D3F8C430 		ldr	r3, [r3, #196]
+  44 000e 43F08043 		orr	r3, r3, #1073741824
+  45 0012 C2F8C430 		str	r3, [r2, #196]
+  44:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  45:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    /* Enable P1 Ethernet Pins. */
+  46:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_PINCON->PINSEL2 = 0x50150105;
+  46              		.loc 1 46 0
+  47 0016 AE4B     		ldr	r3, .L35+4
+  48 0018 AE4A     		ldr	r2, .L35+8
+  49 001a 9A60     		str	r2, [r3, #8]
+  47:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_PINCON->PINSEL3 = (LPC_PINCON->PINSEL3 & ~0x0000000F) | 0x00000005;
+  50              		.loc 1 47 0
+  51 001c AC4A     		ldr	r2, .L35+4
+  52 001e AC4B     		ldr	r3, .L35+4
+  53 0020 DB68     		ldr	r3, [r3, #12]
+  54 0022 23F00F03 		bic	r3, r3, #15
+  55 0026 43F00503 		orr	r3, r3, #5
+  56 002a D360     		str	r3, [r2, #12]
+  48:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  49:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Reset all EMAC internal modules. */
+  50:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_EMAC->MAC1 = MAC1_RES_TX | MAC1_RES_MCS_TX | MAC1_RES_RX | MAC1_RES_MCS_RX |
+  57              		.loc 1 50 0
+  58 002c 4FF0A043 		mov	r3, #1342177280
+  59 0030 4FF44F42 		mov	r2, #52992
+  60 0034 1A60     		str	r2, [r3]
+  51:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****              MAC1_SIM_RES | MAC1_SOFT_RES;
+  52:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_EMAC->Command = CR_REG_RES | CR_TX_RES | CR_RX_RES | CR_PASS_RUNT_FRM;
+  61              		.loc 1 52 0
+  62 0036 4FF0A043 		mov	r3, #1342177280
+  63 003a 7822     		movs	r2, #120
+  64 003c C3F80021 		str	r2, [r3, #256]
+  53:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  54:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* A short delay after reset. */
+  55:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 100; tout; tout--);
+  65              		.loc 1 55 0
+  66 0040 6423     		movs	r3, #100
+  67 0042 7B60     		str	r3, [r7, #4]
+  68 0044 02E0     		b	.L2
+  69              	.L3:
+  70              		.loc 1 55 0 is_stmt 0 discriminator 3
+  71 0046 7B68     		ldr	r3, [r7, #4]
+  72 0048 013B     		subs	r3, r3, #1
+  73 004a 7B60     		str	r3, [r7, #4]
+  74              	.L2:
+  75              		.loc 1 55 0 discriminator 1
+  76 004c 7B68     		ldr	r3, [r7, #4]
+  77 004e 002B     		cmp	r3, #0
+  78 0050 F9D1     		bne	.L3
+  56:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  57:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Initialize MAC control registers. */
+  58:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MAC1 = MAC1_PASS_ALL;
+  79              		.loc 1 58 0 is_stmt 1
+  80 0052 4FF0A043 		mov	r3, #1342177280
+  81 0056 0222     		movs	r2, #2
+  82 0058 1A60     		str	r2, [r3]
+  59:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MAC2 = MAC2_CRC_EN | MAC2_PAD_EN;
+  83              		.loc 1 59 0
+  84 005a 4FF0A043 		mov	r3, #1342177280
+  85 005e 3022     		movs	r2, #48
+  86 0060 5A60     		str	r2, [r3, #4]
+  60:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MAXF = ETH_MAX_FLEN;
+  87              		.loc 1 60 0
+  88 0062 4FF0A043 		mov	r3, #1342177280
+  89 0066 4FF4C062 		mov	r2, #1536
+  90 006a 5A61     		str	r2, [r3, #20]
+  61:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->CLRT = CLRT_DEF;
+  91              		.loc 1 61 0
+  92 006c 4FF0A043 		mov	r3, #1342177280
+  93 0070 43F20F72 		movw	r2, #14095
+  94 0074 1A61     		str	r2, [r3, #16]
+  62:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->IPGR = IPGR_DEF;
+  95              		.loc 1 62 0
+  96 0076 4FF0A043 		mov	r3, #1342177280
+  97 007a 1222     		movs	r2, #18
+  98 007c DA60     		str	r2, [r3, #12]
+  63:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  64:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  65:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****      /* Enable Reduced MII interface. */
+  66:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     LPC_EMAC->MCFG = MCFG_CLK_DIV64 | MCFG_RES_MII;
+  99              		.loc 1 66 0
+ 100 007e 4FF0A043 		mov	r3, #1342177280
+ 101 0082 48F23C02 		movw	r2, #32828
+ 102 0086 1A62     		str	r2, [r3, #32]
+  67:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****      for (tout = 100; tout; tout--);
+ 103              		.loc 1 67 0
+ 104 0088 6423     		movs	r3, #100
+ 105 008a 7B60     		str	r3, [r7, #4]
+ 106 008c 02E0     		b	.L4
+ 107              	.L5:
+ 108              		.loc 1 67 0 is_stmt 0 discriminator 3
+ 109 008e 7B68     		ldr	r3, [r7, #4]
+ 110 0090 013B     		subs	r3, r3, #1
+ 111 0092 7B60     		str	r3, [r7, #4]
+ 112              	.L4:
+ 113              		.loc 1 67 0 discriminator 1
+ 114 0094 7B68     		ldr	r3, [r7, #4]
+ 115 0096 002B     		cmp	r3, #0
+ 116 0098 F9D1     		bne	.L5
+  68:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****      LPC_EMAC->MCFG = MCFG_CLK_DIV64;
+ 117              		.loc 1 68 0 is_stmt 1
+ 118 009a 4FF0A043 		mov	r3, #1342177280
+ 119 009e 3C22     		movs	r2, #60
+ 120 00a0 1A62     		str	r2, [r3, #32]
+  69:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  70:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Enable Reduced MII interface. */
+  71:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_EMAC->Command = CR_RMII | CR_PASS_RUNT_FRM | CR_PASS_RX_FILT;
+ 121              		.loc 1 71 0
+ 122 00a2 4FF0A043 		mov	r3, #1342177280
+ 123 00a6 4FF43072 		mov	r2, #704
+ 124 00aa C3F80021 		str	r2, [r3, #256]
+  72:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  73:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Reset Reduced MII Logic. */
+  74:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_EMAC->SUPP = SUPP_RES_RMII | SUPP_SPEED;
+ 125              		.loc 1 74 0
+ 126 00ae 4FF0A043 		mov	r3, #1342177280
+ 127 00b2 4FF41062 		mov	r2, #2304
+ 128 00b6 9A61     		str	r2, [r3, #24]
+  75:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    for (tout = 100; tout; tout--);
+ 129              		.loc 1 75 0
+ 130 00b8 6423     		movs	r3, #100
+ 131 00ba 7B60     		str	r3, [r7, #4]
+ 132 00bc 02E0     		b	.L6
+ 133              	.L7:
+ 134              		.loc 1 75 0 is_stmt 0 discriminator 3
+ 135 00be 7B68     		ldr	r3, [r7, #4]
+ 136 00c0 013B     		subs	r3, r3, #1
+ 137 00c2 7B60     		str	r3, [r7, #4]
+ 138              	.L6:
+ 139              		.loc 1 75 0 discriminator 1
+ 140 00c4 7B68     		ldr	r3, [r7, #4]
+ 141 00c6 002B     		cmp	r3, #0
+ 142 00c8 F9D1     		bne	.L7
+  76:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    LPC_EMAC->SUPP = SUPP_SPEED;
+ 143              		.loc 1 76 0 is_stmt 1
+ 144 00ca 4FF0A043 		mov	r3, #1342177280
+ 145 00ce 4FF48072 		mov	r2, #256
+ 146 00d2 9A61     		str	r2, [r3, #24]
+  77:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  78:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Put the PHY in reset mode */
+  79:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   write_PHY (PHY_REG_BMCR, 0x8000);
+ 147              		.loc 1 79 0
+ 148 00d4 4FF40041 		mov	r1, #32768
+ 149 00d8 0020     		movs	r0, #0
+ 150 00da FFF7FEFF 		bl	write_PHY
+  80:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	for (tout = 1000; tout; tout--);
+ 151              		.loc 1 80 0
+ 152 00de 4FF47A73 		mov	r3, #1000
+ 153 00e2 7B60     		str	r3, [r7, #4]
+ 154 00e4 02E0     		b	.L8
+ 155              	.L9:
+ 156              		.loc 1 80 0 is_stmt 0 discriminator 3
+ 157 00e6 7B68     		ldr	r3, [r7, #4]
+ 158 00e8 013B     		subs	r3, r3, #1
+ 159 00ea 7B60     		str	r3, [r7, #4]
+ 160              	.L8:
+ 161              		.loc 1 80 0 discriminator 1
+ 162 00ec 7B68     		ldr	r3, [r7, #4]
+ 163 00ee 002B     		cmp	r3, #0
+ 164 00f0 F9D1     		bne	.L9
+  81:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  82:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Wait for hardware reset to end. */
+  83:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < 0x100000; tout++) {
+ 165              		.loc 1 83 0 is_stmt 1
+ 166 00f2 0023     		movs	r3, #0
+ 167 00f4 7B60     		str	r3, [r7, #4]
+ 168 00f6 0CE0     		b	.L10
+ 169              	.L13:
+  84:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	regv = read_PHY (PHY_REG_BMCR);
+ 170              		.loc 1 84 0
+ 171 00f8 0020     		movs	r0, #0
+ 172 00fa FFF7FEFF 		bl	read_PHY
+ 173 00fe 0346     		mov	r3, r0
+ 174 0100 FB61     		str	r3, [r7, #28]
+  85:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+  86:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     if (!(regv & 0x8000)) 
+ 175              		.loc 1 86 0
+ 176 0102 FB69     		ldr	r3, [r7, #28]
+ 177 0104 03F40043 		and	r3, r3, #32768
+ 178 0108 002B     		cmp	r3, #0
+ 179 010a 07D0     		beq	.L32
+  83:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	regv = read_PHY (PHY_REG_BMCR);
+ 180              		.loc 1 83 0 discriminator 2
+ 181 010c 7B68     		ldr	r3, [r7, #4]
+ 182 010e 0133     		adds	r3, r3, #1
+ 183 0110 7B60     		str	r3, [r7, #4]
+ 184              	.L10:
+  83:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	regv = read_PHY (PHY_REG_BMCR);
+ 185              		.loc 1 83 0 is_stmt 0 discriminator 1
+ 186 0112 7B68     		ldr	r3, [r7, #4]
+ 187 0114 B3F5801F 		cmp	r3, #1048576
+ 188 0118 EED3     		bcc	.L13
+ 189 011a 00E0     		b	.L12
+ 190              	.L32:
+  87:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+  88:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	#error "No board!"
+  89:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif
+  90:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	{
+  91:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Reset complete */
+  92:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       break;
+ 191              		.loc 1 92 0 is_stmt 1
+ 192 011c 00BF     		nop
+ 193              	.L12:
+  93:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     }
+  94:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+  95:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (tout >= 0x100000)
+ 194              		.loc 1 95 0
+ 195 011e 7B68     		ldr	r3, [r7, #4]
+ 196 0120 B3F5801F 		cmp	r3, #1048576
+ 197 0124 01D3     		bcc	.L14
+  96:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	return FALSE; /* reset failed */
+ 198              		.loc 1 96 0
+ 199 0126 0023     		movs	r3, #0
+ 200 0128 CBE0     		b	.L15
+ 201              	.L14:
+  97:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+  98:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Check if this is a DP83848C PHY. */
+  99:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   id1 = read_PHY (PHY_REG_IDR1);
+ 202              		.loc 1 99 0
+ 203 012a 0220     		movs	r0, #2
+ 204 012c FFF7FEFF 		bl	read_PHY
+ 205 0130 0346     		mov	r3, r0
+ 206 0132 3B61     		str	r3, [r7, #16]
+ 100:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   id2 = read_PHY (PHY_REG_IDR2);
+ 207              		.loc 1 100 0
+ 208 0134 0320     		movs	r0, #3
+ 209 0136 FFF7FEFF 		bl	read_PHY
+ 210 013a 0346     		mov	r3, r0
+ 211 013c FB60     		str	r3, [r7, #12]
+ 101:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   phy_id = ((id1 << 16) | (id2 & 0xFFF0));
+ 212              		.loc 1 101 0
+ 213 013e 3B69     		ldr	r3, [r7, #16]
+ 214 0140 1A04     		lsls	r2, r3, #16
+ 215 0142 F968     		ldr	r1, [r7, #12]
+ 216 0144 4FF6F073 		movw	r3, #65520
+ 217 0148 0B40     		ands	r3, r3, r1
+ 218 014a 1343     		orrs	r3, r3, r2
+ 219 014c BB60     		str	r3, [r7, #8]
+ 102:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   
+ 103:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 104:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  if ((phy_id != DP83848C_ID) && (phy_id != LAN8720_ID))
+ 220              		.loc 1 104 0
+ 221 014e BB68     		ldr	r3, [r7, #8]
+ 222 0150 614A     		ldr	r2, .L35+12
+ 223 0152 9342     		cmp	r3, r2
+ 224 0154 05D0     		beq	.L16
+ 225              		.loc 1 104 0 is_stmt 0 discriminator 1
+ 226 0156 BB68     		ldr	r3, [r7, #8]
+ 227 0158 604A     		ldr	r2, .L35+16
+ 228 015a 9342     		cmp	r3, r2
+ 229 015c 01D0     		beq	.L16
+ 105:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+ 106:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	#error "No board"
+ 107:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif		  
+ 108:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	return FALSE;
+ 230              		.loc 1 108 0 is_stmt 1
+ 231 015e 0023     		movs	r3, #0
+ 232 0160 AFE0     		b	.L15
+ 233              	.L16:
+ 109:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 110:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 111:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	/* Configure the PHY device */
+ 112:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Configure the PHY device */
+ 113:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if defined (_10MBIT_)
+ 114:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Connect at 10MBit */
+ 115:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       write_PHY (PHY_REG_BMCR, PHY_FULLD_10M);
+ 116:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #elif defined (_100MBIT_)
+ 117:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Connect at 100MBit */
+ 118:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       write_PHY (PHY_REG_BMCR, PHY_FULLD_100M);
+ 119:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+ 120:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Use autonegotiation about the link speed. */
+ 121:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       write_PHY (PHY_REG_BMCR, PHY_AUTO_NEG);
+ 234              		.loc 1 121 0
+ 235 0162 4FF44051 		mov	r1, #12288
+ 236 0166 0020     		movs	r0, #0
+ 237 0168 FFF7FEFF 		bl	write_PHY
+ 122:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Wait to complete Auto_Negotiation. */
+ 123:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       for (tout = 0; tout < 0x100000; tout++) {
+ 238              		.loc 1 123 0
+ 239 016c 0023     		movs	r3, #0
+ 240 016e 7B60     		str	r3, [r7, #4]
+ 241 0170 0CE0     		b	.L17
+ 242              	.L20:
+ 124:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****          regv = read_PHY (PHY_REG_BMSR);
+ 243              		.loc 1 124 0
+ 244 0172 0120     		movs	r0, #1
+ 245 0174 FFF7FEFF 		bl	read_PHY
+ 246 0178 0346     		mov	r3, r0
+ 247 017a FB61     		str	r3, [r7, #28]
+ 125:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****          if (regv & 0x0020) {
+ 248              		.loc 1 125 0
+ 249 017c FB69     		ldr	r3, [r7, #28]
+ 250 017e 03F02003 		and	r3, r3, #32
+ 251 0182 002B     		cmp	r3, #0
+ 252 0184 07D1     		bne	.L33
+ 123:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****          regv = read_PHY (PHY_REG_BMSR);
+ 253              		.loc 1 123 0 discriminator 2
+ 254 0186 7B68     		ldr	r3, [r7, #4]
+ 255 0188 0133     		adds	r3, r3, #1
+ 256 018a 7B60     		str	r3, [r7, #4]
+ 257              	.L17:
+ 123:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****          regv = read_PHY (PHY_REG_BMSR);
+ 258              		.loc 1 123 0 is_stmt 0 discriminator 1
+ 259 018c 7B68     		ldr	r3, [r7, #4]
+ 260 018e B3F5801F 		cmp	r3, #1048576
+ 261 0192 EED3     		bcc	.L20
+ 262 0194 00E0     		b	.L19
+ 263              	.L33:
+ 126:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****             /* Autonegotiation Complete. */
+ 127:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****             break;
+ 264              		.loc 1 127 0 is_stmt 1
+ 265 0196 00BF     		nop
+ 266              	.L19:
+ 128:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****          }
+ 129:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       }
+ 130:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 131:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	if (tout >= 0x100000)
+ 267              		.loc 1 131 0
+ 268 0198 7B68     		ldr	r3, [r7, #4]
+ 269 019a B3F5801F 		cmp	r3, #1048576
+ 270 019e 01D3     		bcc	.L21
+ 132:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 		return FALSE; // auto_neg failed
+ 271              		.loc 1 132 0
+ 272 01a0 0023     		movs	r3, #0
+ 273 01a2 8EE0     		b	.L15
+ 274              	.L21:
+ 133:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif
+ 134:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 135:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  phy_linkstatus_reg = PHY_REG_STS;		// Default to DP83848C
+ 275              		.loc 1 135 0
+ 276 01a4 1023     		movs	r3, #16
+ 277 01a6 BB61     		str	r3, [r7, #24]
+ 136:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  phy_linkstatus_mask = 0x0001;
+ 278              		.loc 1 136 0
+ 279 01a8 0123     		movs	r3, #1
+ 280 01aa 7B61     		str	r3, [r7, #20]
+ 137:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 138:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  if (phy_id == LAN8720_ID) {
+ 281              		.loc 1 138 0
+ 282 01ac BB68     		ldr	r3, [r7, #8]
+ 283 01ae 4B4A     		ldr	r2, .L35+16
+ 284 01b0 9342     		cmp	r3, r2
+ 285 01b2 03D1     		bne	.L22
+ 139:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 		  phy_linkstatus_reg = PHY_REG_BMSR;
+ 286              		.loc 1 139 0
+ 287 01b4 0123     		movs	r3, #1
+ 288 01b6 BB61     		str	r3, [r7, #24]
+ 140:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 		  phy_linkstatus_mask = 0x0004;
+ 289              		.loc 1 140 0
+ 290 01b8 0423     		movs	r3, #4
+ 291 01ba 7B61     		str	r3, [r7, #20]
+ 292              	.L22:
+ 141:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  }
+ 142:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 143:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Check the link status. */
+ 144:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < 0x100000; tout++) {
+ 293              		.loc 1 144 0
+ 294 01bc 0023     		movs	r3, #0
+ 295 01be 7B60     		str	r3, [r7, #4]
+ 296 01c0 0EE0     		b	.L23
+ 297              	.L26:
+ 145:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 146:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     regv = read_PHY (phy_linkstatus_reg);
+ 298              		.loc 1 146 0
+ 299 01c2 BB69     		ldr	r3, [r7, #24]
+ 300 01c4 DBB2     		uxtb	r3, r3
+ 301 01c6 1846     		mov	r0, r3
+ 302 01c8 FFF7FEFF 		bl	read_PHY
+ 303 01cc 0346     		mov	r3, r0
+ 304 01ce FB61     		str	r3, [r7, #28]
+ 147:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     if (regv & phy_linkstatus_mask)
+ 305              		.loc 1 147 0
+ 306 01d0 FA69     		ldr	r2, [r7, #28]
+ 307 01d2 7B69     		ldr	r3, [r7, #20]
+ 308 01d4 1340     		ands	r3, r3, r2
+ 309 01d6 002B     		cmp	r3, #0
+ 310 01d8 07D1     		bne	.L34
+ 144:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 311              		.loc 1 144 0 discriminator 2
+ 312 01da 7B68     		ldr	r3, [r7, #4]
+ 313 01dc 0133     		adds	r3, r3, #1
+ 314 01de 7B60     		str	r3, [r7, #4]
+ 315              	.L23:
+ 144:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 316              		.loc 1 144 0 is_stmt 0 discriminator 1
+ 317 01e0 7B68     		ldr	r3, [r7, #4]
+ 318 01e2 B3F5801F 		cmp	r3, #1048576
+ 319 01e6 ECD3     		bcc	.L26
+ 320 01e8 00E0     		b	.L25
+ 321              	.L34:
+ 148:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+ 149:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	#error "No board"
+ 150:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif 
+ 151:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	{   	
+ 152:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       /* Link is on. */
+ 153:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       break;
+ 322              		.loc 1 153 0 is_stmt 1
+ 323 01ea 00BF     		nop
+ 324              	.L25:
+ 154:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     }
+ 155:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 156:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 157:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (tout >= 0x100000)
+ 325              		.loc 1 157 0
+ 326 01ec 7B68     		ldr	r3, [r7, #4]
+ 327 01ee B3F5801F 		cmp	r3, #1048576
+ 328 01f2 01D3     		bcc	.L27
+ 158:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	return FALSE;
+ 329              		.loc 1 158 0
+ 330 01f4 0023     		movs	r3, #0
+ 331 01f6 64E0     		b	.L15
+ 332              	.L27:
+ 159:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 160:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 161:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Configure Full/Half Duplex mode. */
+ 162:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 163:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (regv & 0x0004) 
+ 333              		.loc 1 163 0
+ 334 01f8 FB69     		ldr	r3, [r7, #28]
+ 335 01fa 03F00403 		and	r3, r3, #4
+ 336 01fe 002B     		cmp	r3, #0
+ 337 0200 16D0     		beq	.L28
+ 164:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+ 165:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	#error "No board"
+ 166:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif
+ 167:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	{  	
+ 168:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     /* Full duplex is enabled. */
+ 169:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->MAC2    |= MAC2_FULL_DUP;
+ 338              		.loc 1 169 0
+ 339 0202 4FF0A042 		mov	r2, #1342177280
+ 340 0206 4FF0A043 		mov	r3, #1342177280
+ 341 020a 5B68     		ldr	r3, [r3, #4]
+ 342 020c 43F00103 		orr	r3, r3, #1
+ 343 0210 5360     		str	r3, [r2, #4]
+ 170:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->Command |= CR_FULL_DUP;
+ 344              		.loc 1 170 0
+ 345 0212 4FF0A042 		mov	r2, #1342177280
+ 346 0216 4FF0A043 		mov	r3, #1342177280
+ 347 021a D3F80031 		ldr	r3, [r3, #256]
+ 348 021e 43F48063 		orr	r3, r3, #1024
+ 349 0222 C2F80031 		str	r3, [r2, #256]
+ 171:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->IPGT     = IPGT_FULL_DUP;
+ 350              		.loc 1 171 0
+ 351 0226 4FF0A043 		mov	r3, #1342177280
+ 352 022a 1522     		movs	r2, #21
+ 353 022c 9A60     		str	r2, [r3, #8]
+ 354 022e 03E0     		b	.L29
+ 355              	.L28:
+ 172:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 173:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   else {
+ 174:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     /* Half duplex mode. */
+ 175:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->IPGT = IPGT_HALF_DUP;
+ 356              		.loc 1 175 0
+ 357 0230 4FF0A043 		mov	r3, #1342177280
+ 358 0234 1222     		movs	r2, #18
+ 359 0236 9A60     		str	r2, [r3, #8]
+ 360              	.L29:
+ 176:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 177:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 178:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Configure 100MBit/10MBit mode. */
+ 179:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #if	defined (KEIL_BOARD_MCB17XX) || defined (CODERED_BOARD_RDB1768)
+ 180:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (regv & 0x0002) {
+ 361              		.loc 1 180 0
+ 362 0238 FB69     		ldr	r3, [r7, #28]
+ 363 023a 03F00203 		and	r3, r3, #2
+ 364 023e 002B     		cmp	r3, #0
+ 365 0240 04D0     		beq	.L30
+ 181:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #else
+ 182:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	#error "No baord"
+ 183:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** #endif   	  	
+ 184:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     /* 10MBit mode. */
+ 185:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->SUPP = 0;
+ 366              		.loc 1 185 0
+ 367 0242 4FF0A043 		mov	r3, #1342177280
+ 368 0246 0022     		movs	r2, #0
+ 369 0248 9A61     		str	r2, [r3, #24]
+ 370 024a 04E0     		b	.L31
+ 371              	.L30:
+ 186:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 187:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   else {
+ 188:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     /* 100MBit mode. */
+ 189:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	  LPC_EMAC->SUPP = SUPP_SPEED;
+ 372              		.loc 1 189 0
+ 373 024c 4FF0A043 		mov	r3, #1342177280
+ 374 0250 4FF48072 		mov	r2, #256
+ 375 0254 9A61     		str	r2, [r3, #24]
+ 376              	.L31:
+ 190:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 191:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 192:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Set the Ethernet MAC Address registers */
+ 193:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** //  MAC_SA0 = (MYMAC_6 << 8) | MYMAC_5;
+ 194:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** //  MAC_SA1 = (MYMAC_4 << 8) | MYMAC_3;
+ 195:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** //  MAC_SA2 = (MYMAC_2 << 8) | MYMAC_1;
+ 196:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->SA0 = (MYMAC_2<<8) | MYMAC_1;
+ 377              		.loc 1 196 0
+ 378 0256 4FF0A043 		mov	r3, #1342177280
+ 379 025a 43F21E02 		movw	r2, #12318
+ 380 025e 1A64     		str	r2, [r3, #64]
+ 197:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->SA1 = (MYMAC_4<<8) | MYMAC_3;
+ 381              		.loc 1 197 0
+ 382 0260 4FF0A043 		mov	r3, #1342177280
+ 383 0264 4AF26C22 		movw	r2, #41580
+ 384 0268 5A64     		str	r2, [r3, #68]
+ 198:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->SA2 = (MYMAC_6<<8) | MYMAC_5;
+ 385              		.loc 1 198 0
+ 386 026a 4FF0A043 		mov	r3, #1342177280
+ 387 026e 45F64562 		movw	r2, #24133
+ 388 0272 9A64     		str	r2, [r3, #72]
+ 199:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 200:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Initialize Tx and Rx DMA Descriptors */
+ 201:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   rx_descr_init ();
+ 389              		.loc 1 201 0
+ 390 0274 FFF7FEFF 		bl	rx_descr_init
+ 202:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   tx_descr_init ();
+ 391              		.loc 1 202 0
+ 392 0278 FFF7FEFF 		bl	tx_descr_init
+ 203:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 204:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Receive Broadcast and Perfect Match Packets */
+ 205:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxFilterCtrl = RFC_BCAST_EN | RFC_PERFECT_EN;
+ 393              		.loc 1 205 0
+ 394 027c 4FF0A043 		mov	r3, #1342177280
+ 395 0280 2222     		movs	r2, #34
+ 396 0282 C3F80022 		str	r2, [r3, #512]
+ 206:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 207:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Enable EMAC interrupts. */
+ 208:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->IntEnable = INT_RX_DONE | INT_TX_DONE;
+ 397              		.loc 1 208 0
+ 398 0286 4FF0A043 		mov	r3, #1342177280
+ 399 028a 8822     		movs	r2, #136
+ 400 028c C3F8E42F 		str	r2, [r3, #4068]
+ 209:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 210:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Reset all interrupts */
+ 211:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->IntClear  = 0xFFFF;
+ 401              		.loc 1 211 0
+ 402 0290 4FF0A043 		mov	r3, #1342177280
+ 403 0294 4FF6FF72 		movw	r2, #65535
+ 404 0298 C3F8E82F 		str	r2, [r3, #4072]
+ 212:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 213:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Enable receive and transmit mode of MAC Ethernet core */
+ 214:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->Command  |= (CR_RX_EN | CR_TX_EN);
+ 405              		.loc 1 214 0
+ 406 029c 4FF0A042 		mov	r2, #1342177280
+ 407 02a0 4FF0A043 		mov	r3, #1342177280
+ 408 02a4 D3F80031 		ldr	r3, [r3, #256]
+ 409 02a8 43F00303 		orr	r3, r3, #3
+ 410 02ac C2F80031 		str	r3, [r2, #256]
+ 215:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MAC1     |= MAC1_REC_EN;
+ 411              		.loc 1 215 0
+ 412 02b0 4FF0A042 		mov	r2, #1342177280
+ 413 02b4 4FF0A043 		mov	r3, #1342177280
+ 414 02b8 1B68     		ldr	r3, [r3]
+ 415 02ba 43F00103 		orr	r3, r3, #1
+ 416 02be 1360     		str	r3, [r2]
+ 216:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 217:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    /* Configure VIC for EMAC interrupt. */
+ 218:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    //VICVectAddrxx = (UNS_32)xx;
+ 219:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****    
+ 220:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   return TRUE;
+ 417              		.loc 1 220 0
+ 418 02c0 0123     		movs	r3, #1
+ 419              	.L15:
+ 221:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 420              		.loc 1 221 0
+ 421 02c2 1846     		mov	r0, r3
+ 422 02c4 2037     		adds	r7, r7, #32
+ 423              		.cfi_def_cfa_offset 8
+ 424 02c6 BD46     		mov	sp, r7
+ 425              		.cfi_def_cfa_register 13
+ 426              		@ sp needed
+ 427 02c8 80BD     		pop	{r7, pc}
+ 428              	.L36:
+ 429 02ca 00BF     		.align	2
+ 430              	.L35:
+ 431 02cc 00C00F40 		.word	1074774016
+ 432 02d0 00C00240 		.word	1073922048
+ 433 02d4 05011550 		.word	1343553797
+ 434 02d8 905C0020 		.word	536894608
+ 435 02dc F0C00700 		.word	508144
+ 436              		.cfi_endproc
+ 437              	.LFE29:
+ 439              		.section	.text.write_PHY,"ax",%progbits
+ 440              		.align	2
+ 441              		.thumb
+ 442              		.thumb_func
+ 444              	write_PHY:
+ 445              	.LFB30:
+ 222:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 223:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- write_PHY -------------------------------------*/
+ 224:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 225:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void write_PHY (UNS_32 PhyReg, UNS_32 Value)
+ 226:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+ 446              		.loc 1 226 0
+ 447              		.cfi_startproc
+ 448              		@ args = 0, pretend = 0, frame = 16
+ 449              		@ frame_needed = 1, uses_anonymous_args = 0
+ 450              		@ link register save eliminated.
+ 451 0000 80B4     		push	{r7}
+ 452              		.cfi_def_cfa_offset 4
+ 453              		.cfi_offset 7, -4
+ 454 0002 85B0     		sub	sp, sp, #20
+ 455              		.cfi_def_cfa_offset 24
+ 456 0004 00AF     		add	r7, sp, #0
+ 457              		.cfi_def_cfa_register 7
+ 458 0006 7860     		str	r0, [r7, #4]
+ 459 0008 3960     		str	r1, [r7]
+ 227:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   unsigned int tout;
+ 228:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 229:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MADR = DP83848C_DEF_ADR | PhyReg;
+ 460              		.loc 1 229 0
+ 461 000a 4FF0A042 		mov	r2, #1342177280
+ 462 000e 7B68     		ldr	r3, [r7, #4]
+ 463 0010 43F48073 		orr	r3, r3, #256
+ 464 0014 9362     		str	r3, [r2, #40]
+ 230:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MWTD = Value;
+ 465              		.loc 1 230 0
+ 466 0016 4FF0A042 		mov	r2, #1342177280
+ 467 001a 3B68     		ldr	r3, [r7]
+ 468 001c D362     		str	r3, [r2, #44]
+ 231:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 232:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Wait utill operation completed */
+ 233:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   tout = 0;
+ 469              		.loc 1 233 0
+ 470 001e 0023     		movs	r3, #0
+ 471 0020 FB60     		str	r3, [r7, #12]
+ 234:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_WR_TOUT; tout++) {
+ 472              		.loc 1 234 0
+ 473 0022 0023     		movs	r3, #0
+ 474 0024 FB60     		str	r3, [r7, #12]
+ 475 0026 09E0     		b	.L38
+ 476              	.L41:
+ 235:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     if ((LPC_EMAC->MIND & MIND_BUSY) == 0) {
+ 477              		.loc 1 235 0
+ 478 0028 4FF0A043 		mov	r3, #1342177280
+ 479 002c 5B6B     		ldr	r3, [r3, #52]
+ 480 002e 03F00103 		and	r3, r3, #1
+ 481 0032 002B     		cmp	r3, #0
+ 482 0034 07D0     		beq	.L42
+ 234:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_WR_TOUT; tout++) {
+ 483              		.loc 1 234 0 discriminator 2
+ 484 0036 FB68     		ldr	r3, [r7, #12]
+ 485 0038 0133     		adds	r3, r3, #1
+ 486 003a FB60     		str	r3, [r7, #12]
+ 487              	.L38:
+ 234:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_WR_TOUT; tout++) {
+ 488              		.loc 1 234 0 is_stmt 0 discriminator 1
+ 489 003c FB68     		ldr	r3, [r7, #12]
+ 490 003e B3F5A02F 		cmp	r3, #327680
+ 491 0042 F1D3     		bcc	.L41
+ 236:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       break;
+ 237:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     }
+ 238:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }   
+ 239:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 492              		.loc 1 239 0 is_stmt 1
+ 493 0044 00E0     		b	.L40
+ 494              	.L42:
+ 236:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       break;
+ 495              		.loc 1 236 0
+ 496 0046 00BF     		nop
+ 497              	.L40:
+ 498              		.loc 1 239 0
+ 499 0048 00BF     		nop
+ 500 004a 1437     		adds	r7, r7, #20
+ 501              		.cfi_def_cfa_offset 4
+ 502 004c BD46     		mov	sp, r7
+ 503              		.cfi_def_cfa_register 13
+ 504              		@ sp needed
+ 505 004e 80BC     		pop	{r7}
+ 506              		.cfi_restore 7
+ 507              		.cfi_def_cfa_offset 0
+ 508 0050 7047     		bx	lr
+ 509              		.cfi_endproc
+ 510              	.LFE30:
+ 512 0052 00BF     		.section	.text.read_PHY,"ax",%progbits
+ 513              		.align	2
+ 514              		.thumb
+ 515              		.thumb_func
+ 517              	read_PHY:
+ 518              	.LFB31:
+ 240:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 241:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- read_PHY -------------------------------------*/
+ 242:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 243:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static UNS_16 read_PHY (UNS_8 PhyReg)
+ 244:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+ 519              		.loc 1 244 0
+ 520              		.cfi_startproc
+ 521              		@ args = 0, pretend = 0, frame = 16
+ 522              		@ frame_needed = 1, uses_anonymous_args = 0
+ 523              		@ link register save eliminated.
+ 524 0000 80B4     		push	{r7}
+ 525              		.cfi_def_cfa_offset 4
+ 526              		.cfi_offset 7, -4
+ 527 0002 85B0     		sub	sp, sp, #20
+ 528              		.cfi_def_cfa_offset 24
+ 529 0004 00AF     		add	r7, sp, #0
+ 530              		.cfi_def_cfa_register 7
+ 531 0006 0346     		mov	r3, r0
+ 532 0008 FB71     		strb	r3, [r7, #7]
+ 245:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   UNS_32 tout;
+ 246:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 247:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MADR = DP83848C_DEF_ADR | PhyReg;
+ 533              		.loc 1 247 0
+ 534 000a 4FF0A042 		mov	r2, #1342177280
+ 535 000e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 536 0010 43F48073 		orr	r3, r3, #256
+ 537 0014 9362     		str	r3, [r2, #40]
+ 248:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MCMD = MCMD_READ;
+ 538              		.loc 1 248 0
+ 539 0016 4FF0A043 		mov	r3, #1342177280
+ 540 001a 0122     		movs	r2, #1
+ 541 001c 5A62     		str	r2, [r3, #36]
+ 249:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 250:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Wait until operation completed */
+ 251:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   tout = 0;
+ 542              		.loc 1 251 0
+ 543 001e 0023     		movs	r3, #0
+ 544 0020 FB60     		str	r3, [r7, #12]
+ 252:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_RD_TOUT; tout++) {
+ 545              		.loc 1 252 0
+ 546 0022 0023     		movs	r3, #0
+ 547 0024 FB60     		str	r3, [r7, #12]
+ 548 0026 09E0     		b	.L44
+ 549              	.L47:
+ 253:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     if ((LPC_EMAC->MIND & MIND_BUSY) == 0) {
+ 550              		.loc 1 253 0
+ 551 0028 4FF0A043 		mov	r3, #1342177280
+ 552 002c 5B6B     		ldr	r3, [r3, #52]
+ 553 002e 03F00103 		and	r3, r3, #1
+ 554 0032 002B     		cmp	r3, #0
+ 555 0034 07D0     		beq	.L49
+ 252:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_RD_TOUT; tout++) {
+ 556              		.loc 1 252 0 discriminator 2
+ 557 0036 FB68     		ldr	r3, [r7, #12]
+ 558 0038 0133     		adds	r3, r3, #1
+ 559 003a FB60     		str	r3, [r7, #12]
+ 560              	.L44:
+ 252:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (tout = 0; tout < MII_RD_TOUT; tout++) {
+ 561              		.loc 1 252 0 is_stmt 0 discriminator 1
+ 562 003c FB68     		ldr	r3, [r7, #12]
+ 563 003e B3F5A02F 		cmp	r3, #327680
+ 564 0042 F1D3     		bcc	.L47
+ 565 0044 00E0     		b	.L46
+ 566              	.L49:
+ 254:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****       break;
+ 567              		.loc 1 254 0 is_stmt 1
+ 568 0046 00BF     		nop
+ 569              	.L46:
+ 255:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     }
+ 256:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 257:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->MCMD = 0;
+ 570              		.loc 1 257 0
+ 571 0048 4FF0A043 		mov	r3, #1342177280
+ 572 004c 0022     		movs	r2, #0
+ 573 004e 5A62     		str	r2, [r3, #36]
+ 258:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   return (LPC_EMAC->MRDD);
+ 574              		.loc 1 258 0
+ 575 0050 4FF0A043 		mov	r3, #1342177280
+ 576 0054 1B6B     		ldr	r3, [r3, #48]
+ 577 0056 9BB2     		uxth	r3, r3
+ 259:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 578              		.loc 1 259 0
+ 579 0058 1846     		mov	r0, r3
+ 580 005a 1437     		adds	r7, r7, #20
+ 581              		.cfi_def_cfa_offset 4
+ 582 005c BD46     		mov	sp, r7
+ 583              		.cfi_def_cfa_register 13
+ 584              		@ sp needed
+ 585 005e 80BC     		pop	{r7}
+ 586              		.cfi_restore 7
+ 587              		.cfi_def_cfa_offset 0
+ 588 0060 7047     		bx	lr
+ 589              		.cfi_endproc
+ 590              	.LFE31:
+ 592 0062 00BF     		.section	.text.EMAC_ReadPacket,"ax",%progbits
+ 593              		.align	2
+ 594              		.global	EMAC_ReadPacket
+ 595              		.thumb
+ 596              		.thumb_func
+ 598              	EMAC_ReadPacket:
+ 599              	.LFB32:
+ 260:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 261:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- EMAC_ReadPacket ---------------------------------*/
+ 262:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 263:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** UNS_32 EMAC_ReadPacket(void * pPacket)
+ 264:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+ 600              		.loc 1 264 0
+ 601              		.cfi_startproc
+ 602              		@ args = 0, pretend = 0, frame = 16
+ 603              		@ frame_needed = 1, uses_anonymous_args = 0
+ 604 0000 80B5     		push	{r7, lr}
+ 605              		.cfi_def_cfa_offset 8
+ 606              		.cfi_offset 7, -8
+ 607              		.cfi_offset 14, -4
+ 608 0002 84B0     		sub	sp, sp, #16
+ 609              		.cfi_def_cfa_offset 24
+ 610 0004 00AF     		add	r7, sp, #0
+ 611              		.cfi_def_cfa_register 7
+ 612 0006 7860     		str	r0, [r7, #4]
+ 265:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	UNS_32 Index = LPC_EMAC->RxConsumeIndex;
+ 613              		.loc 1 265 0
+ 614 0008 4FF0A043 		mov	r3, #1342177280
+ 615 000c D3F81831 		ldr	r3, [r3, #280]
+ 616 0010 FB60     		str	r3, [r7, #12]
+ 266:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	UNS_32 size;
+ 267:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 268:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if(Index == LPC_EMAC->RxProduceIndex)
+ 617              		.loc 1 268 0
+ 618 0012 4FF0A043 		mov	r3, #1342177280
+ 619 0016 D3F81421 		ldr	r2, [r3, #276]
+ 620 001a FB68     		ldr	r3, [r7, #12]
+ 621 001c 9A42     		cmp	r2, r3
+ 622 001e 01D1     		bne	.L51
+ 269:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   {
+ 270:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     return(0);
+ 623              		.loc 1 270 0
+ 624 0020 0023     		movs	r3, #0
+ 625 0022 2EE0     		b	.L52
+ 626              	.L51:
+ 271:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 272:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 273:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   size = (RX_STAT_INFO(Index) & 0x7ff)+1; 
+ 627              		.loc 1 273 0
+ 628 0024 FA68     		ldr	r2, [r7, #12]
+ 629 0026 194B     		ldr	r3, .L55
+ 630 0028 1344     		add	r3, r3, r2
+ 631 002a DB00     		lsls	r3, r3, #3
+ 632 002c 1B68     		ldr	r3, [r3]
+ 633 002e C3F30A03 		ubfx	r3, r3, #0, #11
+ 634 0032 0133     		adds	r3, r3, #1
+ 635 0034 BB60     		str	r3, [r7, #8]
+ 274:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (size > ETH_FRAG_SIZE)
+ 636              		.loc 1 274 0
+ 637 0036 BB68     		ldr	r3, [r7, #8]
+ 638 0038 B3F5C06F 		cmp	r3, #1536
+ 639 003c 02D9     		bls	.L53
+ 275:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	size = ETH_FRAG_SIZE;
+ 640              		.loc 1 275 0
+ 641 003e 4FF4C063 		mov	r3, #1536
+ 642 0042 BB60     		str	r3, [r7, #8]
+ 643              	.L53:
+ 276:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	
+ 277:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   memcpy(pPacket,(unsigned int *)RX_BUF(Index),size);
+ 644              		.loc 1 277 0
+ 645 0044 FA68     		ldr	r2, [r7, #12]
+ 646 0046 1346     		mov	r3, r2
+ 647 0048 5B00     		lsls	r3, r3, #1
+ 648 004a 1344     		add	r3, r3, r2
+ 649 004c 5B02     		lsls	r3, r3, #9
+ 650 004e 1A46     		mov	r2, r3
+ 651 0050 0F4B     		ldr	r3, .L55+4
+ 652 0052 1344     		add	r3, r3, r2
+ 653 0054 BA68     		ldr	r2, [r7, #8]
+ 654 0056 1946     		mov	r1, r3
+ 655 0058 7868     		ldr	r0, [r7, #4]
+ 656 005a FFF7FEFF 		bl	memcpy
+ 278:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 279:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if(++Index > LPC_EMAC->RxDescriptorNumber)
+ 657              		.loc 1 279 0
+ 658 005e FB68     		ldr	r3, [r7, #12]
+ 659 0060 0133     		adds	r3, r3, #1
+ 660 0062 FB60     		str	r3, [r7, #12]
+ 661 0064 4FF0A043 		mov	r3, #1342177280
+ 662 0068 D3F81031 		ldr	r3, [r3, #272]
+ 663 006c FA68     		ldr	r2, [r7, #12]
+ 664 006e 9A42     		cmp	r2, r3
+ 665 0070 01D9     		bls	.L54
+ 280:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   {
+ 281:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     Index = 0;
+ 666              		.loc 1 281 0
+ 667 0072 0023     		movs	r3, #0
+ 668 0074 FB60     		str	r3, [r7, #12]
+ 669              	.L54:
+ 282:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 283:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxConsumeIndex = Index;
+ 670              		.loc 1 283 0
+ 671 0076 4FF0A042 		mov	r2, #1342177280
+ 672 007a FB68     		ldr	r3, [r7, #12]
+ 673 007c C2F81831 		str	r3, [r2, #280]
+ 284:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   
+ 285:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   return(size);
+ 674              		.loc 1 285 0
+ 675 0080 BB68     		ldr	r3, [r7, #8]
+ 676              	.L52:
+ 286:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 677              		.loc 1 286 0
+ 678 0082 1846     		mov	r0, r3
+ 679 0084 1037     		adds	r7, r7, #16
+ 680              		.cfi_def_cfa_offset 8
+ 681 0086 BD46     		mov	sp, r7
+ 682              		.cfi_def_cfa_register 13
+ 683              		@ sp needed
+ 684 0088 80BD     		pop	{r7, pc}
+ 685              	.L56:
+ 686 008a 00BF     		.align	2
+ 687              	.L55:
+ 688 008c 04000104 		.word	67174404
+ 689 0090 64000820 		.word	537395300
+ 690              		.cfi_endproc
+ 691              	.LFE32:
+ 693              		.section	.text.EMAC_SendPacket,"ax",%progbits
+ 694              		.align	2
+ 695              		.global	EMAC_SendPacket
+ 696              		.thumb
+ 697              		.thumb_func
+ 699              	EMAC_SendPacket:
+ 700              	.LFB33:
+ 287:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 288:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- EMAC_SendPacket ---------------------------------*/
+ 289:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 290:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** BOOL_32 EMAC_SendPacket(void *pPacket, UNS_32 size)
+ 291:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+ 701              		.loc 1 291 0
+ 702              		.cfi_startproc
+ 703              		@ args = 0, pretend = 0, frame = 16
+ 704              		@ frame_needed = 1, uses_anonymous_args = 0
+ 705 0000 80B5     		push	{r7, lr}
+ 706              		.cfi_def_cfa_offset 8
+ 707              		.cfi_offset 7, -8
+ 708              		.cfi_offset 14, -4
+ 709 0002 84B0     		sub	sp, sp, #16
+ 710              		.cfi_def_cfa_offset 24
+ 711 0004 00AF     		add	r7, sp, #0
+ 712              		.cfi_def_cfa_register 7
+ 713 0006 7860     		str	r0, [r7, #4]
+ 714 0008 3960     		str	r1, [r7]
+ 292:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	UNS_32 	Index;
+ 293:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	UNS_32	IndexNext = LPC_EMAC->TxProduceIndex + 1;
+ 715              		.loc 1 293 0
+ 716 000a 4FF0A043 		mov	r3, #1342177280
+ 717 000e D3F82831 		ldr	r3, [r3, #296]
+ 718 0012 0133     		adds	r3, r3, #1
+ 719 0014 FB60     		str	r3, [r7, #12]
+ 294:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 	
+ 295:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if(size == 0)
+ 720              		.loc 1 295 0
+ 721 0016 3B68     		ldr	r3, [r7]
+ 722 0018 002B     		cmp	r3, #0
+ 723 001a 01D1     		bne	.L58
+ 296:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   {
+ 297:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     return(TRUE);
+ 724              		.loc 1 297 0
+ 725 001c 0123     		movs	r3, #1
+ 726 001e 4FE0     		b	.L59
+ 727              	.L58:
+ 298:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 299:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if(IndexNext > LPC_EMAC->TxDescriptorNumber)
+ 728              		.loc 1 299 0
+ 729 0020 4FF0A043 		mov	r3, #1342177280
+ 730 0024 D3F82421 		ldr	r2, [r3, #292]
+ 731 0028 FB68     		ldr	r3, [r7, #12]
+ 732 002a 9A42     		cmp	r2, r3
+ 733 002c 01D2     		bcs	.L60
+ 300:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   {
+ 301:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     IndexNext = 0;
+ 734              		.loc 1 301 0
+ 735 002e 0023     		movs	r3, #0
+ 736 0030 FB60     		str	r3, [r7, #12]
+ 737              	.L60:
+ 302:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 303:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****  
+ 304:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if(IndexNext == LPC_EMAC->TxConsumeIndex)
+ 738              		.loc 1 304 0
+ 739 0032 4FF0A043 		mov	r3, #1342177280
+ 740 0036 D3F82C21 		ldr	r2, [r3, #300]
+ 741 003a FB68     		ldr	r3, [r7, #12]
+ 742 003c 9A42     		cmp	r2, r3
+ 743 003e 01D1     		bne	.L61
+ 305:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   {
+ 306:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     return(FALSE);
+ 744              		.loc 1 306 0
+ 745 0040 0023     		movs	r3, #0
+ 746 0042 3DE0     		b	.L59
+ 747              	.L61:
+ 307:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 308:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   Index = LPC_EMAC->TxProduceIndex;
+ 748              		.loc 1 308 0
+ 749 0044 4FF0A043 		mov	r3, #1342177280
+ 750 0048 D3F82831 		ldr	r3, [r3, #296]
+ 751 004c BB60     		str	r3, [r7, #8]
+ 309:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   if (size > ETH_FRAG_SIZE)
+ 752              		.loc 1 309 0
+ 753 004e 3B68     		ldr	r3, [r7]
+ 754 0050 B3F5C06F 		cmp	r3, #1536
+ 755 0054 02D9     		bls	.L62
+ 310:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   	size = ETH_FRAG_SIZE;
+ 756              		.loc 1 310 0
+ 757 0056 4FF4C063 		mov	r3, #1536
+ 758 005a 3B60     		str	r3, [r7]
+ 759              	.L62:
+ 311:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 312:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   memcpy((unsigned int *)TX_BUF(Index),pPacket,size);  
+ 760              		.loc 1 312 0
+ 761 005c BA68     		ldr	r2, [r7, #8]
+ 762 005e 1346     		mov	r3, r2
+ 763 0060 5B00     		lsls	r3, r3, #1
+ 764 0062 1344     		add	r3, r3, r2
+ 765 0064 5B02     		lsls	r3, r3, #9
+ 766 0066 1A46     		mov	r2, r3
+ 767 0068 174B     		ldr	r3, .L63
+ 768 006a 1344     		add	r3, r3, r2
+ 769 006c 3A68     		ldr	r2, [r7]
+ 770 006e 7968     		ldr	r1, [r7, #4]
+ 771 0070 1846     		mov	r0, r3
+ 772 0072 FFF7FEFF 		bl	memcpy
+ 313:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   TX_DESC_CTRL(Index) &= ~0x7ff;
+ 773              		.loc 1 313 0
+ 774 0076 BB68     		ldr	r3, [r7, #8]
+ 775 0078 DA00     		lsls	r2, r3, #3
+ 776 007a 144B     		ldr	r3, .L63+4
+ 777 007c 1344     		add	r3, r3, r2
+ 778 007e 1946     		mov	r1, r3
+ 779 0080 BB68     		ldr	r3, [r7, #8]
+ 780 0082 DA00     		lsls	r2, r3, #3
+ 781 0084 114B     		ldr	r3, .L63+4
+ 782 0086 1344     		add	r3, r3, r2
+ 783 0088 1B68     		ldr	r3, [r3]
+ 784 008a 23F4FF63 		bic	r3, r3, #2040
+ 785 008e 23F00703 		bic	r3, r3, #7
+ 786 0092 0B60     		str	r3, [r1]
+ 314:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   TX_DESC_CTRL(Index) |= (size - 1) & 0x7ff; 
+ 787              		.loc 1 314 0
+ 788 0094 BB68     		ldr	r3, [r7, #8]
+ 789 0096 DA00     		lsls	r2, r3, #3
+ 790 0098 0C4B     		ldr	r3, .L63+4
+ 791 009a 1344     		add	r3, r3, r2
+ 792 009c 1946     		mov	r1, r3
+ 793 009e BB68     		ldr	r3, [r7, #8]
+ 794 00a0 DA00     		lsls	r2, r3, #3
+ 795 00a2 0A4B     		ldr	r3, .L63+4
+ 796 00a4 1344     		add	r3, r3, r2
+ 797 00a6 1A68     		ldr	r2, [r3]
+ 798 00a8 3B68     		ldr	r3, [r7]
+ 799 00aa 013B     		subs	r3, r3, #1
+ 800 00ac C3F30A03 		ubfx	r3, r3, #0, #11
+ 801 00b0 1343     		orrs	r3, r3, r2
+ 802 00b2 0B60     		str	r3, [r1]
+ 315:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 316:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->TxProduceIndex = IndexNext;
+ 803              		.loc 1 316 0
+ 804 00b4 4FF0A042 		mov	r2, #1342177280
+ 805 00b8 FB68     		ldr	r3, [r7, #12]
+ 806 00ba C2F82831 		str	r3, [r2, #296]
+ 317:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 318:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   return(TRUE);
+ 807              		.loc 1 318 0
+ 808 00be 0123     		movs	r3, #1
+ 809              	.L59:
+ 319:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 810              		.loc 1 319 0
+ 811 00c0 1846     		mov	r0, r3
+ 812 00c2 1037     		adds	r7, r7, #16
+ 813              		.cfi_def_cfa_offset 8
+ 814 00c4 BD46     		mov	sp, r7
+ 815              		.cfi_def_cfa_register 13
+ 816              		@ sp needed
+ 817 00c6 80BD     		pop	{r7, pc}
+ 818              	.L64:
+ 819              		.align	2
+ 820              	.L63:
+ 821 00c8 64180820 		.word	537401444
+ 822 00cc 44000820 		.word	537395268
+ 823              		.cfi_endproc
+ 824              	.LFE33:
+ 826              		.section	.text.rx_descr_init,"ax",%progbits
+ 827              		.align	2
+ 828              		.thumb
+ 829              		.thumb_func
+ 831              	rx_descr_init:
+ 832              	.LFB34:
+ 320:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 321:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- rx_descr_init ---------------------------------*/
+ 322:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 323:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void rx_descr_init (void)
+ 324:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** {
+ 833              		.loc 1 324 0
+ 834              		.cfi_startproc
+ 835              		@ args = 0, pretend = 0, frame = 8
+ 836              		@ frame_needed = 1, uses_anonymous_args = 0
+ 837              		@ link register save eliminated.
+ 838 0000 80B4     		push	{r7}
+ 839              		.cfi_def_cfa_offset 4
+ 840              		.cfi_offset 7, -4
+ 841 0002 83B0     		sub	sp, sp, #12
+ 842              		.cfi_def_cfa_offset 16
+ 843 0004 00AF     		add	r7, sp, #0
+ 844              		.cfi_def_cfa_register 7
+ 325:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   UNS_32 i;
+ 326:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 327:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (i = 0; i < NUM_RX_FRAG; i++) {
+ 845              		.loc 1 327 0
+ 846 0006 0023     		movs	r3, #0
+ 847 0008 7B60     		str	r3, [r7, #4]
+ 848 000a 27E0     		b	.L66
+ 849              	.L67:
+ 328:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_DESC_PACKET(i)  = RX_BUF(i);
+ 850              		.loc 1 328 0 discriminator 3
+ 851 000c 7B68     		ldr	r3, [r7, #4]
+ 852 000e 03F18063 		add	r3, r3, #67108864
+ 853 0012 03F58033 		add	r3, r3, #65536
+ 854 0016 DB00     		lsls	r3, r3, #3
+ 855 0018 1946     		mov	r1, r3
+ 856 001a 7A68     		ldr	r2, [r7, #4]
+ 857 001c 1346     		mov	r3, r2
+ 858 001e 5B00     		lsls	r3, r3, #1
+ 859 0020 1344     		add	r3, r3, r2
+ 860 0022 5B02     		lsls	r3, r3, #9
+ 861 0024 1A46     		mov	r2, r3
+ 862 0026 1B4B     		ldr	r3, .L68
+ 863 0028 1344     		add	r3, r3, r2
+ 864 002a 0B60     		str	r3, [r1]
+ 329:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_DESC_CTRL(i)    = RCTRL_INT | (ETH_FRAG_SIZE-1);
+ 865              		.loc 1 329 0 discriminator 3
+ 866 002c 7B68     		ldr	r3, [r7, #4]
+ 867 002e DA00     		lsls	r2, r3, #3
+ 868 0030 194B     		ldr	r3, .L68+4
+ 869 0032 1344     		add	r3, r3, r2
+ 870 0034 1A46     		mov	r2, r3
+ 871 0036 194B     		ldr	r3, .L68+8
+ 872 0038 1360     		str	r3, [r2]
+ 330:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_STAT_INFO(i)    = 0;
+ 873              		.loc 1 330 0 discriminator 3
+ 874 003a 7A68     		ldr	r2, [r7, #4]
+ 875 003c 184B     		ldr	r3, .L68+12
+ 876 003e 1344     		add	r3, r3, r2
+ 877 0040 DB00     		lsls	r3, r3, #3
+ 878 0042 1A46     		mov	r2, r3
+ 879 0044 0023     		movs	r3, #0
+ 880 0046 1360     		str	r3, [r2]
+ 331:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_STAT_HASHCRC(i) = 0;
+ 881              		.loc 1 331 0 discriminator 3
+ 882 0048 7B68     		ldr	r3, [r7, #4]
+ 883 004a DA00     		lsls	r2, r3, #3
+ 884 004c 154B     		ldr	r3, .L68+16
+ 885 004e 1344     		add	r3, r3, r2
+ 886 0050 1A46     		mov	r2, r3
+ 887 0052 0023     		movs	r3, #0
+ 888 0054 1360     		str	r3, [r2]
+ 327:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_DESC_PACKET(i)  = RX_BUF(i);
+ 889              		.loc 1 327 0 discriminator 3
+ 890 0056 7B68     		ldr	r3, [r7, #4]
+ 891 0058 0133     		adds	r3, r3, #1
+ 892 005a 7B60     		str	r3, [r7, #4]
+ 893              	.L66:
+ 327:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     RX_DESC_PACKET(i)  = RX_BUF(i);
+ 894              		.loc 1 327 0 is_stmt 0 discriminator 1
+ 895 005c 7B68     		ldr	r3, [r7, #4]
+ 896 005e 032B     		cmp	r3, #3
+ 897 0060 D4D9     		bls	.L67
+ 332:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 333:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 334:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Set EMAC Receive Descriptor Registers. */
+ 335:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxDescriptor    = RX_DESC_BASE;
+ 898              		.loc 1 335 0 is_stmt 1
+ 899 0062 4FF0A043 		mov	r3, #1342177280
+ 900 0066 104A     		ldr	r2, .L68+20
+ 901 0068 C3F80821 		str	r2, [r3, #264]
+ 336:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxStatus        = RX_STAT_BASE;
+ 902              		.loc 1 336 0
+ 903 006c 4FF0A043 		mov	r3, #1342177280
+ 904 0070 0E4A     		ldr	r2, .L68+24
+ 905 0072 C3F80C21 		str	r2, [r3, #268]
+ 337:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxDescriptorNumber = NUM_RX_FRAG-1;
+ 906              		.loc 1 337 0
+ 907 0076 4FF0A043 		mov	r3, #1342177280
+ 908 007a 0322     		movs	r2, #3
+ 909 007c C3F81021 		str	r2, [r3, #272]
+ 338:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 339:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Rx Descriptors Point to 0 */
+ 340:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->RxConsumeIndex  = 0;
+ 910              		.loc 1 340 0
+ 911 0080 4FF0A043 		mov	r3, #1342177280
+ 912 0084 0022     		movs	r2, #0
+ 913 0086 C3F81821 		str	r2, [r3, #280]
+ 341:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 914              		.loc 1 341 0
+ 915 008a 00BF     		nop
+ 916 008c 0C37     		adds	r7, r7, #12
+ 917              		.cfi_def_cfa_offset 4
+ 918 008e BD46     		mov	sp, r7
+ 919              		.cfi_def_cfa_register 13
+ 920              		@ sp needed
+ 921 0090 80BC     		pop	{r7}
+ 922              		.cfi_restore 7
+ 923              		.cfi_def_cfa_offset 0
+ 924 0092 7047     		bx	lr
+ 925              	.L69:
+ 926              		.align	2
+ 927              	.L68:
+ 928 0094 64000820 		.word	537395300
+ 929 0098 04000820 		.word	537395204
+ 930 009c FF050080 		.word	-2147482113
+ 931 00a0 04000104 		.word	67174404
+ 932 00a4 24000820 		.word	537395236
+ 933 00a8 00000820 		.word	537395200
+ 934 00ac 20000820 		.word	537395232
+ 935              		.cfi_endproc
+ 936              	.LFE34:
+ 938              		.section	.text.tx_descr_init,"ax",%progbits
+ 939              		.align	2
+ 940              		.thumb
+ 941              		.thumb_func
+ 943              	tx_descr_init:
+ 944              	.LFB35:
+ 342:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 343:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 344:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** /*--------------------------- tx_descr_init ---------------------------------*/
+ 345:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 346:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** static void tx_descr_init (void) {
+ 945              		.loc 1 346 0
+ 946              		.cfi_startproc
+ 947              		@ args = 0, pretend = 0, frame = 8
+ 948              		@ frame_needed = 1, uses_anonymous_args = 0
+ 949              		@ link register save eliminated.
+ 950 0000 80B4     		push	{r7}
+ 951              		.cfi_def_cfa_offset 4
+ 952              		.cfi_offset 7, -4
+ 953 0002 83B0     		sub	sp, sp, #12
+ 954              		.cfi_def_cfa_offset 16
+ 955 0004 00AF     		add	r7, sp, #0
+ 956              		.cfi_def_cfa_register 7
+ 347:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   UNS_32 i;
+ 348:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 349:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   for (i = 0; i < NUM_TX_FRAG; i++) {
+ 957              		.loc 1 349 0
+ 958 0006 0023     		movs	r3, #0
+ 959 0008 7B60     		str	r3, [r7, #4]
+ 960 000a 1EE0     		b	.L71
+ 961              	.L72:
+ 350:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     TX_DESC_PACKET(i) = TX_BUF(i);
+ 962              		.loc 1 350 0 discriminator 3
+ 963 000c 7A68     		ldr	r2, [r7, #4]
+ 964 000e 1D4B     		ldr	r3, .L73
+ 965 0010 1344     		add	r3, r3, r2
+ 966 0012 DB00     		lsls	r3, r3, #3
+ 967 0014 1946     		mov	r1, r3
+ 968 0016 7A68     		ldr	r2, [r7, #4]
+ 969 0018 1346     		mov	r3, r2
+ 970 001a 5B00     		lsls	r3, r3, #1
+ 971 001c 1344     		add	r3, r3, r2
+ 972 001e 5B02     		lsls	r3, r3, #9
+ 973 0020 1A46     		mov	r2, r3
+ 974 0022 194B     		ldr	r3, .L73+4
+ 975 0024 1344     		add	r3, r3, r2
+ 976 0026 0B60     		str	r3, [r1]
+ 351:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     TX_DESC_CTRL(i)   = (1<<31) | (1<<30) | (1<<29) | (1<<28) | (1<<26) | (ETH_FRAG_SIZE-1);
+ 977              		.loc 1 351 0 discriminator 3
+ 978 0028 7B68     		ldr	r3, [r7, #4]
+ 979 002a DA00     		lsls	r2, r3, #3
+ 980 002c 174B     		ldr	r3, .L73+8
+ 981 002e 1344     		add	r3, r3, r2
+ 982 0030 1A46     		mov	r2, r3
+ 983 0032 174B     		ldr	r3, .L73+12
+ 984 0034 1360     		str	r3, [r2]
+ 352:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     TX_STAT_INFO(i)   = 0;
+ 985              		.loc 1 352 0 discriminator 3
+ 986 0036 7A68     		ldr	r2, [r7, #4]
+ 987 0038 164B     		ldr	r3, .L73+16
+ 988 003a 1344     		add	r3, r3, r2
+ 989 003c 9B00     		lsls	r3, r3, #2
+ 990 003e 1A46     		mov	r2, r3
+ 991 0040 0023     		movs	r3, #0
+ 992 0042 1360     		str	r3, [r2]
+ 349:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     TX_DESC_PACKET(i) = TX_BUF(i);
+ 993              		.loc 1 349 0 discriminator 3
+ 994 0044 7B68     		ldr	r3, [r7, #4]
+ 995 0046 0133     		adds	r3, r3, #1
+ 996 0048 7B60     		str	r3, [r7, #4]
+ 997              	.L71:
+ 349:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****     TX_DESC_PACKET(i) = TX_BUF(i);
+ 998              		.loc 1 349 0 is_stmt 0 discriminator 1
+ 999 004a 7B68     		ldr	r3, [r7, #4]
+ 1000 004c 022B     		cmp	r3, #2
+ 1001 004e DDD9     		bls	.L72
+ 353:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   }
+ 354:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 355:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Set EMAC Transmit Descriptor Registers. */
+ 356:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->TxDescriptor    = TX_DESC_BASE;
+ 1002              		.loc 1 356 0 is_stmt 1
+ 1003 0050 4FF0A043 		mov	r3, #1342177280
+ 1004 0054 104A     		ldr	r2, .L73+20
+ 1005 0056 C3F81C21 		str	r2, [r3, #284]
+ 357:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->TxStatus        = TX_STAT_BASE;
+ 1006              		.loc 1 357 0
+ 1007 005a 4FF0A043 		mov	r3, #1342177280
+ 1008 005e 0F4A     		ldr	r2, .L73+24
+ 1009 0060 C3F82021 		str	r2, [r3, #288]
+ 358:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->TxDescriptorNumber = NUM_TX_FRAG-1;
+ 1010              		.loc 1 358 0
+ 1011 0064 4FF0A043 		mov	r3, #1342177280
+ 1012 0068 0222     		movs	r2, #2
+ 1013 006a C3F82421 		str	r2, [r3, #292]
+ 359:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** 
+ 360:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   /* Tx Descriptors Point to 0 */
+ 361:Libraries/NXP/Drivers/source/lpc17xx_emac.c ****   LPC_EMAC->TxProduceIndex  = 0;
+ 1014              		.loc 1 361 0
+ 1015 006e 4FF0A043 		mov	r3, #1342177280
+ 1016 0072 0022     		movs	r2, #0
+ 1017 0074 C3F82821 		str	r2, [r3, #296]
+ 362:Libraries/NXP/Drivers/source/lpc17xx_emac.c **** }
+ 1018              		.loc 1 362 0
+ 1019 0078 00BF     		nop
+ 1020 007a 0C37     		adds	r7, r7, #12
+ 1021              		.cfi_def_cfa_offset 4
+ 1022 007c BD46     		mov	sp, r7
+ 1023              		.cfi_def_cfa_register 13
+ 1024              		@ sp needed
+ 1025 007e 80BC     		pop	{r7}
+ 1026              		.cfi_restore 7
+ 1027              		.cfi_def_cfa_offset 0
+ 1028 0080 7047     		bx	lr
+ 1029              	.L74:
+ 1030 0082 00BF     		.align	2
+ 1031              	.L73:
+ 1032 0084 08000104 		.word	67174408
+ 1033 0088 64180820 		.word	537401444
+ 1034 008c 44000820 		.word	537395268
+ 1035 0090 FF0500F4 		.word	-201325057
+ 1036 0094 16000208 		.word	134348822
+ 1037 0098 40000820 		.word	537395264
+ 1038 009c 58000820 		.word	537395288
+ 1039              		.cfi_endproc
+ 1040              	.LFE35:
+ 1042              		.text
+ 1043              	.Letext0:
+ 1044              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 1045              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 1046              		.file 4 "./CMSIS/LPC17xx.h"
+ 1047              		.file 5 "./Libraries/NXP/Drivers/include/lpc_types.h"
+ 1048              		.file 6 "./CMSIS/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_emac.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:20     .text.EMAC_Init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:25     .text.EMAC_Init:00000000 EMAC_Init
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:444    .text.write_PHY:00000000 write_PHY
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:517    .text.read_PHY:00000000 read_PHY
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:831    .text.rx_descr_init:00000000 rx_descr_init
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:943    .text.tx_descr_init:00000000 tx_descr_init
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:431    .text.EMAC_Init:000002cc $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:440    .text.write_PHY:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:513    .text.read_PHY:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:593    .text.EMAC_ReadPacket:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:598    .text.EMAC_ReadPacket:00000000 EMAC_ReadPacket
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:688    .text.EMAC_ReadPacket:0000008c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:694    .text.EMAC_SendPacket:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:699    .text.EMAC_SendPacket:00000000 EMAC_SendPacket
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:821    .text.EMAC_SendPacket:000000c8 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:827    .text.rx_descr_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:928    .text.rx_descr_init:00000094 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:939    .text.tx_descr_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccS59BsH.s:1032   .text.tx_descr_init:00000084 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+memcpy

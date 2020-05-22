@@ -1,0 +1,371 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"init.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.lwip_init,"ax",%progbits
+  20              		.align	2
+  21              		.global	lwip_init
+  22              		.thumb
+  23              		.thumb_func
+  25              	lwip_init:
+  26              	.LFB17:
+  27              		.file 1 "Libraries/lwip-1.4.0/core/init.c"
+   1:Libraries/lwip-1.4.0/core/init.c **** /**
+   2:Libraries/lwip-1.4.0/core/init.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/init.c ****  * Modules initialization
+   4:Libraries/lwip-1.4.0/core/init.c ****  *
+   5:Libraries/lwip-1.4.0/core/init.c ****  */
+   6:Libraries/lwip-1.4.0/core/init.c **** 
+   7:Libraries/lwip-1.4.0/core/init.c **** /*
+   8:Libraries/lwip-1.4.0/core/init.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/init.c ****  * All rights reserved. 
+  10:Libraries/lwip-1.4.0/core/init.c ****  * 
+  11:Libraries/lwip-1.4.0/core/init.c ****  * Redistribution and use in source and binary forms, with or without modification, 
+  12:Libraries/lwip-1.4.0/core/init.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/init.c ****  *
+  14:Libraries/lwip-1.4.0/core/init.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/init.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/init.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/init.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/init.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/init.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/init.c ****  *    derived from this software without specific prior written permission. 
+  21:Libraries/lwip-1.4.0/core/init.c ****  *
+  22:Libraries/lwip-1.4.0/core/init.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
+  23:Libraries/lwip-1.4.0/core/init.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+  24:Libraries/lwip-1.4.0/core/init.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
+  25:Libraries/lwip-1.4.0/core/init.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+  26:Libraries/lwip-1.4.0/core/init.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT 
+  27:Libraries/lwip-1.4.0/core/init.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+  28:Libraries/lwip-1.4.0/core/init.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+  29:Libraries/lwip-1.4.0/core/init.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
+  30:Libraries/lwip-1.4.0/core/init.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+  31:Libraries/lwip-1.4.0/core/init.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/init.c ****  *
+  33:Libraries/lwip-1.4.0/core/init.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/init.c ****  * 
+  35:Libraries/lwip-1.4.0/core/init.c ****  * Author: Adam Dunkels <adam@sics.se>
+  36:Libraries/lwip-1.4.0/core/init.c ****  *
+  37:Libraries/lwip-1.4.0/core/init.c ****  */
+  38:Libraries/lwip-1.4.0/core/init.c **** 
+  39:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/init.c **** 
+  41:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/init.h"
+  42:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/stats.h"
+  43:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/sys.h"
+  44:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/mem.h"
+  45:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/memp.h"
+  46:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/pbuf.h"
+  47:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/netif.h"
+  48:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/sockets.h"
+  49:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/ip.h"
+  50:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/raw.h"
+  51:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/udp.h"
+  52:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/tcp_impl.h"
+  53:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/snmp_msg.h"
+  54:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/autoip.h"
+  55:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/igmp.h"
+  56:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/dns.h"
+  57:Libraries/lwip-1.4.0/core/init.c **** #include "lwip/timers.h"
+  58:Libraries/lwip-1.4.0/core/init.c **** #include "netif/etharp.h"
+  59:Libraries/lwip-1.4.0/core/init.c **** 
+  60:Libraries/lwip-1.4.0/core/init.c **** /* Compile-time sanity checks for configuration errors.
+  61:Libraries/lwip-1.4.0/core/init.c ****  * These can be done independently of LWIP_DEBUG, without penalty.
+  62:Libraries/lwip-1.4.0/core/init.c ****  */
+  63:Libraries/lwip-1.4.0/core/init.c **** #ifndef BYTE_ORDER
+  64:Libraries/lwip-1.4.0/core/init.c ****   #error "BYTE_ORDER is not defined, you have to define it in your cc.h"
+  65:Libraries/lwip-1.4.0/core/init.c **** #endif
+  66:Libraries/lwip-1.4.0/core/init.c **** #if (!IP_SOF_BROADCAST && IP_SOF_BROADCAST_RECV)
+  67:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use broadcast filter per pcb on recv operations, you have to define IP_SOF
+  68:Libraries/lwip-1.4.0/core/init.c **** #endif
+  69:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_ARP && ARP_QUEUEING)
+  70:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use ARP Queueing, you have to define LWIP_ARP=1 in your lwipopts.h"
+  71:Libraries/lwip-1.4.0/core/init.c **** #endif
+  72:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_UDPLITE)
+  73:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use UDP Lite, you have to define LWIP_UDP=1 in your lwipopts.h"
+  74:Libraries/lwip-1.4.0/core/init.c **** #endif
+  75:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_SNMP)
+  76:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use SNMP, you have to define LWIP_UDP=1 in your lwipopts.h"
+  77:Libraries/lwip-1.4.0/core/init.c **** #endif
+  78:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_DHCP)
+  79:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use DHCP, you have to define LWIP_UDP=1 in your lwipopts.h"
+  80:Libraries/lwip-1.4.0/core/init.c **** #endif
+  81:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_IGMP)
+  82:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use IGMP, you have to define LWIP_UDP=1 in your lwipopts.h"
+  83:Libraries/lwip-1.4.0/core/init.c **** #endif
+  84:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_SNMP)
+  85:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use SNMP, you have to define LWIP_UDP=1 in your lwipopts.h"
+  86:Libraries/lwip-1.4.0/core/init.c **** #endif
+  87:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_UDP && LWIP_DNS)
+  88:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use DNS, you have to define LWIP_UDP=1 in your lwipopts.h"
+  89:Libraries/lwip-1.4.0/core/init.c **** #endif
+  90:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_ARP && ARP_QUEUEING && (MEMP_NUM_ARP_QUEUE<=0))
+  91:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use ARP Queueing, you have to define MEMP_NUM_ARP_QUEUE>=1 in your lwipopt
+  92:Libraries/lwip-1.4.0/core/init.c **** #endif
+  93:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_RAW && (MEMP_NUM_RAW_PCB<=0))
+  94:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use RAW, you have to define MEMP_NUM_RAW_PCB>=1 in your lwipopts.h"
+  95:Libraries/lwip-1.4.0/core/init.c **** #endif
+  96:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_UDP && (MEMP_NUM_UDP_PCB<=0))
+  97:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use UDP, you have to define MEMP_NUM_UDP_PCB>=1 in your lwipopts.h"
+  98:Libraries/lwip-1.4.0/core/init.c **** #endif
+  99:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && (MEMP_NUM_TCP_PCB<=0))
+ 100:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use TCP, you have to define MEMP_NUM_TCP_PCB>=1 in your lwipopts.h"
+ 101:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 102:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && (TCP_WND > 0xffff))
+ 103:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use TCP, TCP_WND must fit in an u16_t, so, you have to reduce it in your l
+ 104:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 105:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && (TCP_SND_QUEUELEN > 0xffff))
+ 106:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use TCP, TCP_SND_QUEUELEN must fit in an u16_t, so, you have to reduce it 
+ 107:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 108:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && (TCP_SND_QUEUELEN < 2))
+ 109:Libraries/lwip-1.4.0/core/init.c ****   #error "TCP_SND_QUEUELEN must be at least 2 for no-copy TCP writes to work"
+ 110:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 111:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && ((TCP_MAXRTX > 12) || (TCP_SYNMAXRTX > 12)))
+ 112:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use TCP, TCP_MAXRTX and TCP_SYNMAXRTX must less or equal to 12 (due to tcp
+ 113:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 114:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && TCP_LISTEN_BACKLOG && (TCP_DEFAULT_LISTEN_BACKLOG < 0) || (TCP_DEFAULT_LISTEN_BACK
+ 115:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use TCP backlog, TCP_DEFAULT_LISTEN_BACKLOG must fit into an u8_t"
+ 116:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 117:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_IGMP && (MEMP_NUM_IGMP_GROUP<=1))
+ 118:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use IGMP, you have to define MEMP_NUM_IGMP_GROUP>1 in your lwipopts.h"
+ 119:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 120:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_NETIF_API && (NO_SYS==1))
+ 121:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use NETIF API, you have to define NO_SYS=0 in your lwipopts.h"
+ 122:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 123:Libraries/lwip-1.4.0/core/init.c **** #if ((LWIP_SOCKET || LWIP_NETCONN) && (NO_SYS==1) && false /*NNEVES*/)
+ 124:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use Sequential API, you have to define NO_SYS=0 in your lwipopts.h"
+ 125:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 126:Libraries/lwip-1.4.0/core/init.c **** #if ((LWIP_NETCONN || LWIP_SOCKET) && (MEMP_NUM_TCPIP_MSG_API<=0))
+ 127:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use Sequential API, you have to define MEMP_NUM_TCPIP_MSG_API>=1 in your l
+ 128:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 129:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_NETCONN && LWIP_SOCKET)
+ 130:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use Socket API, you have to define LWIP_NETCONN=1 in your lwipopts.h"
+ 131:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 132:Libraries/lwip-1.4.0/core/init.c **** #if (((!LWIP_DHCP) || (!LWIP_AUTOIP)) && LWIP_DHCP_AUTOIP_COOP)
+ 133:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use DHCP/AUTOIP cooperation mode, you have to define LWIP_DHCP=1 and LWIP_
+ 134:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 135:Libraries/lwip-1.4.0/core/init.c **** #if (((!LWIP_DHCP) || (!LWIP_ARP)) && DHCP_DOES_ARP_CHECK)
+ 136:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use DHCP ARP checking, you have to define LWIP_DHCP=1 and LWIP_ARP=1 in yo
+ 137:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 138:Libraries/lwip-1.4.0/core/init.c **** #if (!LWIP_ARP && LWIP_AUTOIP)
+ 139:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use AUTOIP, you have to define LWIP_ARP=1 in your lwipopts.h"
+ 140:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 141:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_SNMP && (SNMP_CONCURRENT_REQUESTS<=0))
+ 142:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use SNMP, you have to define SNMP_CONCURRENT_REQUESTS>=1 in your lwipopts.
+ 143:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 144:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_SNMP && (SNMP_TRAP_DESTINATIONS<=0))
+ 145:Libraries/lwip-1.4.0/core/init.c ****   #error "If you want to use SNMP, you have to define SNMP_TRAP_DESTINATIONS>=1 in your lwipopts.h"
+ 146:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 147:Libraries/lwip-1.4.0/core/init.c **** #if (LWIP_TCP && ((LWIP_EVENT_API && LWIP_CALLBACK_API) || (!LWIP_EVENT_API && !LWIP_CALLBACK_API))
+ 148:Libraries/lwip-1.4.0/core/init.c ****   #error "One and exactly one of LWIP_EVENT_API and LWIP_CALLBACK_API has to be enabled in your lwi
+ 149:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 150:Libraries/lwip-1.4.0/core/init.c **** /* There must be sufficient timeouts, taking into account requirements of the subsystems. */
+ 151:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TIMERS && (MEMP_NUM_SYS_TIMEOUT < (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (2*LWIP_DHCP) + L
+ 152:Libraries/lwip-1.4.0/core/init.c ****   #error "MEMP_NUM_SYS_TIMEOUT is too low to accomodate all required timeouts"
+ 153:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 154:Libraries/lwip-1.4.0/core/init.c **** #if (IP_REASSEMBLY && (MEMP_NUM_REASSDATA > IP_REASS_MAX_PBUFS))
+ 155:Libraries/lwip-1.4.0/core/init.c ****   #error "MEMP_NUM_REASSDATA > IP_REASS_MAX_PBUFS doesn't make sense since each struct ip_reassdata
+ 156:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 157:Libraries/lwip-1.4.0/core/init.c **** #if (MEM_LIBC_MALLOC && MEM_USE_POOLS)
+ 158:Libraries/lwip-1.4.0/core/init.c ****   #error "MEM_LIBC_MALLOC and MEM_USE_POOLS may not both be simultaneously enabled in your lwipopts
+ 159:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 160:Libraries/lwip-1.4.0/core/init.c **** #if (MEM_USE_POOLS && !MEMP_USE_CUSTOM_POOLS)
+ 161:Libraries/lwip-1.4.0/core/init.c ****   #error "MEM_USE_POOLS requires custom pools (MEMP_USE_CUSTOM_POOLS) to be enabled in your lwipopt
+ 162:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 163:Libraries/lwip-1.4.0/core/init.c **** #if (PBUF_POOL_BUFSIZE <= MEM_ALIGNMENT)
+ 164:Libraries/lwip-1.4.0/core/init.c ****   #error "PBUF_POOL_BUFSIZE must be greater than MEM_ALIGNMENT or the offset may take the full firs
+ 165:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 166:Libraries/lwip-1.4.0/core/init.c **** #if (TCP_QUEUE_OOSEQ && !LWIP_TCP)
+ 167:Libraries/lwip-1.4.0/core/init.c ****   #error "TCP_QUEUE_OOSEQ requires LWIP_TCP"
+ 168:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 169:Libraries/lwip-1.4.0/core/init.c **** #if (DNS_LOCAL_HOSTLIST && !DNS_LOCAL_HOSTLIST_IS_DYNAMIC && !(defined(DNS_LOCAL_HOSTLIST_INIT)))
+ 170:Libraries/lwip-1.4.0/core/init.c ****   #error "you have to define define DNS_LOCAL_HOSTLIST_INIT {{'host1', 0x123}, {'host2', 0x234}} to
+ 171:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 172:Libraries/lwip-1.4.0/core/init.c **** #if PPP_SUPPORT && !PPPOS_SUPPORT & !PPPOE_SUPPORT
+ 173:Libraries/lwip-1.4.0/core/init.c ****   #error "PPP_SUPPORT needs either PPPOS_SUPPORT or PPPOE_SUPPORT turned on"
+ 174:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 175:Libraries/lwip-1.4.0/core/init.c **** #if !LWIP_ETHERNET && (LWIP_ARP || PPPOE_SUPPORT)
+ 176:Libraries/lwip-1.4.0/core/init.c ****   #error "LWIP_ETHERNET needs to be turned on for LWIP_ARP or PPPOE_SUPPORT"
+ 177:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 178:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_IGMP && !defined(LWIP_RAND)
+ 179:Libraries/lwip-1.4.0/core/init.c ****   #error "When using IGMP, LWIP_RAND() needs to be defined to a random-function returning an u32_t 
+ 180:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 181:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TCPIP_CORE_LOCKING_INPUT && !LWIP_TCPIP_CORE_LOCKING
+ 182:Libraries/lwip-1.4.0/core/init.c ****   #error "When using LWIP_TCPIP_CORE_LOCKING_INPUT, LWIP_TCPIP_CORE_LOCKING must be enabled, too"
+ 183:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 184:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TCP && LWIP_NETIF_TX_SINGLE_PBUF && !TCP_OVERSIZE
+ 185:Libraries/lwip-1.4.0/core/init.c ****   #error "LWIP_NETIF_TX_SINGLE_PBUF needs TCP_OVERSIZE enabled to create single-pbuf TCP packets"
+ 186:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 187:Libraries/lwip-1.4.0/core/init.c **** #if IP_FRAG && IP_FRAG_USES_STATIC_BUF && LWIP_NETIF_TX_SINGLE_PBUF
+ 188:Libraries/lwip-1.4.0/core/init.c ****   #error "LWIP_NETIF_TX_SINGLE_PBUF does not work with IP_FRAG_USES_STATIC_BUF==1 as that creates p
+ 189:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 190:Libraries/lwip-1.4.0/core/init.c **** 
+ 191:Libraries/lwip-1.4.0/core/init.c **** 
+ 192:Libraries/lwip-1.4.0/core/init.c **** /* Compile-time checks for deprecated options.
+ 193:Libraries/lwip-1.4.0/core/init.c ****  */
+ 194:Libraries/lwip-1.4.0/core/init.c **** #ifdef MEMP_NUM_TCPIP_MSG
+ 195:Libraries/lwip-1.4.0/core/init.c ****   #error "MEMP_NUM_TCPIP_MSG option is deprecated. Remove it from your lwipopts.h."
+ 196:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 197:Libraries/lwip-1.4.0/core/init.c **** #ifdef MEMP_NUM_API_MSG
+ 198:Libraries/lwip-1.4.0/core/init.c ****   #error "MEMP_NUM_API_MSG option is deprecated. Remove it from your lwipopts.h."
+ 199:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 200:Libraries/lwip-1.4.0/core/init.c **** #ifdef TCP_REXMIT_DEBUG
+ 201:Libraries/lwip-1.4.0/core/init.c ****   #error "TCP_REXMIT_DEBUG option is deprecated. Remove it from your lwipopts.h."
+ 202:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 203:Libraries/lwip-1.4.0/core/init.c **** #ifdef RAW_STATS
+ 204:Libraries/lwip-1.4.0/core/init.c ****   #error "RAW_STATS option is deprecated. Remove it from your lwipopts.h."
+ 205:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 206:Libraries/lwip-1.4.0/core/init.c **** #ifdef ETHARP_QUEUE_FIRST
+ 207:Libraries/lwip-1.4.0/core/init.c ****   #error "ETHARP_QUEUE_FIRST option is deprecated. Remove it from your lwipopts.h."
+ 208:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 209:Libraries/lwip-1.4.0/core/init.c **** #ifdef ETHARP_ALWAYS_INSERT
+ 210:Libraries/lwip-1.4.0/core/init.c ****   #error "ETHARP_ALWAYS_INSERT option is deprecated. Remove it from your lwipopts.h."
+ 211:Libraries/lwip-1.4.0/core/init.c **** #endif
+ 212:Libraries/lwip-1.4.0/core/init.c **** 
+ 213:Libraries/lwip-1.4.0/core/init.c **** #ifdef LWIP_DEBUG
+ 214:Libraries/lwip-1.4.0/core/init.c **** static void
+ 215:Libraries/lwip-1.4.0/core/init.c **** lwip_sanity_check(void)
+ 216:Libraries/lwip-1.4.0/core/init.c **** {
+ 217:Libraries/lwip-1.4.0/core/init.c ****   /* Warnings */
+ 218:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_NETCONN
+ 219:Libraries/lwip-1.4.0/core/init.c ****   if (MEMP_NUM_NETCONN > (MEMP_NUM_TCP_PCB+MEMP_NUM_TCP_PCB_LISTEN+MEMP_NUM_UDP_PCB+MEMP_NUM_RAW_PC
+ 220:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: MEMP_NUM_NETCONN should be less than the sum o
+ 221:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_NETCONN */
+ 222:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TCP
+ 223:Libraries/lwip-1.4.0/core/init.c ****   if (MEMP_NUM_TCP_SEG < TCP_SND_QUEUELEN)
+ 224:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: MEMP_NUM_TCP_SEG should be at least as big as 
+ 225:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_SND_BUF < 2 * TCP_MSS)
+ 226:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_SND_BUF must be at least as much as (2 * T
+ 227:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_SND_QUEUELEN < (2 * (TCP_SND_BUF/TCP_MSS)))
+ 228:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_SND_QUEUELEN must be at least as much as (
+ 229:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_SNDLOWAT >= TCP_SND_BUF)
+ 230:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_SNDLOWAT must be less than TCP_SND_BUF.\n"
+ 231:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_SNDQUEUELOWAT >= TCP_SND_QUEUELEN)
+ 232:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_SNDQUEUELOWAT must be less than TCP_SND_QU
+ 233:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_WND > (PBUF_POOL_SIZE*PBUF_POOL_BUFSIZE))
+ 234:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_WND is larger than space provided by PBUF_
+ 235:Libraries/lwip-1.4.0/core/init.c ****   if (TCP_WND < TCP_MSS)
+ 236:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: TCP_WND is smaller than MSS\n"));
+ 237:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_TCP */
+ 238:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_SOCKET
+ 239:Libraries/lwip-1.4.0/core/init.c ****   /* Check that the SO_* socket options and SOF_* lwIP-internal flags match */
+ 240:Libraries/lwip-1.4.0/core/init.c ****   if (SO_ACCEPTCONN != SOF_ACCEPTCONN)
+ 241:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: SO_ACCEPTCONN != SOF_ACCEPTCONN\n"));
+ 242:Libraries/lwip-1.4.0/core/init.c ****   if (SO_REUSEADDR != SOF_REUSEADDR)
+ 243:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: SO_REUSEADDR != SOF_REUSEADDR\n"));
+ 244:Libraries/lwip-1.4.0/core/init.c ****   if (SO_KEEPALIVE != SOF_KEEPALIVE)
+ 245:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: SO_KEEPALIVE != SOF_KEEPALIVE\n"));
+ 246:Libraries/lwip-1.4.0/core/init.c ****   if (SO_BROADCAST != SOF_BROADCAST)
+ 247:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: SO_BROADCAST != SOF_BROADCAST\n"));
+ 248:Libraries/lwip-1.4.0/core/init.c ****   if (SO_LINGER != SOF_LINGER)
+ 249:Libraries/lwip-1.4.0/core/init.c ****     LWIP_PLATFORM_DIAG(("lwip_sanity_check: WARNING: SO_LINGER != SOF_LINGER\n"));
+ 250:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_SOCKET */
+ 251:Libraries/lwip-1.4.0/core/init.c **** }
+ 252:Libraries/lwip-1.4.0/core/init.c **** #else  /* LWIP_DEBUG */
+ 253:Libraries/lwip-1.4.0/core/init.c **** #define lwip_sanity_check()
+ 254:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_DEBUG */
+ 255:Libraries/lwip-1.4.0/core/init.c **** 
+ 256:Libraries/lwip-1.4.0/core/init.c **** /**
+ 257:Libraries/lwip-1.4.0/core/init.c ****  * Perform Sanity check of user-configurable values, and initialize all modules.
+ 258:Libraries/lwip-1.4.0/core/init.c ****  */
+ 259:Libraries/lwip-1.4.0/core/init.c **** void
+ 260:Libraries/lwip-1.4.0/core/init.c **** lwip_init(void)
+ 261:Libraries/lwip-1.4.0/core/init.c **** {
+  28              		.loc 1 261 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 1, uses_anonymous_args = 0
+  32 0000 80B5     		push	{r7, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 7, -8
+  35              		.cfi_offset 14, -4
+  36 0002 00AF     		add	r7, sp, #0
+  37              		.cfi_def_cfa_register 7
+ 262:Libraries/lwip-1.4.0/core/init.c ****   /* Sanity check user-configurable values */
+ 263:Libraries/lwip-1.4.0/core/init.c ****   lwip_sanity_check();
+ 264:Libraries/lwip-1.4.0/core/init.c **** 
+ 265:Libraries/lwip-1.4.0/core/init.c ****   /* Modules initialization */
+ 266:Libraries/lwip-1.4.0/core/init.c ****   stats_init();
+  38              		.loc 1 266 0
+  39 0004 FFF7FEFF 		bl	stats_init
+ 267:Libraries/lwip-1.4.0/core/init.c **** #if !NO_SYS
+ 268:Libraries/lwip-1.4.0/core/init.c ****   sys_init();
+ 269:Libraries/lwip-1.4.0/core/init.c **** #endif /* !NO_SYS */
+ 270:Libraries/lwip-1.4.0/core/init.c ****   mem_init();
+  40              		.loc 1 270 0
+  41 0008 FFF7FEFF 		bl	mem_init
+ 271:Libraries/lwip-1.4.0/core/init.c ****   memp_init();
+  42              		.loc 1 271 0
+  43 000c FFF7FEFF 		bl	memp_init
+ 272:Libraries/lwip-1.4.0/core/init.c ****   pbuf_init();
+ 273:Libraries/lwip-1.4.0/core/init.c ****   netif_init();
+  44              		.loc 1 273 0
+  45 0010 FFF7FEFF 		bl	netif_init
+ 274:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_SOCKET
+ 275:Libraries/lwip-1.4.0/core/init.c ****   lwip_socket_init();
+ 276:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_SOCKET */
+ 277:Libraries/lwip-1.4.0/core/init.c ****   ip_init();
+ 278:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_ARP
+ 279:Libraries/lwip-1.4.0/core/init.c ****   etharp_init();
+ 280:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_ARP */
+ 281:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_RAW
+ 282:Libraries/lwip-1.4.0/core/init.c ****   raw_init();
+ 283:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_RAW */
+ 284:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_UDP
+ 285:Libraries/lwip-1.4.0/core/init.c ****   udp_init();
+ 286:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_UDP */
+ 287:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TCP
+ 288:Libraries/lwip-1.4.0/core/init.c ****   tcp_init();
+ 289:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_TCP */
+ 290:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_SNMP
+ 291:Libraries/lwip-1.4.0/core/init.c ****   snmp_init();
+ 292:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_SNMP */
+ 293:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_AUTOIP
+ 294:Libraries/lwip-1.4.0/core/init.c ****   autoip_init();
+ 295:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_AUTOIP */
+ 296:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_IGMP
+ 297:Libraries/lwip-1.4.0/core/init.c ****   igmp_init();
+ 298:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_IGMP */
+ 299:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_DNS
+ 300:Libraries/lwip-1.4.0/core/init.c ****   dns_init();
+ 301:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_DNS */
+ 302:Libraries/lwip-1.4.0/core/init.c **** 
+ 303:Libraries/lwip-1.4.0/core/init.c **** #if LWIP_TIMERS
+ 304:Libraries/lwip-1.4.0/core/init.c ****   sys_timeouts_init();
+  46              		.loc 1 304 0
+  47 0014 FFF7FEFF 		bl	sys_timeouts_init
+ 305:Libraries/lwip-1.4.0/core/init.c **** #endif /* LWIP_TIMERS */
+ 306:Libraries/lwip-1.4.0/core/init.c **** }
+  48              		.loc 1 306 0
+  49 0018 00BF     		nop
+  50 001a 80BD     		pop	{r7, pc}
+  51              		.cfi_endproc
+  52              	.LFE17:
+  54              		.text
+  55              	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 init.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccPjwQwg.s:20     .text.lwip_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccPjwQwg.s:25     .text.lwip_init:00000000 lwip_init
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+stats_init
+mem_init
+memp_init
+netif_init
+sys_timeouts_init

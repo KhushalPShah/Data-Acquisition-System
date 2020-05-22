@@ -1,0 +1,1146 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"inet_chksum.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.lwip_standard_chksum,"ax",%progbits
+  20              		.align	2
+  21              		.thumb
+  22              		.thumb_func
+  24              	lwip_standard_chksum:
+  25              	.LFB17:
+  26              		.file 1 "Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c"
+   1:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /**
+   2:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Incluse internet checksum functions.
+   4:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+   5:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+   6:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+   7:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /*
+   8:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * All rights reserved.
+  10:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  11:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  12:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  14:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *    derived from this software without specific prior written permission.
+  21:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  22:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  23:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  24:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  25:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  26:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  27:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  30:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  31:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  33:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  35:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Author: Adam Dunkels <adam@sics.se>
+  36:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  37:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+  38:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  39:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  41:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #include "lwip/inet_chksum.h"
+  42:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #include "lwip/def.h"
+  43:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  44:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #include <stddef.h>
+  45:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #include <string.h>
+  46:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  47:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /* These are some reference implementations of the checksum algorithm, with the
+  48:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * aim of being simple, correct and fully portable. Checksumming is the
+  49:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * first thing you would want to optimize for your platform. If you create
+  50:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * your own version, link it in and in your cc.h put:
+  51:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * 
+  52:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * #define LWIP_CHKSUM <your_checksum_routine> 
+  53:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  54:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Or you can select from the implementations below by defining
+  55:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * LWIP_CHKSUM_ALGORITHM to 1, 2 or 3.
+  56:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+  57:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  58:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #ifndef LWIP_CHKSUM
+  59:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** # define LWIP_CHKSUM lwip_standard_chksum
+  60:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** # ifndef LWIP_CHKSUM_ALGORITHM
+  61:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #  define LWIP_CHKSUM_ALGORITHM 2
+  62:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** # endif
+  63:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #endif
+  64:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /* If none set: */
+  65:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #ifndef LWIP_CHKSUM_ALGORITHM
+  66:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** # define LWIP_CHKSUM_ALGORITHM 0
+  67:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #endif
+  68:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  69:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #if (LWIP_CHKSUM_ALGORITHM == 1) /* Version #1 */
+  70:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /**
+  71:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * lwip checksum
+  72:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  73:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param dataptr points to start of data to be summed at any boundary
+  74:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param len length of data to be summed
+  75:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return host order (!) lwip checksum (non-inverted Internet sum) 
+  76:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+  77:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @note accumulator size limits summable length to 64k
+  78:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @note host endianess is irrelevant (p3 RFC1071)
+  79:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+  80:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** static u16_t
+  81:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** lwip_standard_chksum(void *dataptr, u16_t len)
+  82:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+  83:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t acc;
+  84:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u16_t src;
+  85:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t *octetptr;
+  86:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+  87:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = 0;
+  88:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* dataptr may be at odd or even addresses */
+  89:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   octetptr = (u8_t*)dataptr;
+  90:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   while (len > 1) {
+  91:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /* declare first octet as most significant
+  92:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        thus assume network order, ignoring host order */
+  93:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     src = (*octetptr) << 8;
+  94:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     octetptr++;
+  95:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /* declare second octet as least significant */
+  96:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     src |= (*octetptr);
+  97:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     octetptr++;
+  98:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += src;
+  99:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len -= 2;
+ 100:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 101:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (len > 0) {
+ 102:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /* accumulate remaining octet */
+ 103:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     src = (*octetptr) << 8;
+ 104:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += src;
+ 105:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 106:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* add deferred carry bits */
+ 107:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = (acc >> 16) + (acc & 0x0000ffffUL);
+ 108:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if ((acc & 0xffff0000UL) != 0) {
+ 109:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = (acc >> 16) + (acc & 0x0000ffffUL);
+ 110:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 111:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* This maybe a little confusing: reorder sum using htons()
+ 112:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      instead of ntohs() since it has a little less call overhead.
+ 113:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      The caller must invert bits for Internet sum ! */
+ 114:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return htons((u16_t)acc);
+ 115:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 116:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #endif
+ 117:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 118:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #if (LWIP_CHKSUM_ALGORITHM == 2) /* Alternative version #2 */
+ 119:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /*
+ 120:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Curt McDowell
+ 121:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Broadcom Corp.
+ 122:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * csm@broadcom.com
+ 123:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 124:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * IP checksum two bytes at a time with support for
+ 125:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * unaligned buffer.
+ 126:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Works for len up to and including 0x20000.
+ 127:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * by Curt McDowell, Broadcom Corp. 12/08/2005
+ 128:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 129:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param dataptr points to start of data to be summed at any boundary
+ 130:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param len length of data to be summed
+ 131:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return host order (!) lwip checksum (non-inverted Internet sum) 
+ 132:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 133:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 134:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** static u16_t
+ 135:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** lwip_standard_chksum(void *dataptr, int len)
+ 136:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+  27              		.loc 1 136 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 32
+  30              		@ frame_needed = 1, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32 0000 80B4     		push	{r7}
+  33              		.cfi_def_cfa_offset 4
+  34              		.cfi_offset 7, -4
+  35 0002 89B0     		sub	sp, sp, #36
+  36              		.cfi_def_cfa_offset 40
+  37 0004 00AF     		add	r7, sp, #0
+  38              		.cfi_def_cfa_register 7
+  39 0006 7860     		str	r0, [r7, #4]
+  40 0008 3960     		str	r1, [r7]
+ 137:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t *pb = (u8_t *)dataptr;
+  41              		.loc 1 137 0
+  42 000a 7B68     		ldr	r3, [r7, #4]
+  43 000c FB61     		str	r3, [r7, #28]
+ 138:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u16_t *ps, t = 0;
+  44              		.loc 1 138 0
+  45 000e 0023     		movs	r3, #0
+  46 0010 FB81     		strh	r3, [r7, #14]	@ movhi
+ 139:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t sum = 0;
+  47              		.loc 1 139 0
+  48 0012 0023     		movs	r3, #0
+  49 0014 7B61     		str	r3, [r7, #20]
+ 140:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   int odd = ((mem_ptr_t)pb & 1);
+  50              		.loc 1 140 0
+  51 0016 FB69     		ldr	r3, [r7, #28]
+  52 0018 03F00103 		and	r3, r3, #1
+  53 001c 3B61     		str	r3, [r7, #16]
+ 141:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 142:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Get aligned to u16_t */
+ 143:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (odd && len > 0) {
+  54              		.loc 1 143 0
+  55 001e 3B69     		ldr	r3, [r7, #16]
+  56 0020 002B     		cmp	r3, #0
+  57 0022 0DD0     		beq	.L2
+  58              		.loc 1 143 0 is_stmt 0 discriminator 1
+  59 0024 3B68     		ldr	r3, [r7]
+  60 0026 002B     		cmp	r3, #0
+  61 0028 0ADD     		ble	.L2
+ 144:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     ((u8_t *)&t)[1] = *pb++;
+  62              		.loc 1 144 0 is_stmt 1
+  63 002a 07F10E03 		add	r3, r7, #14
+  64 002e 0133     		adds	r3, r3, #1
+  65 0030 FA69     		ldr	r2, [r7, #28]
+  66 0032 511C     		adds	r1, r2, #1
+  67 0034 F961     		str	r1, [r7, #28]
+  68 0036 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+  69 0038 1A70     		strb	r2, [r3]
+ 145:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len--;
+  70              		.loc 1 145 0
+  71 003a 3B68     		ldr	r3, [r7]
+  72 003c 013B     		subs	r3, r3, #1
+  73 003e 3B60     		str	r3, [r7]
+  74              	.L2:
+ 146:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 147:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 148:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Add the bulk of the data */
+ 149:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   ps = (u16_t *)(void *)pb;
+  75              		.loc 1 149 0
+  76 0040 FB69     		ldr	r3, [r7, #28]
+  77 0042 BB61     		str	r3, [r7, #24]
+ 150:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   while (len > 1) {
+  78              		.loc 1 150 0
+  79 0044 0AE0     		b	.L3
+  80              	.L4:
+ 151:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum += *ps++;
+  81              		.loc 1 151 0
+  82 0046 BB69     		ldr	r3, [r7, #24]
+  83 0048 9A1C     		adds	r2, r3, #2
+  84 004a BA61     		str	r2, [r7, #24]
+  85 004c 1B88     		ldrh	r3, [r3]
+  86 004e 1A46     		mov	r2, r3
+  87 0050 7B69     		ldr	r3, [r7, #20]
+  88 0052 1344     		add	r3, r3, r2
+  89 0054 7B61     		str	r3, [r7, #20]
+ 152:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len -= 2;
+  90              		.loc 1 152 0
+  91 0056 3B68     		ldr	r3, [r7]
+  92 0058 023B     		subs	r3, r3, #2
+  93 005a 3B60     		str	r3, [r7]
+  94              	.L3:
+ 150:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   while (len > 1) {
+  95              		.loc 1 150 0
+  96 005c 3B68     		ldr	r3, [r7]
+  97 005e 012B     		cmp	r3, #1
+  98 0060 F1DC     		bgt	.L4
+ 153:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 154:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 155:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Consume left-over byte, if any */
+ 156:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (len > 0) {
+  99              		.loc 1 156 0
+ 100 0062 3B68     		ldr	r3, [r7]
+ 101 0064 002B     		cmp	r3, #0
+ 102 0066 04DD     		ble	.L5
+ 157:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     ((u8_t *)&t)[0] = *(u8_t *)ps;
+ 103              		.loc 1 157 0
+ 104 0068 07F10E03 		add	r3, r7, #14
+ 105 006c BA69     		ldr	r2, [r7, #24]
+ 106 006e 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 107 0070 1A70     		strb	r2, [r3]
+ 108              	.L5:
+ 158:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 159:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 160:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Add end bytes */
+ 161:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum += t;
+ 109              		.loc 1 161 0
+ 110 0072 FB89     		ldrh	r3, [r7, #14]
+ 111 0074 1A46     		mov	r2, r3
+ 112 0076 7B69     		ldr	r3, [r7, #20]
+ 113 0078 1344     		add	r3, r3, r2
+ 114 007a 7B61     		str	r3, [r7, #20]
+ 162:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 163:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Fold 32-bit sum to 16 bits
+ 164:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      calling this twice is propably faster than if statements... */
+ 165:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum = FOLD_U32T(sum);
+ 115              		.loc 1 165 0
+ 116 007c 7B69     		ldr	r3, [r7, #20]
+ 117 007e 1A0C     		lsrs	r2, r3, #16
+ 118 0080 7B69     		ldr	r3, [r7, #20]
+ 119 0082 9BB2     		uxth	r3, r3
+ 120 0084 1344     		add	r3, r3, r2
+ 121 0086 7B61     		str	r3, [r7, #20]
+ 166:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum = FOLD_U32T(sum);
+ 122              		.loc 1 166 0
+ 123 0088 7B69     		ldr	r3, [r7, #20]
+ 124 008a 1A0C     		lsrs	r2, r3, #16
+ 125 008c 7B69     		ldr	r3, [r7, #20]
+ 126 008e 9BB2     		uxth	r3, r3
+ 127 0090 1344     		add	r3, r3, r2
+ 128 0092 7B61     		str	r3, [r7, #20]
+ 167:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 168:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Swap if alignment was odd */
+ 169:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (odd) {
+ 129              		.loc 1 169 0
+ 130 0094 3B69     		ldr	r3, [r7, #16]
+ 131 0096 002B     		cmp	r3, #0
+ 132 0098 07D0     		beq	.L6
+ 170:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum = SWAP_BYTES_IN_WORD(sum);
+ 133              		.loc 1 170 0
+ 134 009a 7B69     		ldr	r3, [r7, #20]
+ 135 009c 1B02     		lsls	r3, r3, #8
+ 136 009e 9AB2     		uxth	r2, r3
+ 137 00a0 7B69     		ldr	r3, [r7, #20]
+ 138 00a2 1B0A     		lsrs	r3, r3, #8
+ 139 00a4 DBB2     		uxtb	r3, r3
+ 140 00a6 1343     		orrs	r3, r3, r2
+ 141 00a8 7B61     		str	r3, [r7, #20]
+ 142              	.L6:
+ 171:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 172:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 173:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return (u16_t)sum;
+ 143              		.loc 1 173 0
+ 144 00aa 7B69     		ldr	r3, [r7, #20]
+ 145 00ac 9BB2     		uxth	r3, r3
+ 174:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 146              		.loc 1 174 0
+ 147 00ae 1846     		mov	r0, r3
+ 148 00b0 2437     		adds	r7, r7, #36
+ 149              		.cfi_def_cfa_offset 4
+ 150 00b2 BD46     		mov	sp, r7
+ 151              		.cfi_def_cfa_register 13
+ 152              		@ sp needed
+ 153 00b4 80BC     		pop	{r7}
+ 154              		.cfi_restore 7
+ 155              		.cfi_def_cfa_offset 0
+ 156 00b6 7047     		bx	lr
+ 157              		.cfi_endproc
+ 158              	.LFE17:
+ 160              		.section	.text.inet_chksum_pseudo,"ax",%progbits
+ 161              		.align	2
+ 162              		.global	inet_chksum_pseudo
+ 163              		.thumb
+ 164              		.thumb_func
+ 166              	inet_chksum_pseudo:
+ 167              	.LFB18:
+ 175:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #endif
+ 176:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 177:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #if (LWIP_CHKSUM_ALGORITHM == 3) /* Alternative version #3 */
+ 178:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /**
+ 179:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * An optimized checksum routine. Basically, it uses loop-unrolling on
+ 180:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * the checksum loop, treating the head and tail bytes specially, whereas
+ 181:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * the inner loop acts on 8 bytes at a time. 
+ 182:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 183:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @arg start of buffer to be checksummed. May be an odd byte address.
+ 184:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @len number of bytes in the buffer to be checksummed.
+ 185:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return host order (!) lwip checksum (non-inverted Internet sum) 
+ 186:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * 
+ 187:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * by Curt McDowell, Broadcom Corp. December 8th, 2005
+ 188:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 189:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 190:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** static u16_t
+ 191:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** lwip_standard_chksum(void *dataptr, int len)
+ 192:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+ 193:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t *pb = (u8_t *)dataptr;
+ 194:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u16_t *ps, t = 0;
+ 195:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t *pl;
+ 196:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t sum = 0, tmp;
+ 197:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* starts at odd byte address? */
+ 198:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   int odd = ((mem_ptr_t)pb & 1);
+ 199:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 200:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (odd && len > 0) {
+ 201:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     ((u8_t *)&t)[1] = *pb++;
+ 202:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len--;
+ 203:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 204:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 205:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   ps = (u16_t *)pb;
+ 206:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 207:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (((mem_ptr_t)ps & 3) && len > 1) {
+ 208:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum += *ps++;
+ 209:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len -= 2;
+ 210:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 211:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 212:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   pl = (u32_t *)ps;
+ 213:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 214:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   while (len > 7)  {
+ 215:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     tmp = sum + *pl++;          /* ping */
+ 216:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (tmp < sum) {
+ 217:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       tmp++;                    /* add back carry */
+ 218:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 219:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 220:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum = tmp + *pl++;          /* pong */
+ 221:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (sum < tmp) {
+ 222:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       sum++;                    /* add back carry */
+ 223:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 224:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 225:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len -= 8;
+ 226:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 227:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 228:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* make room in upper bits */
+ 229:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum = FOLD_U32T(sum);
+ 230:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 231:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   ps = (u16_t *)pl;
+ 232:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 233:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* 16-bit aligned word remaining? */
+ 234:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   while (len > 1) {
+ 235:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum += *ps++;
+ 236:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     len -= 2;
+ 237:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 238:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 239:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* dangling tail byte remaining? */
+ 240:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (len > 0) {                /* include odd byte */
+ 241:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     ((u8_t *)&t)[0] = *(u8_t *)ps;
+ 242:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 243:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 244:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum += t;                     /* add end bytes */
+ 245:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 246:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Fold 32-bit sum to 16 bits
+ 247:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      calling this twice is propably faster than if statements... */
+ 248:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum = FOLD_U32T(sum);
+ 249:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   sum = FOLD_U32T(sum);
+ 250:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 251:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (odd) {
+ 252:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     sum = SWAP_BYTES_IN_WORD(sum);
+ 253:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 254:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 255:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return (u16_t)sum;
+ 256:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 257:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** #endif
+ 258:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 259:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /* inet_chksum_pseudo:
+ 260:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 261:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Calculates the pseudo Internet checksum used by TCP and UDP for a pbuf chain.
+ 262:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * IP addresses are expected to be in network byte order.
+ 263:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 264:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param p chain of pbufs over that a checksum should be calculated (ip data part)
+ 265:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param src source ip address (used for checksum of pseudo header)
+ 266:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param dst destination ip address (used for checksum of pseudo header)
+ 267:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param proto ip protocol (used for checksum of pseudo header)
+ 268:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param proto_len length of the ip data part (used for checksum of pseudo header)
+ 269:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return checksum (as u16_t) to be saved directly in the protocol header
+ 270:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 271:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** u16_t
+ 272:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** inet_chksum_pseudo(struct pbuf *p,
+ 273:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        ip_addr_t *src, ip_addr_t *dest,
+ 274:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        u8_t proto, u16_t proto_len)
+ 275:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+ 168              		.loc 1 275 0
+ 169              		.cfi_startproc
+ 170              		@ args = 4, pretend = 0, frame = 32
+ 171              		@ frame_needed = 1, uses_anonymous_args = 0
+ 172 0000 80B5     		push	{r7, lr}
+ 173              		.cfi_def_cfa_offset 8
+ 174              		.cfi_offset 7, -8
+ 175              		.cfi_offset 14, -4
+ 176 0002 88B0     		sub	sp, sp, #32
+ 177              		.cfi_def_cfa_offset 40
+ 178 0004 00AF     		add	r7, sp, #0
+ 179              		.cfi_def_cfa_register 7
+ 180 0006 F860     		str	r0, [r7, #12]
+ 181 0008 B960     		str	r1, [r7, #8]
+ 182 000a 7A60     		str	r2, [r7, #4]
+ 183 000c FB70     		strb	r3, [r7, #3]
+ 276:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t acc;
+ 277:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t addr;
+ 278:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   struct pbuf *q;
+ 279:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t swapped;
+ 280:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 281:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = 0;
+ 184              		.loc 1 281 0
+ 185 000e 0023     		movs	r3, #0
+ 186 0010 FB61     		str	r3, [r7, #28]
+ 282:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   swapped = 0;
+ 187              		.loc 1 282 0
+ 188 0012 0023     		movs	r3, #0
+ 189 0014 FB75     		strb	r3, [r7, #23]
+ 283:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* iterate through all pbuf in chain */
+ 284:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   for(q = p; q != NULL; q = q->next) {
+ 190              		.loc 1 284 0
+ 191 0016 FB68     		ldr	r3, [r7, #12]
+ 192 0018 BB61     		str	r3, [r7, #24]
+ 193 001a 28E0     		b	.L9
+ 194              	.L11:
+ 285:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 286:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       (void *)q, (void *)q->next));
+ 287:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += LWIP_CHKSUM(q->payload, q->len);
+ 195              		.loc 1 287 0
+ 196 001c BB69     		ldr	r3, [r7, #24]
+ 197 001e 5A68     		ldr	r2, [r3, #4]
+ 198 0020 BB69     		ldr	r3, [r7, #24]
+ 199 0022 5B89     		ldrh	r3, [r3, #10]
+ 200 0024 1946     		mov	r1, r3
+ 201 0026 1046     		mov	r0, r2
+ 202 0028 FFF7FEFF 		bl	lwip_standard_chksum
+ 203 002c 0346     		mov	r3, r0
+ 204 002e 1A46     		mov	r2, r3
+ 205 0030 FB69     		ldr	r3, [r7, #28]
+ 206 0032 1344     		add	r3, r3, r2
+ 207 0034 FB61     		str	r3, [r7, #28]
+ 288:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /*LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): unwrapped lwip_chksum()=%"X32_F" \n", acc));*
+ 289:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /* just executing this next line is probably faster that the if statement needed
+ 290:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        to check whether we really need to execute it, and does no harm */
+ 291:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = FOLD_U32T(acc);
+ 208              		.loc 1 291 0
+ 209 0036 FB69     		ldr	r3, [r7, #28]
+ 210 0038 1A0C     		lsrs	r2, r3, #16
+ 211 003a FB69     		ldr	r3, [r7, #28]
+ 212 003c 9BB2     		uxth	r3, r3
+ 213 003e 1344     		add	r3, r3, r2
+ 214 0040 FB61     		str	r3, [r7, #28]
+ 292:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (q->len % 2 != 0) {
+ 215              		.loc 1 292 0
+ 216 0042 BB69     		ldr	r3, [r7, #24]
+ 217 0044 5B89     		ldrh	r3, [r3, #10]
+ 218 0046 03F00103 		and	r3, r3, #1
+ 219 004a 9BB2     		uxth	r3, r3
+ 220 004c 002B     		cmp	r3, #0
+ 221 004e 0BD0     		beq	.L10
+ 293:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       swapped = 1 - swapped;
+ 222              		.loc 1 293 0
+ 223 0050 FB7D     		ldrb	r3, [r7, #23]
+ 224 0052 C3F10103 		rsb	r3, r3, #1
+ 225 0056 FB75     		strb	r3, [r7, #23]
+ 294:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       acc = SWAP_BYTES_IN_WORD(acc);
+ 226              		.loc 1 294 0
+ 227 0058 FB69     		ldr	r3, [r7, #28]
+ 228 005a 1B02     		lsls	r3, r3, #8
+ 229 005c 9AB2     		uxth	r2, r3
+ 230 005e FB69     		ldr	r3, [r7, #28]
+ 231 0060 1B0A     		lsrs	r3, r3, #8
+ 232 0062 DBB2     		uxtb	r3, r3
+ 233 0064 1343     		orrs	r3, r3, r2
+ 234 0066 FB61     		str	r3, [r7, #28]
+ 235              	.L10:
+ 284:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 236              		.loc 1 284 0 discriminator 2
+ 237 0068 BB69     		ldr	r3, [r7, #24]
+ 238 006a 1B68     		ldr	r3, [r3]
+ 239 006c BB61     		str	r3, [r7, #24]
+ 240              	.L9:
+ 284:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 241              		.loc 1 284 0 is_stmt 0 discriminator 1
+ 242 006e BB69     		ldr	r3, [r7, #24]
+ 243 0070 002B     		cmp	r3, #0
+ 244 0072 D3D1     		bne	.L11
+ 295:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 296:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /*LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): wrapped lwip_chksum()=%"X32_F" \n", acc));*/
+ 297:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 298:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 299:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (swapped) {
+ 245              		.loc 1 299 0 is_stmt 1
+ 246 0074 FB7D     		ldrb	r3, [r7, #23]	@ zero_extendqisi2
+ 247 0076 002B     		cmp	r3, #0
+ 248 0078 07D0     		beq	.L12
+ 300:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = SWAP_BYTES_IN_WORD(acc);
+ 249              		.loc 1 300 0
+ 250 007a FB69     		ldr	r3, [r7, #28]
+ 251 007c 1B02     		lsls	r3, r3, #8
+ 252 007e 9AB2     		uxth	r2, r3
+ 253 0080 FB69     		ldr	r3, [r7, #28]
+ 254 0082 1B0A     		lsrs	r3, r3, #8
+ 255 0084 DBB2     		uxtb	r3, r3
+ 256 0086 1343     		orrs	r3, r3, r2
+ 257 0088 FB61     		str	r3, [r7, #28]
+ 258              	.L12:
+ 301:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 302:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   addr = ip4_addr_get_u32(src);
+ 259              		.loc 1 302 0
+ 260 008a BB68     		ldr	r3, [r7, #8]
+ 261 008c 1B68     		ldr	r3, [r3]
+ 262 008e 3B61     		str	r3, [r7, #16]
+ 303:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (addr & 0xffffUL);
+ 263              		.loc 1 303 0
+ 264 0090 3B69     		ldr	r3, [r7, #16]
+ 265 0092 9BB2     		uxth	r3, r3
+ 266 0094 FA69     		ldr	r2, [r7, #28]
+ 267 0096 1344     		add	r3, r3, r2
+ 268 0098 FB61     		str	r3, [r7, #28]
+ 304:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += ((addr >> 16) & 0xffffUL);
+ 269              		.loc 1 304 0
+ 270 009a 3B69     		ldr	r3, [r7, #16]
+ 271 009c 1B0C     		lsrs	r3, r3, #16
+ 272 009e FA69     		ldr	r2, [r7, #28]
+ 273 00a0 1344     		add	r3, r3, r2
+ 274 00a2 FB61     		str	r3, [r7, #28]
+ 305:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   addr = ip4_addr_get_u32(dest);
+ 275              		.loc 1 305 0
+ 276 00a4 7B68     		ldr	r3, [r7, #4]
+ 277 00a6 1B68     		ldr	r3, [r3]
+ 278 00a8 3B61     		str	r3, [r7, #16]
+ 306:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (addr & 0xffffUL);
+ 279              		.loc 1 306 0
+ 280 00aa 3B69     		ldr	r3, [r7, #16]
+ 281 00ac 9BB2     		uxth	r3, r3
+ 282 00ae FA69     		ldr	r2, [r7, #28]
+ 283 00b0 1344     		add	r3, r3, r2
+ 284 00b2 FB61     		str	r3, [r7, #28]
+ 307:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += ((addr >> 16) & 0xffffUL);
+ 285              		.loc 1 307 0
+ 286 00b4 3B69     		ldr	r3, [r7, #16]
+ 287 00b6 1B0C     		lsrs	r3, r3, #16
+ 288 00b8 FA69     		ldr	r2, [r7, #28]
+ 289 00ba 1344     		add	r3, r3, r2
+ 290 00bc FB61     		str	r3, [r7, #28]
+ 308:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (u32_t)htons((u16_t)proto);
+ 291              		.loc 1 308 0
+ 292 00be FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 293 00c0 9BB2     		uxth	r3, r3
+ 294 00c2 1846     		mov	r0, r3
+ 295 00c4 FFF7FEFF 		bl	lwip_htons
+ 296 00c8 0346     		mov	r3, r0
+ 297 00ca 1A46     		mov	r2, r3
+ 298 00cc FB69     		ldr	r3, [r7, #28]
+ 299 00ce 1344     		add	r3, r3, r2
+ 300 00d0 FB61     		str	r3, [r7, #28]
+ 309:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (u32_t)htons(proto_len);
+ 301              		.loc 1 309 0
+ 302 00d2 3B8D     		ldrh	r3, [r7, #40]
+ 303 00d4 1846     		mov	r0, r3
+ 304 00d6 FFF7FEFF 		bl	lwip_htons
+ 305 00da 0346     		mov	r3, r0
+ 306 00dc 1A46     		mov	r2, r3
+ 307 00de FB69     		ldr	r3, [r7, #28]
+ 308 00e0 1344     		add	r3, r3, r2
+ 309 00e2 FB61     		str	r3, [r7, #28]
+ 310:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 311:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Fold 32-bit sum to 16 bits
+ 312:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      calling this twice is propably faster than if statements... */
+ 313:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = FOLD_U32T(acc);
+ 310              		.loc 1 313 0
+ 311 00e4 FB69     		ldr	r3, [r7, #28]
+ 312 00e6 1A0C     		lsrs	r2, r3, #16
+ 313 00e8 FB69     		ldr	r3, [r7, #28]
+ 314 00ea 9BB2     		uxth	r3, r3
+ 315 00ec 1344     		add	r3, r3, r2
+ 316 00ee FB61     		str	r3, [r7, #28]
+ 314:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = FOLD_U32T(acc);
+ 317              		.loc 1 314 0
+ 318 00f0 FB69     		ldr	r3, [r7, #28]
+ 319 00f2 1A0C     		lsrs	r2, r3, #16
+ 320 00f4 FB69     		ldr	r3, [r7, #28]
+ 321 00f6 9BB2     		uxth	r3, r3
+ 322 00f8 1344     		add	r3, r3, r2
+ 323 00fa FB61     		str	r3, [r7, #28]
+ 315:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): pbuf chain lwip_chksum()=%"X32_F"\n", acc));
+ 316:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return (u16_t)~(acc & 0xffffUL);
+ 324              		.loc 1 316 0
+ 325 00fc FB69     		ldr	r3, [r7, #28]
+ 326 00fe 9BB2     		uxth	r3, r3
+ 327 0100 DB43     		mvns	r3, r3
+ 328 0102 9BB2     		uxth	r3, r3
+ 317:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 329              		.loc 1 317 0
+ 330 0104 1846     		mov	r0, r3
+ 331 0106 2037     		adds	r7, r7, #32
+ 332              		.cfi_def_cfa_offset 8
+ 333 0108 BD46     		mov	sp, r7
+ 334              		.cfi_def_cfa_register 13
+ 335              		@ sp needed
+ 336 010a 80BD     		pop	{r7, pc}
+ 337              		.cfi_endproc
+ 338              	.LFE18:
+ 340              		.section	.text.inet_chksum_pseudo_partial,"ax",%progbits
+ 341              		.align	2
+ 342              		.global	inet_chksum_pseudo_partial
+ 343              		.thumb
+ 344              		.thumb_func
+ 346              	inet_chksum_pseudo_partial:
+ 347              	.LFB19:
+ 318:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 319:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /* inet_chksum_pseudo:
+ 320:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 321:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Calculates the pseudo Internet checksum used by TCP and UDP for a pbuf chain.
+ 322:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * IP addresses are expected to be in network byte order.
+ 323:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 324:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param p chain of pbufs over that a checksum should be calculated (ip data part)
+ 325:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param src source ip address (used for checksum of pseudo header)
+ 326:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param dst destination ip address (used for checksum of pseudo header)
+ 327:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param proto ip protocol (used for checksum of pseudo header)
+ 328:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param proto_len length of the ip data part (used for checksum of pseudo header)
+ 329:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return checksum (as u16_t) to be saved directly in the protocol header
+ 330:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 331:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** u16_t
+ 332:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** inet_chksum_pseudo_partial(struct pbuf *p,
+ 333:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        ip_addr_t *src, ip_addr_t *dest,
+ 334:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****        u8_t proto, u16_t proto_len, u16_t chksum_len)
+ 335:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+ 348              		.loc 1 335 0
+ 349              		.cfi_startproc
+ 350              		@ args = 8, pretend = 0, frame = 32
+ 351              		@ frame_needed = 1, uses_anonymous_args = 0
+ 352 0000 80B5     		push	{r7, lr}
+ 353              		.cfi_def_cfa_offset 8
+ 354              		.cfi_offset 7, -8
+ 355              		.cfi_offset 14, -4
+ 356 0002 88B0     		sub	sp, sp, #32
+ 357              		.cfi_def_cfa_offset 40
+ 358 0004 00AF     		add	r7, sp, #0
+ 359              		.cfi_def_cfa_register 7
+ 360 0006 F860     		str	r0, [r7, #12]
+ 361 0008 B960     		str	r1, [r7, #8]
+ 362 000a 7A60     		str	r2, [r7, #4]
+ 363 000c FB70     		strb	r3, [r7, #3]
+ 336:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t acc;
+ 337:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t addr;
+ 338:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   struct pbuf *q;
+ 339:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t swapped;
+ 340:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u16_t chklen;
+ 341:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 342:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = 0;
+ 364              		.loc 1 342 0
+ 365 000e 0023     		movs	r3, #0
+ 366 0010 FB61     		str	r3, [r7, #28]
+ 343:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   swapped = 0;
+ 367              		.loc 1 343 0
+ 368 0012 0023     		movs	r3, #0
+ 369 0014 FB75     		strb	r3, [r7, #23]
+ 344:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* iterate through all pbuf in chain */
+ 345:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   for(q = p; (q != NULL) && (chksum_len > 0); q = q->next) {
+ 370              		.loc 1 345 0
+ 371 0016 FB68     		ldr	r3, [r7, #12]
+ 372 0018 BB61     		str	r3, [r7, #24]
+ 373 001a 34E0     		b	.L15
+ 374              	.L19:
+ 346:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 347:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       (void *)q, (void *)q->next));
+ 348:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     chklen = q->len;
+ 375              		.loc 1 348 0
+ 376 001c BB69     		ldr	r3, [r7, #24]
+ 377 001e 5B89     		ldrh	r3, [r3, #10]	@ movhi
+ 378 0020 BB82     		strh	r3, [r7, #20]	@ movhi
+ 349:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (chklen > chksum_len) {
+ 379              		.loc 1 349 0
+ 380 0022 BA8A     		ldrh	r2, [r7, #20]
+ 381 0024 BB8D     		ldrh	r3, [r7, #44]
+ 382 0026 9A42     		cmp	r2, r3
+ 383 0028 01D9     		bls	.L16
+ 350:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       chklen = chksum_len;
+ 384              		.loc 1 350 0
+ 385 002a BB8D     		ldrh	r3, [r7, #44]	@ movhi
+ 386 002c BB82     		strh	r3, [r7, #20]	@ movhi
+ 387              	.L16:
+ 351:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 352:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += LWIP_CHKSUM(q->payload, chklen);
+ 388              		.loc 1 352 0
+ 389 002e BB69     		ldr	r3, [r7, #24]
+ 390 0030 5B68     		ldr	r3, [r3, #4]
+ 391 0032 BA8A     		ldrh	r2, [r7, #20]
+ 392 0034 1146     		mov	r1, r2
+ 393 0036 1846     		mov	r0, r3
+ 394 0038 FFF7FEFF 		bl	lwip_standard_chksum
+ 395 003c 0346     		mov	r3, r0
+ 396 003e 1A46     		mov	r2, r3
+ 397 0040 FB69     		ldr	r3, [r7, #28]
+ 398 0042 1344     		add	r3, r3, r2
+ 399 0044 FB61     		str	r3, [r7, #28]
+ 353:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     chksum_len -= chklen;
+ 400              		.loc 1 353 0
+ 401 0046 BA8D     		ldrh	r2, [r7, #44]	@ movhi
+ 402 0048 BB8A     		ldrh	r3, [r7, #20]	@ movhi
+ 403 004a D31A     		subs	r3, r2, r3
+ 404 004c BB85     		strh	r3, [r7, #44]	@ movhi
+ 354:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_ASSERT("delete me", chksum_len < 0x7fff);
+ 355:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /*LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): unwrapped lwip_chksum()=%"X32_F" \n", acc));*
+ 356:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /* fold the upper bit down */
+ 357:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = FOLD_U32T(acc);
+ 405              		.loc 1 357 0
+ 406 004e FB69     		ldr	r3, [r7, #28]
+ 407 0050 1A0C     		lsrs	r2, r3, #16
+ 408 0052 FB69     		ldr	r3, [r7, #28]
+ 409 0054 9BB2     		uxth	r3, r3
+ 410 0056 1344     		add	r3, r3, r2
+ 411 0058 FB61     		str	r3, [r7, #28]
+ 358:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (q->len % 2 != 0) {
+ 412              		.loc 1 358 0
+ 413 005a BB69     		ldr	r3, [r7, #24]
+ 414 005c 5B89     		ldrh	r3, [r3, #10]
+ 415 005e 03F00103 		and	r3, r3, #1
+ 416 0062 9BB2     		uxth	r3, r3
+ 417 0064 002B     		cmp	r3, #0
+ 418 0066 0BD0     		beq	.L17
+ 359:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       swapped = 1 - swapped;
+ 419              		.loc 1 359 0
+ 420 0068 FB7D     		ldrb	r3, [r7, #23]
+ 421 006a C3F10103 		rsb	r3, r3, #1
+ 422 006e FB75     		strb	r3, [r7, #23]
+ 360:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       acc = SWAP_BYTES_IN_WORD(acc);
+ 423              		.loc 1 360 0
+ 424 0070 FB69     		ldr	r3, [r7, #28]
+ 425 0072 1B02     		lsls	r3, r3, #8
+ 426 0074 9AB2     		uxth	r2, r3
+ 427 0076 FB69     		ldr	r3, [r7, #28]
+ 428 0078 1B0A     		lsrs	r3, r3, #8
+ 429 007a DBB2     		uxtb	r3, r3
+ 430 007c 1343     		orrs	r3, r3, r2
+ 431 007e FB61     		str	r3, [r7, #28]
+ 432              	.L17:
+ 345:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 433              		.loc 1 345 0 discriminator 2
+ 434 0080 BB69     		ldr	r3, [r7, #24]
+ 435 0082 1B68     		ldr	r3, [r3]
+ 436 0084 BB61     		str	r3, [r7, #24]
+ 437              	.L15:
+ 345:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 438              		.loc 1 345 0 is_stmt 0 discriminator 1
+ 439 0086 BB69     		ldr	r3, [r7, #24]
+ 440 0088 002B     		cmp	r3, #0
+ 441 008a 02D0     		beq	.L18
+ 345:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): checksumming pbuf %p (has next %p) \n",
+ 442              		.loc 1 345 0 discriminator 3
+ 443 008c BB8D     		ldrh	r3, [r7, #44]
+ 444 008e 002B     		cmp	r3, #0
+ 445 0090 C4D1     		bne	.L19
+ 446              	.L18:
+ 361:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 362:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     /*LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): wrapped lwip_chksum()=%"X32_F" \n", acc));*/
+ 363:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 364:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 365:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (swapped) {
+ 447              		.loc 1 365 0 is_stmt 1
+ 448 0092 FB7D     		ldrb	r3, [r7, #23]	@ zero_extendqisi2
+ 449 0094 002B     		cmp	r3, #0
+ 450 0096 07D0     		beq	.L20
+ 366:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = SWAP_BYTES_IN_WORD(acc);
+ 451              		.loc 1 366 0
+ 452 0098 FB69     		ldr	r3, [r7, #28]
+ 453 009a 1B02     		lsls	r3, r3, #8
+ 454 009c 9AB2     		uxth	r2, r3
+ 455 009e FB69     		ldr	r3, [r7, #28]
+ 456 00a0 1B0A     		lsrs	r3, r3, #8
+ 457 00a2 DBB2     		uxtb	r3, r3
+ 458 00a4 1343     		orrs	r3, r3, r2
+ 459 00a6 FB61     		str	r3, [r7, #28]
+ 460              	.L20:
+ 367:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 368:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   addr = ip4_addr_get_u32(src);
+ 461              		.loc 1 368 0
+ 462 00a8 BB68     		ldr	r3, [r7, #8]
+ 463 00aa 1B68     		ldr	r3, [r3]
+ 464 00ac 3B61     		str	r3, [r7, #16]
+ 369:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (addr & 0xffffUL);
+ 465              		.loc 1 369 0
+ 466 00ae 3B69     		ldr	r3, [r7, #16]
+ 467 00b0 9BB2     		uxth	r3, r3
+ 468 00b2 FA69     		ldr	r2, [r7, #28]
+ 469 00b4 1344     		add	r3, r3, r2
+ 470 00b6 FB61     		str	r3, [r7, #28]
+ 370:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += ((addr >> 16) & 0xffffUL);
+ 471              		.loc 1 370 0
+ 472 00b8 3B69     		ldr	r3, [r7, #16]
+ 473 00ba 1B0C     		lsrs	r3, r3, #16
+ 474 00bc FA69     		ldr	r2, [r7, #28]
+ 475 00be 1344     		add	r3, r3, r2
+ 476 00c0 FB61     		str	r3, [r7, #28]
+ 371:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   addr = ip4_addr_get_u32(dest);
+ 477              		.loc 1 371 0
+ 478 00c2 7B68     		ldr	r3, [r7, #4]
+ 479 00c4 1B68     		ldr	r3, [r3]
+ 480 00c6 3B61     		str	r3, [r7, #16]
+ 372:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (addr & 0xffffUL);
+ 481              		.loc 1 372 0
+ 482 00c8 3B69     		ldr	r3, [r7, #16]
+ 483 00ca 9BB2     		uxth	r3, r3
+ 484 00cc FA69     		ldr	r2, [r7, #28]
+ 485 00ce 1344     		add	r3, r3, r2
+ 486 00d0 FB61     		str	r3, [r7, #28]
+ 373:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += ((addr >> 16) & 0xffffUL);
+ 487              		.loc 1 373 0
+ 488 00d2 3B69     		ldr	r3, [r7, #16]
+ 489 00d4 1B0C     		lsrs	r3, r3, #16
+ 490 00d6 FA69     		ldr	r2, [r7, #28]
+ 491 00d8 1344     		add	r3, r3, r2
+ 492 00da FB61     		str	r3, [r7, #28]
+ 374:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (u32_t)htons((u16_t)proto);
+ 493              		.loc 1 374 0
+ 494 00dc FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 495 00de 9BB2     		uxth	r3, r3
+ 496 00e0 1846     		mov	r0, r3
+ 497 00e2 FFF7FEFF 		bl	lwip_htons
+ 498 00e6 0346     		mov	r3, r0
+ 499 00e8 1A46     		mov	r2, r3
+ 500 00ea FB69     		ldr	r3, [r7, #28]
+ 501 00ec 1344     		add	r3, r3, r2
+ 502 00ee FB61     		str	r3, [r7, #28]
+ 375:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc += (u32_t)htons(proto_len);
+ 503              		.loc 1 375 0
+ 504 00f0 3B8D     		ldrh	r3, [r7, #40]
+ 505 00f2 1846     		mov	r0, r3
+ 506 00f4 FFF7FEFF 		bl	lwip_htons
+ 507 00f8 0346     		mov	r3, r0
+ 508 00fa 1A46     		mov	r2, r3
+ 509 00fc FB69     		ldr	r3, [r7, #28]
+ 510 00fe 1344     		add	r3, r3, r2
+ 511 0100 FB61     		str	r3, [r7, #28]
+ 376:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 377:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   /* Fold 32-bit sum to 16 bits
+ 378:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****      calling this twice is propably faster than if statements... */
+ 379:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = FOLD_U32T(acc);
+ 512              		.loc 1 379 0
+ 513 0102 FB69     		ldr	r3, [r7, #28]
+ 514 0104 1A0C     		lsrs	r2, r3, #16
+ 515 0106 FB69     		ldr	r3, [r7, #28]
+ 516 0108 9BB2     		uxth	r3, r3
+ 517 010a 1344     		add	r3, r3, r2
+ 518 010c FB61     		str	r3, [r7, #28]
+ 380:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = FOLD_U32T(acc);
+ 519              		.loc 1 380 0
+ 520 010e FB69     		ldr	r3, [r7, #28]
+ 521 0110 1A0C     		lsrs	r2, r3, #16
+ 522 0112 FB69     		ldr	r3, [r7, #28]
+ 523 0114 9BB2     		uxth	r3, r3
+ 524 0116 1344     		add	r3, r3, r2
+ 525 0118 FB61     		str	r3, [r7, #28]
+ 381:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   LWIP_DEBUGF(INET_DEBUG, ("inet_chksum_pseudo(): pbuf chain lwip_chksum()=%"X32_F"\n", acc));
+ 382:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return (u16_t)~(acc & 0xffffUL);
+ 526              		.loc 1 382 0
+ 527 011a FB69     		ldr	r3, [r7, #28]
+ 528 011c 9BB2     		uxth	r3, r3
+ 529 011e DB43     		mvns	r3, r3
+ 530 0120 9BB2     		uxth	r3, r3
+ 383:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 531              		.loc 1 383 0
+ 532 0122 1846     		mov	r0, r3
+ 533 0124 2037     		adds	r7, r7, #32
+ 534              		.cfi_def_cfa_offset 8
+ 535 0126 BD46     		mov	sp, r7
+ 536              		.cfi_def_cfa_register 13
+ 537              		@ sp needed
+ 538 0128 80BD     		pop	{r7, pc}
+ 539              		.cfi_endproc
+ 540              	.LFE19:
+ 542 012a 00BF     		.section	.text.inet_chksum,"ax",%progbits
+ 543              		.align	2
+ 544              		.global	inet_chksum
+ 545              		.thumb
+ 546              		.thumb_func
+ 548              	inet_chksum:
+ 549              	.LFB20:
+ 384:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 385:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /* inet_chksum:
+ 386:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 387:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Calculates the Internet checksum over a portion of memory. Used primarily for IP
+ 388:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * and ICMP.
+ 389:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 390:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param dataptr start of the buffer to calculate the checksum (no alignment needed)
+ 391:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param len length of the buffer to calculate the checksum
+ 392:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return checksum (as u16_t) to be saved directly in the protocol header
+ 393:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 394:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 395:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** u16_t
+ 396:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** inet_chksum(void *dataptr, u16_t len)
+ 397:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+ 550              		.loc 1 397 0
+ 551              		.cfi_startproc
+ 552              		@ args = 0, pretend = 0, frame = 8
+ 553              		@ frame_needed = 1, uses_anonymous_args = 0
+ 554 0000 80B5     		push	{r7, lr}
+ 555              		.cfi_def_cfa_offset 8
+ 556              		.cfi_offset 7, -8
+ 557              		.cfi_offset 14, -4
+ 558 0002 82B0     		sub	sp, sp, #8
+ 559              		.cfi_def_cfa_offset 16
+ 560 0004 00AF     		add	r7, sp, #0
+ 561              		.cfi_def_cfa_register 7
+ 562 0006 7860     		str	r0, [r7, #4]
+ 563 0008 0B46     		mov	r3, r1
+ 564 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+ 398:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return ~LWIP_CHKSUM(dataptr, len);
+ 565              		.loc 1 398 0
+ 566 000c 7B88     		ldrh	r3, [r7, #2]
+ 567 000e 1946     		mov	r1, r3
+ 568 0010 7868     		ldr	r0, [r7, #4]
+ 569 0012 FFF7FEFF 		bl	lwip_standard_chksum
+ 570 0016 0346     		mov	r3, r0
+ 571 0018 DB43     		mvns	r3, r3
+ 572 001a 9BB2     		uxth	r3, r3
+ 399:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 573              		.loc 1 399 0
+ 574 001c 1846     		mov	r0, r3
+ 575 001e 0837     		adds	r7, r7, #8
+ 576              		.cfi_def_cfa_offset 8
+ 577 0020 BD46     		mov	sp, r7
+ 578              		.cfi_def_cfa_register 13
+ 579              		@ sp needed
+ 580 0022 80BD     		pop	{r7, pc}
+ 581              		.cfi_endproc
+ 582              	.LFE20:
+ 584              		.section	.text.inet_chksum_pbuf,"ax",%progbits
+ 585              		.align	2
+ 586              		.global	inet_chksum_pbuf
+ 587              		.thumb
+ 588              		.thumb_func
+ 590              	inet_chksum_pbuf:
+ 591              	.LFB21:
+ 400:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 401:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** /**
+ 402:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * Calculate a checksum over a chain of pbufs (without pseudo-header, much like
+ 403:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * inet_chksum only pbufs are used).
+ 404:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  *
+ 405:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @param p pbuf chain over that the checksum should be calculated
+ 406:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  * @return checksum (as u16_t) to be saved directly in the protocol header
+ 407:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****  */
+ 408:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** u16_t
+ 409:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** inet_chksum_pbuf(struct pbuf *p)
+ 410:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** {
+ 592              		.loc 1 410 0
+ 593              		.cfi_startproc
+ 594              		@ args = 0, pretend = 0, frame = 24
+ 595              		@ frame_needed = 1, uses_anonymous_args = 0
+ 596 0000 80B5     		push	{r7, lr}
+ 597              		.cfi_def_cfa_offset 8
+ 598              		.cfi_offset 7, -8
+ 599              		.cfi_offset 14, -4
+ 600 0002 86B0     		sub	sp, sp, #24
+ 601              		.cfi_def_cfa_offset 32
+ 602 0004 00AF     		add	r7, sp, #0
+ 603              		.cfi_def_cfa_register 7
+ 604 0006 7860     		str	r0, [r7, #4]
+ 411:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u32_t acc;
+ 412:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   struct pbuf *q;
+ 413:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   u8_t swapped;
+ 414:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 415:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   acc = 0;
+ 605              		.loc 1 415 0
+ 606 0008 0023     		movs	r3, #0
+ 607 000a 7B61     		str	r3, [r7, #20]
+ 416:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   swapped = 0;
+ 608              		.loc 1 416 0
+ 609 000c 0023     		movs	r3, #0
+ 610 000e FB73     		strb	r3, [r7, #15]
+ 417:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   for(q = p; q != NULL; q = q->next) {
+ 611              		.loc 1 417 0
+ 612 0010 7B68     		ldr	r3, [r7, #4]
+ 613 0012 3B61     		str	r3, [r7, #16]
+ 614 0014 28E0     		b	.L25
+ 615              	.L27:
+ 418:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += LWIP_CHKSUM(q->payload, q->len);
+ 616              		.loc 1 418 0
+ 617 0016 3B69     		ldr	r3, [r7, #16]
+ 618 0018 5A68     		ldr	r2, [r3, #4]
+ 619 001a 3B69     		ldr	r3, [r7, #16]
+ 620 001c 5B89     		ldrh	r3, [r3, #10]
+ 621 001e 1946     		mov	r1, r3
+ 622 0020 1046     		mov	r0, r2
+ 623 0022 FFF7FEFF 		bl	lwip_standard_chksum
+ 624 0026 0346     		mov	r3, r0
+ 625 0028 1A46     		mov	r2, r3
+ 626 002a 7B69     		ldr	r3, [r7, #20]
+ 627 002c 1344     		add	r3, r3, r2
+ 628 002e 7B61     		str	r3, [r7, #20]
+ 419:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = FOLD_U32T(acc);
+ 629              		.loc 1 419 0
+ 630 0030 7B69     		ldr	r3, [r7, #20]
+ 631 0032 1A0C     		lsrs	r2, r3, #16
+ 632 0034 7B69     		ldr	r3, [r7, #20]
+ 633 0036 9BB2     		uxth	r3, r3
+ 634 0038 1344     		add	r3, r3, r2
+ 635 003a 7B61     		str	r3, [r7, #20]
+ 420:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     if (q->len % 2 != 0) {
+ 636              		.loc 1 420 0
+ 637 003c 3B69     		ldr	r3, [r7, #16]
+ 638 003e 5B89     		ldrh	r3, [r3, #10]
+ 639 0040 03F00103 		and	r3, r3, #1
+ 640 0044 9BB2     		uxth	r3, r3
+ 641 0046 002B     		cmp	r3, #0
+ 642 0048 0BD0     		beq	.L26
+ 421:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       swapped = 1 - swapped;
+ 643              		.loc 1 421 0
+ 644 004a FB7B     		ldrb	r3, [r7, #15]
+ 645 004c C3F10103 		rsb	r3, r3, #1
+ 646 0050 FB73     		strb	r3, [r7, #15]
+ 422:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****       acc = SWAP_BYTES_IN_WORD(acc);
+ 647              		.loc 1 422 0
+ 648 0052 7B69     		ldr	r3, [r7, #20]
+ 649 0054 1B02     		lsls	r3, r3, #8
+ 650 0056 9AB2     		uxth	r2, r3
+ 651 0058 7B69     		ldr	r3, [r7, #20]
+ 652 005a 1B0A     		lsrs	r3, r3, #8
+ 653 005c DBB2     		uxtb	r3, r3
+ 654 005e 1343     		orrs	r3, r3, r2
+ 655 0060 7B61     		str	r3, [r7, #20]
+ 656              	.L26:
+ 417:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += LWIP_CHKSUM(q->payload, q->len);
+ 657              		.loc 1 417 0 discriminator 2
+ 658 0062 3B69     		ldr	r3, [r7, #16]
+ 659 0064 1B68     		ldr	r3, [r3]
+ 660 0066 3B61     		str	r3, [r7, #16]
+ 661              	.L25:
+ 417:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc += LWIP_CHKSUM(q->payload, q->len);
+ 662              		.loc 1 417 0 is_stmt 0 discriminator 1
+ 663 0068 3B69     		ldr	r3, [r7, #16]
+ 664 006a 002B     		cmp	r3, #0
+ 665 006c D3D1     		bne	.L27
+ 423:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     }
+ 424:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 425:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** 
+ 426:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   if (swapped) {
+ 666              		.loc 1 426 0 is_stmt 1
+ 667 006e FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 668 0070 002B     		cmp	r3, #0
+ 669 0072 07D0     		beq	.L28
+ 427:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****     acc = SWAP_BYTES_IN_WORD(acc);
+ 670              		.loc 1 427 0
+ 671 0074 7B69     		ldr	r3, [r7, #20]
+ 672 0076 1B02     		lsls	r3, r3, #8
+ 673 0078 9AB2     		uxth	r2, r3
+ 674 007a 7B69     		ldr	r3, [r7, #20]
+ 675 007c 1B0A     		lsrs	r3, r3, #8
+ 676 007e DBB2     		uxtb	r3, r3
+ 677 0080 1343     		orrs	r3, r3, r2
+ 678 0082 7B61     		str	r3, [r7, #20]
+ 679              	.L28:
+ 428:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   }
+ 429:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c ****   return (u16_t)~(acc & 0xffffUL);
+ 680              		.loc 1 429 0
+ 681 0084 7B69     		ldr	r3, [r7, #20]
+ 682 0086 9BB2     		uxth	r3, r3
+ 683 0088 DB43     		mvns	r3, r3
+ 684 008a 9BB2     		uxth	r3, r3
+ 430:Libraries/lwip-1.4.0/core/ipv4/inet_chksum.c **** }
+ 685              		.loc 1 430 0
+ 686 008c 1846     		mov	r0, r3
+ 687 008e 1837     		adds	r7, r7, #24
+ 688              		.cfi_def_cfa_offset 8
+ 689 0090 BD46     		mov	sp, r7
+ 690              		.cfi_def_cfa_register 13
+ 691              		@ sp needed
+ 692 0092 80BD     		pop	{r7, pc}
+ 693              		.cfi_endproc
+ 694              	.LFE21:
+ 696              		.text
+ 697              	.Letext0:
+ 698              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 699              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 700              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 701              		.file 5 "./Libraries/lwip-1.4.0/include/lwip/pbuf.h"
+ 702              		.file 6 "./Libraries/lwip-1.4.0/include/ipv4/lwip/ip_addr.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 inet_chksum.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:20     .text.lwip_standard_chksum:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:24     .text.lwip_standard_chksum:00000000 lwip_standard_chksum
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:161    .text.inet_chksum_pseudo:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:166    .text.inet_chksum_pseudo:00000000 inet_chksum_pseudo
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:341    .text.inet_chksum_pseudo_partial:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:346    .text.inet_chksum_pseudo_partial:00000000 inet_chksum_pseudo_partial
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:543    .text.inet_chksum:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:548    .text.inet_chksum:00000000 inet_chksum
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:585    .text.inet_chksum_pbuf:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQbkxak.s:590    .text.inet_chksum_pbuf:00000000 inet_chksum_pbuf
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+lwip_htons

@@ -1,0 +1,1538 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"netif.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.comm	netif_list,4,4
+  20              		.comm	netif_default,4,4
+  21              		.section	.text.netif_init,"ax",%progbits
+  22              		.align	2
+  23              		.global	netif_init
+  24              		.thumb
+  25              		.thumb_func
+  27              	netif_init:
+  28              	.LFB17:
+  29              		.file 1 "Libraries/lwip-1.4.0/core/netif.c"
+   1:Libraries/lwip-1.4.0/core/netif.c **** /**
+   2:Libraries/lwip-1.4.0/core/netif.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/netif.c ****  * lwIP network interface abstraction
+   4:Libraries/lwip-1.4.0/core/netif.c ****  *
+   5:Libraries/lwip-1.4.0/core/netif.c ****  */
+   6:Libraries/lwip-1.4.0/core/netif.c **** 
+   7:Libraries/lwip-1.4.0/core/netif.c **** /*
+   8:Libraries/lwip-1.4.0/core/netif.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/netif.c ****  * All rights reserved.
+  10:Libraries/lwip-1.4.0/core/netif.c ****  *
+  11:Libraries/lwip-1.4.0/core/netif.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  12:Libraries/lwip-1.4.0/core/netif.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/netif.c ****  *
+  14:Libraries/lwip-1.4.0/core/netif.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/netif.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/netif.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/netif.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/netif.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/netif.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/netif.c ****  *    derived from this software without specific prior written permission.
+  21:Libraries/lwip-1.4.0/core/netif.c ****  *
+  22:Libraries/lwip-1.4.0/core/netif.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  23:Libraries/lwip-1.4.0/core/netif.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  24:Libraries/lwip-1.4.0/core/netif.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  25:Libraries/lwip-1.4.0/core/netif.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  26:Libraries/lwip-1.4.0/core/netif.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  27:Libraries/lwip-1.4.0/core/netif.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:Libraries/lwip-1.4.0/core/netif.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:Libraries/lwip-1.4.0/core/netif.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  30:Libraries/lwip-1.4.0/core/netif.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  31:Libraries/lwip-1.4.0/core/netif.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/netif.c ****  *
+  33:Libraries/lwip-1.4.0/core/netif.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/netif.c ****  *
+  35:Libraries/lwip-1.4.0/core/netif.c ****  * Author: Adam Dunkels <adam@sics.se>
+  36:Libraries/lwip-1.4.0/core/netif.c ****  *
+  37:Libraries/lwip-1.4.0/core/netif.c ****  */
+  38:Libraries/lwip-1.4.0/core/netif.c **** 
+  39:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/netif.c **** 
+  41:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/def.h"
+  42:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/ip_addr.h"
+  43:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/netif.h"
+  44:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/tcp_impl.h"
+  45:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/snmp.h"
+  46:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/igmp.h"
+  47:Libraries/lwip-1.4.0/core/netif.c **** #include "netif/etharp.h"
+  48:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/stats.h"
+  49:Libraries/lwip-1.4.0/core/netif.c **** #if ENABLE_LOOPBACK
+  50:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/sys.h"
+  51:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_LOOPBACK_MULTITHREADING
+  52:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/tcpip.h"
+  53:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_LOOPBACK_MULTITHREADING */
+  54:Libraries/lwip-1.4.0/core/netif.c **** #endif /* ENABLE_LOOPBACK */
+  55:Libraries/lwip-1.4.0/core/netif.c **** 
+  56:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_AUTOIP
+  57:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/autoip.h"
+  58:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_AUTOIP */
+  59:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_DHCP
+  60:Libraries/lwip-1.4.0/core/netif.c **** #include "lwip/dhcp.h"
+  61:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_DHCP */
+  62:Libraries/lwip-1.4.0/core/netif.c **** 
+  63:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_STATUS_CALLBACK
+  64:Libraries/lwip-1.4.0/core/netif.c **** #define NETIF_STATUS_CALLBACK(n) do{ if (n->status_callback) { (n->status_callback)(n); }}while(0)
+  65:Libraries/lwip-1.4.0/core/netif.c **** #else
+  66:Libraries/lwip-1.4.0/core/netif.c **** #define NETIF_STATUS_CALLBACK(n)
+  67:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_STATUS_CALLBACK */ 
+  68:Libraries/lwip-1.4.0/core/netif.c **** 
+  69:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_LINK_CALLBACK
+  70:Libraries/lwip-1.4.0/core/netif.c **** #define NETIF_LINK_CALLBACK(n) do{ if (n->link_callback) { (n->link_callback)(n); }}while(0)
+  71:Libraries/lwip-1.4.0/core/netif.c **** #else
+  72:Libraries/lwip-1.4.0/core/netif.c **** #define NETIF_LINK_CALLBACK(n)
+  73:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_LINK_CALLBACK */ 
+  74:Libraries/lwip-1.4.0/core/netif.c **** 
+  75:Libraries/lwip-1.4.0/core/netif.c **** struct netif *netif_list;
+  76:Libraries/lwip-1.4.0/core/netif.c **** struct netif *netif_default;
+  77:Libraries/lwip-1.4.0/core/netif.c **** 
+  78:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_HAVE_LOOPIF
+  79:Libraries/lwip-1.4.0/core/netif.c **** static struct netif loop_netif;
+  80:Libraries/lwip-1.4.0/core/netif.c **** 
+  81:Libraries/lwip-1.4.0/core/netif.c **** /**
+  82:Libraries/lwip-1.4.0/core/netif.c ****  * Initialize a lwip network interface structure for a loopback interface
+  83:Libraries/lwip-1.4.0/core/netif.c ****  *
+  84:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the lwip network interface structure for this loopif
+  85:Libraries/lwip-1.4.0/core/netif.c ****  * @return ERR_OK if the loopif is initialized
+  86:Libraries/lwip-1.4.0/core/netif.c ****  *         ERR_MEM if private data couldn't be allocated
+  87:Libraries/lwip-1.4.0/core/netif.c ****  */
+  88:Libraries/lwip-1.4.0/core/netif.c **** static err_t
+  89:Libraries/lwip-1.4.0/core/netif.c **** netif_loopif_init(struct netif *netif)
+  90:Libraries/lwip-1.4.0/core/netif.c **** {
+  91:Libraries/lwip-1.4.0/core/netif.c ****   /* initialize the snmp variables and counters inside the struct netif
+  92:Libraries/lwip-1.4.0/core/netif.c ****    * ifSpeed: no assumption can be made!
+  93:Libraries/lwip-1.4.0/core/netif.c ****    */
+  94:Libraries/lwip-1.4.0/core/netif.c ****   NETIF_INIT_SNMP(netif, snmp_ifType_softwareLoopback, 0);
+  95:Libraries/lwip-1.4.0/core/netif.c **** 
+  96:Libraries/lwip-1.4.0/core/netif.c ****   netif->name[0] = 'l';
+  97:Libraries/lwip-1.4.0/core/netif.c ****   netif->name[1] = 'o';
+  98:Libraries/lwip-1.4.0/core/netif.c ****   netif->output = netif_loop_output;
+  99:Libraries/lwip-1.4.0/core/netif.c ****   return ERR_OK;
+ 100:Libraries/lwip-1.4.0/core/netif.c **** }
+ 101:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_HAVE_LOOPIF */
+ 102:Libraries/lwip-1.4.0/core/netif.c **** 
+ 103:Libraries/lwip-1.4.0/core/netif.c **** void
+ 104:Libraries/lwip-1.4.0/core/netif.c **** netif_init(void)
+ 105:Libraries/lwip-1.4.0/core/netif.c **** {
+  30              		.loc 1 105 0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 0
+  33              		@ frame_needed = 1, uses_anonymous_args = 0
+  34              		@ link register save eliminated.
+  35 0000 80B4     		push	{r7}
+  36              		.cfi_def_cfa_offset 4
+  37              		.cfi_offset 7, -4
+  38 0002 00AF     		add	r7, sp, #0
+  39              		.cfi_def_cfa_register 7
+ 106:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_HAVE_LOOPIF
+ 107:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_t loop_ipaddr, loop_netmask, loop_gw;
+ 108:Libraries/lwip-1.4.0/core/netif.c ****   IP4_ADDR(&loop_gw, 127,0,0,1);
+ 109:Libraries/lwip-1.4.0/core/netif.c ****   IP4_ADDR(&loop_ipaddr, 127,0,0,1);
+ 110:Libraries/lwip-1.4.0/core/netif.c ****   IP4_ADDR(&loop_netmask, 255,0,0,0);
+ 111:Libraries/lwip-1.4.0/core/netif.c **** 
+ 112:Libraries/lwip-1.4.0/core/netif.c **** #if NO_SYS
+ 113:Libraries/lwip-1.4.0/core/netif.c ****   netif_add(&loop_netif, &loop_ipaddr, &loop_netmask, &loop_gw, NULL, netif_loopif_init, ip_input);
+ 114:Libraries/lwip-1.4.0/core/netif.c **** #else  /* NO_SYS */
+ 115:Libraries/lwip-1.4.0/core/netif.c ****   netif_add(&loop_netif, &loop_ipaddr, &loop_netmask, &loop_gw, NULL, netif_loopif_init, tcpip_inpu
+ 116:Libraries/lwip-1.4.0/core/netif.c **** #endif /* NO_SYS */
+ 117:Libraries/lwip-1.4.0/core/netif.c ****   netif_set_up(&loop_netif);
+ 118:Libraries/lwip-1.4.0/core/netif.c **** 
+ 119:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_HAVE_LOOPIF */
+ 120:Libraries/lwip-1.4.0/core/netif.c **** }
+  40              		.loc 1 120 0
+  41 0004 00BF     		nop
+  42 0006 BD46     		mov	sp, r7
+  43              		.cfi_def_cfa_register 13
+  44              		@ sp needed
+  45 0008 80BC     		pop	{r7}
+  46              		.cfi_restore 7
+  47              		.cfi_def_cfa_offset 0
+  48 000a 7047     		bx	lr
+  49              		.cfi_endproc
+  50              	.LFE17:
+  52              		.section	.text.netif_add,"ax",%progbits
+  53              		.align	2
+  54              		.global	netif_add
+  55              		.thumb
+  56              		.thumb_func
+  58              	netif_add:
+  59              	.LFB18:
+ 121:Libraries/lwip-1.4.0/core/netif.c **** 
+ 122:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 123:Libraries/lwip-1.4.0/core/netif.c ****  * Add a network interface to the list of lwIP netifs.
+ 124:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 125:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif a pre-allocated netif structure
+ 126:Libraries/lwip-1.4.0/core/netif.c ****  * @param ipaddr IP address for the new netif
+ 127:Libraries/lwip-1.4.0/core/netif.c ****  * @param netmask network mask for the new netif
+ 128:Libraries/lwip-1.4.0/core/netif.c ****  * @param gw default gateway IP address for the new netif
+ 129:Libraries/lwip-1.4.0/core/netif.c ****  * @param state opaque data passed to the new netif
+ 130:Libraries/lwip-1.4.0/core/netif.c ****  * @param init callback function that initializes the interface
+ 131:Libraries/lwip-1.4.0/core/netif.c ****  * @param input callback function that is called to pass
+ 132:Libraries/lwip-1.4.0/core/netif.c ****  * ingress packets up in the protocol layer stack.
+ 133:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 134:Libraries/lwip-1.4.0/core/netif.c ****  * @return netif, or NULL if failed.
+ 135:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 136:Libraries/lwip-1.4.0/core/netif.c **** struct netif *
+ 137:Libraries/lwip-1.4.0/core/netif.c **** netif_add(struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask,
+ 138:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_t *gw, void *state, netif_init_fn init, netif_input_fn input)
+ 139:Libraries/lwip-1.4.0/core/netif.c **** {
+  60              		.loc 1 139 0
+  61              		.cfi_startproc
+  62              		@ args = 12, pretend = 0, frame = 16
+  63              		@ frame_needed = 1, uses_anonymous_args = 0
+  64 0000 80B5     		push	{r7, lr}
+  65              		.cfi_def_cfa_offset 8
+  66              		.cfi_offset 7, -8
+  67              		.cfi_offset 14, -4
+  68 0002 84B0     		sub	sp, sp, #16
+  69              		.cfi_def_cfa_offset 24
+  70 0004 00AF     		add	r7, sp, #0
+  71              		.cfi_def_cfa_register 7
+  72 0006 F860     		str	r0, [r7, #12]
+  73 0008 B960     		str	r1, [r7, #8]
+  74 000a 7A60     		str	r2, [r7, #4]
+  75 000c 3B60     		str	r3, [r7]
+ 140:Libraries/lwip-1.4.0/core/netif.c ****   static u8_t netifnum = 0;
+ 141:Libraries/lwip-1.4.0/core/netif.c **** 
+ 142:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_ASSERT("No init function given", init != NULL);
+ 143:Libraries/lwip-1.4.0/core/netif.c **** 
+ 144:Libraries/lwip-1.4.0/core/netif.c ****   /* reset new interface configuration state */
+ 145:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set_zero(&netif->ip_addr);
+  76              		.loc 1 145 0
+  77 000e FB68     		ldr	r3, [r7, #12]
+  78 0010 0022     		movs	r2, #0
+  79 0012 5A60     		str	r2, [r3, #4]
+ 146:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set_zero(&netif->netmask);
+  80              		.loc 1 146 0
+  81 0014 FB68     		ldr	r3, [r7, #12]
+  82 0016 0022     		movs	r2, #0
+  83 0018 9A60     		str	r2, [r3, #8]
+ 147:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set_zero(&netif->gw);
+  84              		.loc 1 147 0
+  85 001a FB68     		ldr	r3, [r7, #12]
+  86 001c 0022     		movs	r2, #0
+  87 001e DA60     		str	r2, [r3, #12]
+ 148:Libraries/lwip-1.4.0/core/netif.c ****   netif->flags = 0;
+  88              		.loc 1 148 0
+  89 0020 FB68     		ldr	r3, [r7, #12]
+  90 0022 0022     		movs	r2, #0
+  91 0024 83F82920 		strb	r2, [r3, #41]
+ 149:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_DHCP
+ 150:Libraries/lwip-1.4.0/core/netif.c ****   /* netif not under DHCP control by default */
+ 151:Libraries/lwip-1.4.0/core/netif.c ****   netif->dhcp = NULL;
+ 152:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_DHCP */
+ 153:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_AUTOIP
+ 154:Libraries/lwip-1.4.0/core/netif.c ****   /* netif not under AutoIP control by default */
+ 155:Libraries/lwip-1.4.0/core/netif.c ****   netif->autoip = NULL;
+ 156:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_AUTOIP */
+ 157:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_STATUS_CALLBACK
+ 158:Libraries/lwip-1.4.0/core/netif.c ****   netif->status_callback = NULL;
+ 159:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_STATUS_CALLBACK */
+ 160:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_LINK_CALLBACK
+ 161:Libraries/lwip-1.4.0/core/netif.c ****   netif->link_callback = NULL;
+ 162:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_LINK_CALLBACK */
+ 163:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_IGMP
+ 164:Libraries/lwip-1.4.0/core/netif.c ****   netif->igmp_mac_filter = NULL;
+ 165:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_IGMP */
+ 166:Libraries/lwip-1.4.0/core/netif.c **** #if ENABLE_LOOPBACK
+ 167:Libraries/lwip-1.4.0/core/netif.c ****   netif->loop_first = NULL;
+ 168:Libraries/lwip-1.4.0/core/netif.c ****   netif->loop_last = NULL;
+ 169:Libraries/lwip-1.4.0/core/netif.c **** #endif /* ENABLE_LOOPBACK */
+ 170:Libraries/lwip-1.4.0/core/netif.c **** 
+ 171:Libraries/lwip-1.4.0/core/netif.c ****   /* remember netif specific state information data */
+ 172:Libraries/lwip-1.4.0/core/netif.c ****   netif->state = state;
+  92              		.loc 1 172 0
+  93 0028 FB68     		ldr	r3, [r7, #12]
+  94 002a BA69     		ldr	r2, [r7, #24]
+  95 002c DA61     		str	r2, [r3, #28]
+ 173:Libraries/lwip-1.4.0/core/netif.c ****   netif->num = netifnum++;
+  96              		.loc 1 173 0
+  97 002e 134B     		ldr	r3, .L5
+  98 0030 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+  99 0032 5A1C     		adds	r2, r3, #1
+ 100 0034 D1B2     		uxtb	r1, r2
+ 101 0036 114A     		ldr	r2, .L5
+ 102 0038 1170     		strb	r1, [r2]
+ 103 003a FA68     		ldr	r2, [r7, #12]
+ 104 003c 82F82C30 		strb	r3, [r2, #44]
+ 174:Libraries/lwip-1.4.0/core/netif.c ****   netif->input = input;
+ 105              		.loc 1 174 0
+ 106 0040 FB68     		ldr	r3, [r7, #12]
+ 107 0042 3A6A     		ldr	r2, [r7, #32]
+ 108 0044 1A61     		str	r2, [r3, #16]
+ 175:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_HWADDRHINT
+ 176:Libraries/lwip-1.4.0/core/netif.c ****   netif->addr_hint = NULL;
+ 177:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_HWADDRHINT*/
+ 178:Libraries/lwip-1.4.0/core/netif.c **** #if ENABLE_LOOPBACK && LWIP_LOOPBACK_MAX_PBUFS
+ 179:Libraries/lwip-1.4.0/core/netif.c ****   netif->loop_cnt_current = 0;
+ 180:Libraries/lwip-1.4.0/core/netif.c **** #endif /* ENABLE_LOOPBACK && LWIP_LOOPBACK_MAX_PBUFS */
+ 181:Libraries/lwip-1.4.0/core/netif.c **** 
+ 182:Libraries/lwip-1.4.0/core/netif.c ****   netif_set_addr(netif, ipaddr, netmask, gw);
+ 109              		.loc 1 182 0
+ 110 0046 3B68     		ldr	r3, [r7]
+ 111 0048 7A68     		ldr	r2, [r7, #4]
+ 112 004a B968     		ldr	r1, [r7, #8]
+ 113 004c F868     		ldr	r0, [r7, #12]
+ 114 004e FFF7FEFF 		bl	netif_set_addr
+ 183:Libraries/lwip-1.4.0/core/netif.c **** 
+ 184:Libraries/lwip-1.4.0/core/netif.c ****   /* call user specified initialization function for netif */
+ 185:Libraries/lwip-1.4.0/core/netif.c ****   if (init(netif) != ERR_OK) {
+ 115              		.loc 1 185 0
+ 116 0052 FB69     		ldr	r3, [r7, #28]
+ 117 0054 F868     		ldr	r0, [r7, #12]
+ 118 0056 9847     		blx	r3
+ 119 0058 0346     		mov	r3, r0
+ 120 005a 002B     		cmp	r3, #0
+ 121 005c 01D0     		beq	.L3
+ 186:Libraries/lwip-1.4.0/core/netif.c ****     return NULL;
+ 122              		.loc 1 186 0
+ 123 005e 0023     		movs	r3, #0
+ 124 0060 07E0     		b	.L4
+ 125              	.L3:
+ 187:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 188:Libraries/lwip-1.4.0/core/netif.c **** 
+ 189:Libraries/lwip-1.4.0/core/netif.c ****   /* add this netif to the list */
+ 190:Libraries/lwip-1.4.0/core/netif.c ****   netif->next = netif_list;
+ 126              		.loc 1 190 0
+ 127 0062 074B     		ldr	r3, .L5+4
+ 128 0064 1A68     		ldr	r2, [r3]
+ 129 0066 FB68     		ldr	r3, [r7, #12]
+ 130 0068 1A60     		str	r2, [r3]
+ 191:Libraries/lwip-1.4.0/core/netif.c ****   netif_list = netif;
+ 131              		.loc 1 191 0
+ 132 006a 054A     		ldr	r2, .L5+4
+ 133 006c FB68     		ldr	r3, [r7, #12]
+ 134 006e 1360     		str	r3, [r2]
+ 192:Libraries/lwip-1.4.0/core/netif.c ****   snmp_inc_iflist();
+ 193:Libraries/lwip-1.4.0/core/netif.c **** 
+ 194:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_IGMP
+ 195:Libraries/lwip-1.4.0/core/netif.c ****   /* start IGMP processing */
+ 196:Libraries/lwip-1.4.0/core/netif.c ****   if (netif->flags & NETIF_FLAG_IGMP) {
+ 197:Libraries/lwip-1.4.0/core/netif.c ****     igmp_start(netif);
+ 198:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 199:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_IGMP */
+ 200:Libraries/lwip-1.4.0/core/netif.c **** 
+ 201:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, ("netif: added interface %c%c IP addr ",
+ 202:Libraries/lwip-1.4.0/core/netif.c ****     netif->name[0], netif->name[1]));
+ 203:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_debug_print(NETIF_DEBUG, ipaddr);
+ 204:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, (" netmask "));
+ 205:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_debug_print(NETIF_DEBUG, netmask);
+ 206:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, (" gw "));
+ 207:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_debug_print(NETIF_DEBUG, gw);
+ 208:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, ("\n"));
+ 209:Libraries/lwip-1.4.0/core/netif.c ****   return netif;
+ 135              		.loc 1 209 0
+ 136 0070 FB68     		ldr	r3, [r7, #12]
+ 137              	.L4:
+ 210:Libraries/lwip-1.4.0/core/netif.c **** }
+ 138              		.loc 1 210 0
+ 139 0072 1846     		mov	r0, r3
+ 140 0074 1037     		adds	r7, r7, #16
+ 141              		.cfi_def_cfa_offset 8
+ 142 0076 BD46     		mov	sp, r7
+ 143              		.cfi_def_cfa_register 13
+ 144              		@ sp needed
+ 145 0078 80BD     		pop	{r7, pc}
+ 146              	.L6:
+ 147 007a 00BF     		.align	2
+ 148              	.L5:
+ 149 007c 00000000 		.word	netifnum.6606
+ 150 0080 00000000 		.word	netif_list
+ 151              		.cfi_endproc
+ 152              	.LFE18:
+ 154              		.section	.text.netif_set_addr,"ax",%progbits
+ 155              		.align	2
+ 156              		.global	netif_set_addr
+ 157              		.thumb
+ 158              		.thumb_func
+ 160              	netif_set_addr:
+ 161              	.LFB19:
+ 211:Libraries/lwip-1.4.0/core/netif.c **** 
+ 212:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 213:Libraries/lwip-1.4.0/core/netif.c ****  * Change IP address configuration for a network interface (including netmask
+ 214:Libraries/lwip-1.4.0/core/netif.c ****  * and default gateway).
+ 215:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 216:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the network interface to change
+ 217:Libraries/lwip-1.4.0/core/netif.c ****  * @param ipaddr the new IP address
+ 218:Libraries/lwip-1.4.0/core/netif.c ****  * @param netmask the new netmask
+ 219:Libraries/lwip-1.4.0/core/netif.c ****  * @param gw the new default gateway
+ 220:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 221:Libraries/lwip-1.4.0/core/netif.c **** void
+ 222:Libraries/lwip-1.4.0/core/netif.c **** netif_set_addr(struct netif *netif, ip_addr_t *ipaddr, ip_addr_t *netmask,
+ 223:Libraries/lwip-1.4.0/core/netif.c ****     ip_addr_t *gw)
+ 224:Libraries/lwip-1.4.0/core/netif.c **** {
+ 162              		.loc 1 224 0
+ 163              		.cfi_startproc
+ 164              		@ args = 0, pretend = 0, frame = 16
+ 165              		@ frame_needed = 1, uses_anonymous_args = 0
+ 166 0000 80B5     		push	{r7, lr}
+ 167              		.cfi_def_cfa_offset 8
+ 168              		.cfi_offset 7, -8
+ 169              		.cfi_offset 14, -4
+ 170 0002 84B0     		sub	sp, sp, #16
+ 171              		.cfi_def_cfa_offset 24
+ 172 0004 00AF     		add	r7, sp, #0
+ 173              		.cfi_def_cfa_register 7
+ 174 0006 F860     		str	r0, [r7, #12]
+ 175 0008 B960     		str	r1, [r7, #8]
+ 176 000a 7A60     		str	r2, [r7, #4]
+ 177 000c 3B60     		str	r3, [r7]
+ 225:Libraries/lwip-1.4.0/core/netif.c ****   netif_set_ipaddr(netif, ipaddr);
+ 178              		.loc 1 225 0
+ 179 000e B968     		ldr	r1, [r7, #8]
+ 180 0010 F868     		ldr	r0, [r7, #12]
+ 181 0012 FFF7FEFF 		bl	netif_set_ipaddr
+ 226:Libraries/lwip-1.4.0/core/netif.c ****   netif_set_netmask(netif, netmask);
+ 182              		.loc 1 226 0
+ 183 0016 7968     		ldr	r1, [r7, #4]
+ 184 0018 F868     		ldr	r0, [r7, #12]
+ 185 001a FFF7FEFF 		bl	netif_set_netmask
+ 227:Libraries/lwip-1.4.0/core/netif.c ****   netif_set_gw(netif, gw);
+ 186              		.loc 1 227 0
+ 187 001e 3968     		ldr	r1, [r7]
+ 188 0020 F868     		ldr	r0, [r7, #12]
+ 189 0022 FFF7FEFF 		bl	netif_set_gw
+ 228:Libraries/lwip-1.4.0/core/netif.c **** }
+ 190              		.loc 1 228 0
+ 191 0026 00BF     		nop
+ 192 0028 1037     		adds	r7, r7, #16
+ 193              		.cfi_def_cfa_offset 8
+ 194 002a BD46     		mov	sp, r7
+ 195              		.cfi_def_cfa_register 13
+ 196              		@ sp needed
+ 197 002c 80BD     		pop	{r7, pc}
+ 198              		.cfi_endproc
+ 199              	.LFE19:
+ 201 002e 00BF     		.section	.text.netif_remove,"ax",%progbits
+ 202              		.align	2
+ 203              		.global	netif_remove
+ 204              		.thumb
+ 205              		.thumb_func
+ 207              	netif_remove:
+ 208              	.LFB20:
+ 229:Libraries/lwip-1.4.0/core/netif.c **** 
+ 230:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 231:Libraries/lwip-1.4.0/core/netif.c ****  * Remove a network interface from the list of lwIP netifs.
+ 232:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 233:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the network interface to remove
+ 234:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 235:Libraries/lwip-1.4.0/core/netif.c **** void
+ 236:Libraries/lwip-1.4.0/core/netif.c **** netif_remove(struct netif *netif)
+ 237:Libraries/lwip-1.4.0/core/netif.c **** {
+ 209              		.loc 1 237 0
+ 210              		.cfi_startproc
+ 211              		@ args = 0, pretend = 0, frame = 16
+ 212              		@ frame_needed = 1, uses_anonymous_args = 0
+ 213 0000 80B5     		push	{r7, lr}
+ 214              		.cfi_def_cfa_offset 8
+ 215              		.cfi_offset 7, -8
+ 216              		.cfi_offset 14, -4
+ 217 0002 84B0     		sub	sp, sp, #16
+ 218              		.cfi_def_cfa_offset 24
+ 219 0004 00AF     		add	r7, sp, #0
+ 220              		.cfi_def_cfa_register 7
+ 221 0006 7860     		str	r0, [r7, #4]
+ 238:Libraries/lwip-1.4.0/core/netif.c ****   if (netif == NULL) {
+ 222              		.loc 1 238 0
+ 223 0008 7B68     		ldr	r3, [r7, #4]
+ 224 000a 002B     		cmp	r3, #0
+ 225 000c 33D0     		beq	.L18
+ 239:Libraries/lwip-1.4.0/core/netif.c ****     return;
+ 240:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 241:Libraries/lwip-1.4.0/core/netif.c **** 
+ 242:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_IGMP
+ 243:Libraries/lwip-1.4.0/core/netif.c ****   /* stop IGMP processing */
+ 244:Libraries/lwip-1.4.0/core/netif.c ****   if (netif->flags & NETIF_FLAG_IGMP) {
+ 245:Libraries/lwip-1.4.0/core/netif.c ****     igmp_stop(netif);
+ 246:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 247:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_IGMP */
+ 248:Libraries/lwip-1.4.0/core/netif.c ****   if (netif_is_up(netif)) {
+ 226              		.loc 1 248 0
+ 227 000e 7B68     		ldr	r3, [r7, #4]
+ 228 0010 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 229 0014 03F00103 		and	r3, r3, #1
+ 230 0018 002B     		cmp	r3, #0
+ 231 001a 02D0     		beq	.L11
+ 249:Libraries/lwip-1.4.0/core/netif.c ****     /* set netif down before removing (call callback function) */
+ 250:Libraries/lwip-1.4.0/core/netif.c ****     netif_set_down(netif);
+ 232              		.loc 1 250 0
+ 233 001c 7868     		ldr	r0, [r7, #4]
+ 234 001e FFF7FEFF 		bl	netif_set_down
+ 235              	.L11:
+ 251:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 252:Libraries/lwip-1.4.0/core/netif.c **** 
+ 253:Libraries/lwip-1.4.0/core/netif.c ****   snmp_delete_ipaddridx_tree(netif);
+ 254:Libraries/lwip-1.4.0/core/netif.c **** 
+ 255:Libraries/lwip-1.4.0/core/netif.c ****   /*  is it the first netif? */
+ 256:Libraries/lwip-1.4.0/core/netif.c ****   if (netif_list == netif) {
+ 236              		.loc 1 256 0
+ 237 0022 184B     		ldr	r3, .L20
+ 238 0024 1A68     		ldr	r2, [r3]
+ 239 0026 7B68     		ldr	r3, [r7, #4]
+ 240 0028 9A42     		cmp	r2, r3
+ 241 002a 04D1     		bne	.L12
+ 257:Libraries/lwip-1.4.0/core/netif.c ****     netif_list = netif->next;
+ 242              		.loc 1 257 0
+ 243 002c 7B68     		ldr	r3, [r7, #4]
+ 244 002e 1B68     		ldr	r3, [r3]
+ 245 0030 144A     		ldr	r2, .L20
+ 246 0032 1360     		str	r3, [r2]
+ 247 0034 16E0     		b	.L13
+ 248              	.L12:
+ 249              	.LBB2:
+ 258:Libraries/lwip-1.4.0/core/netif.c ****   } else {
+ 259:Libraries/lwip-1.4.0/core/netif.c ****     /*  look for netif further down the list */
+ 260:Libraries/lwip-1.4.0/core/netif.c ****     struct netif * tmpNetif;
+ 261:Libraries/lwip-1.4.0/core/netif.c ****     for (tmpNetif = netif_list; tmpNetif != NULL; tmpNetif = tmpNetif->next) {
+ 250              		.loc 1 261 0
+ 251 0036 134B     		ldr	r3, .L20
+ 252 0038 1B68     		ldr	r3, [r3]
+ 253 003a FB60     		str	r3, [r7, #12]
+ 254 003c 0CE0     		b	.L14
+ 255              	.L17:
+ 262:Libraries/lwip-1.4.0/core/netif.c ****       if (tmpNetif->next == netif) {
+ 256              		.loc 1 262 0
+ 257 003e FB68     		ldr	r3, [r7, #12]
+ 258 0040 1A68     		ldr	r2, [r3]
+ 259 0042 7B68     		ldr	r3, [r7, #4]
+ 260 0044 9A42     		cmp	r2, r3
+ 261 0046 04D1     		bne	.L15
+ 263:Libraries/lwip-1.4.0/core/netif.c ****         tmpNetif->next = netif->next;
+ 262              		.loc 1 263 0
+ 263 0048 7B68     		ldr	r3, [r7, #4]
+ 264 004a 1A68     		ldr	r2, [r3]
+ 265 004c FB68     		ldr	r3, [r7, #12]
+ 266 004e 1A60     		str	r2, [r3]
+ 264:Libraries/lwip-1.4.0/core/netif.c ****         break;
+ 267              		.loc 1 264 0
+ 268 0050 05E0     		b	.L16
+ 269              	.L15:
+ 261:Libraries/lwip-1.4.0/core/netif.c ****       if (tmpNetif->next == netif) {
+ 270              		.loc 1 261 0 discriminator 2
+ 271 0052 FB68     		ldr	r3, [r7, #12]
+ 272 0054 1B68     		ldr	r3, [r3]
+ 273 0056 FB60     		str	r3, [r7, #12]
+ 274              	.L14:
+ 261:Libraries/lwip-1.4.0/core/netif.c ****       if (tmpNetif->next == netif) {
+ 275              		.loc 1 261 0 is_stmt 0 discriminator 1
+ 276 0058 FB68     		ldr	r3, [r7, #12]
+ 277 005a 002B     		cmp	r3, #0
+ 278 005c EFD1     		bne	.L17
+ 279              	.L16:
+ 265:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 266:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 267:Libraries/lwip-1.4.0/core/netif.c ****     if (tmpNetif == NULL)
+ 280              		.loc 1 267 0 is_stmt 1
+ 281 005e FB68     		ldr	r3, [r7, #12]
+ 282 0060 002B     		cmp	r3, #0
+ 283 0062 0AD0     		beq	.L19
+ 284              	.L13:
+ 285              	.LBE2:
+ 268:Libraries/lwip-1.4.0/core/netif.c ****       return; /*  we didn't find any netif today */
+ 269:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 270:Libraries/lwip-1.4.0/core/netif.c ****   snmp_dec_iflist();
+ 271:Libraries/lwip-1.4.0/core/netif.c ****   /* this netif is default? */
+ 272:Libraries/lwip-1.4.0/core/netif.c ****   if (netif_default == netif) {
+ 286              		.loc 1 272 0
+ 287 0064 084B     		ldr	r3, .L20+4
+ 288 0066 1A68     		ldr	r2, [r3]
+ 289 0068 7B68     		ldr	r3, [r7, #4]
+ 290 006a 9A42     		cmp	r2, r3
+ 291 006c 06D1     		bne	.L8
+ 273:Libraries/lwip-1.4.0/core/netif.c ****     /* reset default netif */
+ 274:Libraries/lwip-1.4.0/core/netif.c ****     netif_set_default(NULL);
+ 292              		.loc 1 274 0
+ 293 006e 0020     		movs	r0, #0
+ 294 0070 FFF7FEFF 		bl	netif_set_default
+ 295 0074 02E0     		b	.L8
+ 296              	.L18:
+ 239:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 297              		.loc 1 239 0
+ 298 0076 00BF     		nop
+ 299 0078 00E0     		b	.L8
+ 300              	.L19:
+ 301              	.LBB3:
+ 268:Libraries/lwip-1.4.0/core/netif.c ****       return; /*  we didn't find any netif today */
+ 302              		.loc 1 268 0
+ 303 007a 00BF     		nop
+ 304              	.L8:
+ 305              	.LBE3:
+ 275:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 276:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF( NETIF_DEBUG, ("netif_remove: removed netif\n") );
+ 277:Libraries/lwip-1.4.0/core/netif.c **** }
+ 306              		.loc 1 277 0
+ 307 007c 1037     		adds	r7, r7, #16
+ 308              		.cfi_def_cfa_offset 8
+ 309 007e BD46     		mov	sp, r7
+ 310              		.cfi_def_cfa_register 13
+ 311              		@ sp needed
+ 312 0080 80BD     		pop	{r7, pc}
+ 313              	.L21:
+ 314 0082 00BF     		.align	2
+ 315              	.L20:
+ 316 0084 00000000 		.word	netif_list
+ 317 0088 00000000 		.word	netif_default
+ 318              		.cfi_endproc
+ 319              	.LFE20:
+ 321              		.section	.text.netif_find,"ax",%progbits
+ 322              		.align	2
+ 323              		.global	netif_find
+ 324              		.thumb
+ 325              		.thumb_func
+ 327              	netif_find:
+ 328              	.LFB21:
+ 278:Libraries/lwip-1.4.0/core/netif.c **** 
+ 279:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 280:Libraries/lwip-1.4.0/core/netif.c ****  * Find a network interface by searching for its name
+ 281:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 282:Libraries/lwip-1.4.0/core/netif.c ****  * @param name the name of the netif (like netif->name) plus concatenated number
+ 283:Libraries/lwip-1.4.0/core/netif.c ****  * in ascii representation (e.g. 'en0')
+ 284:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 285:Libraries/lwip-1.4.0/core/netif.c **** struct netif *
+ 286:Libraries/lwip-1.4.0/core/netif.c **** netif_find(char *name)
+ 287:Libraries/lwip-1.4.0/core/netif.c **** {
+ 329              		.loc 1 287 0
+ 330              		.cfi_startproc
+ 331              		@ args = 0, pretend = 0, frame = 16
+ 332              		@ frame_needed = 1, uses_anonymous_args = 0
+ 333              		@ link register save eliminated.
+ 334 0000 80B4     		push	{r7}
+ 335              		.cfi_def_cfa_offset 4
+ 336              		.cfi_offset 7, -4
+ 337 0002 85B0     		sub	sp, sp, #20
+ 338              		.cfi_def_cfa_offset 24
+ 339 0004 00AF     		add	r7, sp, #0
+ 340              		.cfi_def_cfa_register 7
+ 341 0006 7860     		str	r0, [r7, #4]
+ 288:Libraries/lwip-1.4.0/core/netif.c ****   struct netif *netif;
+ 289:Libraries/lwip-1.4.0/core/netif.c ****   u8_t num;
+ 290:Libraries/lwip-1.4.0/core/netif.c **** 
+ 291:Libraries/lwip-1.4.0/core/netif.c ****   if (name == NULL) {
+ 342              		.loc 1 291 0
+ 343 0008 7B68     		ldr	r3, [r7, #4]
+ 344 000a 002B     		cmp	r3, #0
+ 345 000c 01D1     		bne	.L23
+ 292:Libraries/lwip-1.4.0/core/netif.c ****     return NULL;
+ 346              		.loc 1 292 0
+ 347 000e 0023     		movs	r3, #0
+ 348 0010 26E0     		b	.L24
+ 349              	.L23:
+ 293:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 294:Libraries/lwip-1.4.0/core/netif.c **** 
+ 295:Libraries/lwip-1.4.0/core/netif.c ****   num = name[2] - '0';
+ 350              		.loc 1 295 0
+ 351 0012 7B68     		ldr	r3, [r7, #4]
+ 352 0014 0233     		adds	r3, r3, #2
+ 353 0016 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 354 0018 303B     		subs	r3, r3, #48
+ 355 001a FB72     		strb	r3, [r7, #11]
+ 296:Libraries/lwip-1.4.0/core/netif.c **** 
+ 297:Libraries/lwip-1.4.0/core/netif.c ****   for(netif = netif_list; netif != NULL; netif = netif->next) {
+ 356              		.loc 1 297 0
+ 357 001c 134B     		ldr	r3, .L28
+ 358 001e 1B68     		ldr	r3, [r3]
+ 359 0020 FB60     		str	r3, [r7, #12]
+ 360 0022 19E0     		b	.L25
+ 361              	.L27:
+ 298:Libraries/lwip-1.4.0/core/netif.c ****     if (num == netif->num &&
+ 362              		.loc 1 298 0
+ 363 0024 FB68     		ldr	r3, [r7, #12]
+ 364 0026 93F82C30 		ldrb	r3, [r3, #44]	@ zero_extendqisi2
+ 365 002a FA7A     		ldrb	r2, [r7, #11]	@ zero_extendqisi2
+ 366 002c 9A42     		cmp	r2, r3
+ 367 002e 10D1     		bne	.L26
+ 299:Libraries/lwip-1.4.0/core/netif.c ****        name[0] == netif->name[0] &&
+ 368              		.loc 1 299 0 discriminator 1
+ 369 0030 7B68     		ldr	r3, [r7, #4]
+ 370 0032 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 371 0034 FB68     		ldr	r3, [r7, #12]
+ 372 0036 93F82A30 		ldrb	r3, [r3, #42]	@ zero_extendqisi2
+ 298:Libraries/lwip-1.4.0/core/netif.c ****     if (num == netif->num &&
+ 373              		.loc 1 298 0 discriminator 1
+ 374 003a 9A42     		cmp	r2, r3
+ 375 003c 09D1     		bne	.L26
+ 300:Libraries/lwip-1.4.0/core/netif.c ****        name[1] == netif->name[1]) {
+ 376              		.loc 1 300 0
+ 377 003e 7B68     		ldr	r3, [r7, #4]
+ 378 0040 0133     		adds	r3, r3, #1
+ 379 0042 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 380 0044 FB68     		ldr	r3, [r7, #12]
+ 381 0046 93F82B30 		ldrb	r3, [r3, #43]	@ zero_extendqisi2
+ 299:Libraries/lwip-1.4.0/core/netif.c ****        name[0] == netif->name[0] &&
+ 382              		.loc 1 299 0
+ 383 004a 9A42     		cmp	r2, r3
+ 384 004c 01D1     		bne	.L26
+ 301:Libraries/lwip-1.4.0/core/netif.c ****       LWIP_DEBUGF(NETIF_DEBUG, ("netif_find: found %c%c\n", name[0], name[1]));
+ 302:Libraries/lwip-1.4.0/core/netif.c ****       return netif;
+ 385              		.loc 1 302 0
+ 386 004e FB68     		ldr	r3, [r7, #12]
+ 387 0050 06E0     		b	.L24
+ 388              	.L26:
+ 297:Libraries/lwip-1.4.0/core/netif.c ****     if (num == netif->num &&
+ 389              		.loc 1 297 0 discriminator 2
+ 390 0052 FB68     		ldr	r3, [r7, #12]
+ 391 0054 1B68     		ldr	r3, [r3]
+ 392 0056 FB60     		str	r3, [r7, #12]
+ 393              	.L25:
+ 297:Libraries/lwip-1.4.0/core/netif.c ****     if (num == netif->num &&
+ 394              		.loc 1 297 0 is_stmt 0 discriminator 1
+ 395 0058 FB68     		ldr	r3, [r7, #12]
+ 396 005a 002B     		cmp	r3, #0
+ 397 005c E2D1     		bne	.L27
+ 303:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 304:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 305:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, ("netif_find: didn't find %c%c\n", name[0], name[1]));
+ 306:Libraries/lwip-1.4.0/core/netif.c ****   return NULL;
+ 398              		.loc 1 306 0 is_stmt 1
+ 399 005e 0023     		movs	r3, #0
+ 400              	.L24:
+ 307:Libraries/lwip-1.4.0/core/netif.c **** }
+ 401              		.loc 1 307 0
+ 402 0060 1846     		mov	r0, r3
+ 403 0062 1437     		adds	r7, r7, #20
+ 404              		.cfi_def_cfa_offset 4
+ 405 0064 BD46     		mov	sp, r7
+ 406              		.cfi_def_cfa_register 13
+ 407              		@ sp needed
+ 408 0066 80BC     		pop	{r7}
+ 409              		.cfi_restore 7
+ 410              		.cfi_def_cfa_offset 0
+ 411 0068 7047     		bx	lr
+ 412              	.L29:
+ 413 006a 00BF     		.align	2
+ 414              	.L28:
+ 415 006c 00000000 		.word	netif_list
+ 416              		.cfi_endproc
+ 417              	.LFE21:
+ 419              		.section	.text.netif_set_ipaddr,"ax",%progbits
+ 420              		.align	2
+ 421              		.global	netif_set_ipaddr
+ 422              		.thumb
+ 423              		.thumb_func
+ 425              	netif_set_ipaddr:
+ 426              	.LFB22:
+ 308:Libraries/lwip-1.4.0/core/netif.c **** 
+ 309:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 310:Libraries/lwip-1.4.0/core/netif.c ****  * Change the IP address of a network interface
+ 311:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 312:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the network interface to change
+ 313:Libraries/lwip-1.4.0/core/netif.c ****  * @param ipaddr the new IP address
+ 314:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 315:Libraries/lwip-1.4.0/core/netif.c ****  * @note call netif_set_addr() if you also want to change netmask and
+ 316:Libraries/lwip-1.4.0/core/netif.c ****  * default gateway
+ 317:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 318:Libraries/lwip-1.4.0/core/netif.c **** void
+ 319:Libraries/lwip-1.4.0/core/netif.c **** netif_set_ipaddr(struct netif *netif, ip_addr_t *ipaddr)
+ 320:Libraries/lwip-1.4.0/core/netif.c **** {
+ 427              		.loc 1 320 0
+ 428              		.cfi_startproc
+ 429              		@ args = 0, pretend = 0, frame = 24
+ 430              		@ frame_needed = 1, uses_anonymous_args = 0
+ 431 0000 80B5     		push	{r7, lr}
+ 432              		.cfi_def_cfa_offset 8
+ 433              		.cfi_offset 7, -8
+ 434              		.cfi_offset 14, -4
+ 435 0002 86B0     		sub	sp, sp, #24
+ 436              		.cfi_def_cfa_offset 32
+ 437 0004 00AF     		add	r7, sp, #0
+ 438              		.cfi_def_cfa_register 7
+ 439 0006 7860     		str	r0, [r7, #4]
+ 440 0008 3960     		str	r1, [r7]
+ 321:Libraries/lwip-1.4.0/core/netif.c ****   /* TODO: Handling of obsolete pcbs */
+ 322:Libraries/lwip-1.4.0/core/netif.c ****   /* See:  http://mail.gnu.org/archive/html/lwip-users/2003-03/msg00118.html */
+ 323:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_TCP
+ 324:Libraries/lwip-1.4.0/core/netif.c ****   struct tcp_pcb *pcb;
+ 325:Libraries/lwip-1.4.0/core/netif.c ****   struct tcp_pcb_listen *lpcb;
+ 326:Libraries/lwip-1.4.0/core/netif.c **** 
+ 327:Libraries/lwip-1.4.0/core/netif.c ****   /* address is actually being changed? */
+ 328:Libraries/lwip-1.4.0/core/netif.c ****   if ((ip_addr_cmp(ipaddr, &(netif->ip_addr))) == 0) {
+ 441              		.loc 1 328 0
+ 442 000a 3B68     		ldr	r3, [r7]
+ 443 000c 1A68     		ldr	r2, [r3]
+ 444 000e 7B68     		ldr	r3, [r7, #4]
+ 445 0010 5B68     		ldr	r3, [r3, #4]
+ 446 0012 9A42     		cmp	r2, r3
+ 447 0014 38D0     		beq	.L31
+ 329:Libraries/lwip-1.4.0/core/netif.c ****     /* extern struct tcp_pcb *tcp_active_pcbs; defined by tcp.h */
+ 330:Libraries/lwip-1.4.0/core/netif.c ****     LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_STATE, ("netif_set_ipaddr: netif address being changed\n"));
+ 331:Libraries/lwip-1.4.0/core/netif.c ****     pcb = tcp_active_pcbs;
+ 448              		.loc 1 331 0
+ 449 0016 234B     		ldr	r3, .L42
+ 450 0018 1B68     		ldr	r3, [r3]
+ 451 001a 7B61     		str	r3, [r7, #20]
+ 332:Libraries/lwip-1.4.0/core/netif.c ****     while (pcb != NULL) {
+ 452              		.loc 1 332 0
+ 453 001c 11E0     		b	.L32
+ 454              	.L34:
+ 333:Libraries/lwip-1.4.0/core/netif.c ****       /* PCB bound to current local interface address? */
+ 334:Libraries/lwip-1.4.0/core/netif.c ****       if (ip_addr_cmp(&(pcb->local_ip), &(netif->ip_addr))
+ 455              		.loc 1 334 0
+ 456 001e 7B69     		ldr	r3, [r7, #20]
+ 457 0020 1A68     		ldr	r2, [r3]
+ 458 0022 7B68     		ldr	r3, [r7, #4]
+ 459 0024 5B68     		ldr	r3, [r3, #4]
+ 460 0026 9A42     		cmp	r2, r3
+ 461 0028 08D1     		bne	.L33
+ 462              	.LBB4:
+ 335:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_AUTOIP
+ 336:Libraries/lwip-1.4.0/core/netif.c ****         /* connections to link-local addresses must persist (RFC3927 ch. 1.9) */
+ 337:Libraries/lwip-1.4.0/core/netif.c ****         && !ip_addr_islinklocal(&(pcb->local_ip))
+ 338:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_AUTOIP */
+ 339:Libraries/lwip-1.4.0/core/netif.c ****         ) {
+ 340:Libraries/lwip-1.4.0/core/netif.c ****         /* this connection must be aborted */
+ 341:Libraries/lwip-1.4.0/core/netif.c ****         struct tcp_pcb *next = pcb->next;
+ 463              		.loc 1 341 0
+ 464 002a 7B69     		ldr	r3, [r7, #20]
+ 465 002c DB68     		ldr	r3, [r3, #12]
+ 466 002e FB60     		str	r3, [r7, #12]
+ 342:Libraries/lwip-1.4.0/core/netif.c ****         LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_STATE, ("netif_set_ipaddr: aborting TCP pcb %p\n", (void
+ 343:Libraries/lwip-1.4.0/core/netif.c ****         tcp_abort(pcb);
+ 467              		.loc 1 343 0
+ 468 0030 7869     		ldr	r0, [r7, #20]
+ 469 0032 FFF7FEFF 		bl	tcp_abort
+ 344:Libraries/lwip-1.4.0/core/netif.c ****         pcb = next;
+ 470              		.loc 1 344 0
+ 471 0036 FB68     		ldr	r3, [r7, #12]
+ 472 0038 7B61     		str	r3, [r7, #20]
+ 473              	.LBE4:
+ 474 003a 02E0     		b	.L32
+ 475              	.L33:
+ 345:Libraries/lwip-1.4.0/core/netif.c ****       } else {
+ 346:Libraries/lwip-1.4.0/core/netif.c ****         pcb = pcb->next;
+ 476              		.loc 1 346 0
+ 477 003c 7B69     		ldr	r3, [r7, #20]
+ 478 003e DB68     		ldr	r3, [r3, #12]
+ 479 0040 7B61     		str	r3, [r7, #20]
+ 480              	.L32:
+ 332:Libraries/lwip-1.4.0/core/netif.c ****       /* PCB bound to current local interface address? */
+ 481              		.loc 1 332 0
+ 482 0042 7B69     		ldr	r3, [r7, #20]
+ 483 0044 002B     		cmp	r3, #0
+ 484 0046 EAD1     		bne	.L34
+ 347:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 348:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 349:Libraries/lwip-1.4.0/core/netif.c ****     for (lpcb = tcp_listen_pcbs.listen_pcbs; lpcb != NULL; lpcb = lpcb->next) {
+ 485              		.loc 1 349 0
+ 486 0048 174B     		ldr	r3, .L42+4
+ 487 004a 1B68     		ldr	r3, [r3]
+ 488 004c 3B61     		str	r3, [r7, #16]
+ 489 004e 18E0     		b	.L35
+ 490              	.L39:
+ 350:Libraries/lwip-1.4.0/core/netif.c ****       /* PCB bound to current local interface address? */
+ 351:Libraries/lwip-1.4.0/core/netif.c ****       if ((!(ip_addr_isany(&(lpcb->local_ip)))) &&
+ 491              		.loc 1 351 0
+ 492 0050 3B69     		ldr	r3, [r7, #16]
+ 493 0052 002B     		cmp	r3, #0
+ 494 0054 12D0     		beq	.L36
+ 495              		.loc 1 351 0 is_stmt 0 discriminator 1
+ 496 0056 3B69     		ldr	r3, [r7, #16]
+ 497 0058 1B68     		ldr	r3, [r3]
+ 498 005a 002B     		cmp	r3, #0
+ 499 005c 0ED0     		beq	.L36
+ 352:Libraries/lwip-1.4.0/core/netif.c ****           (ip_addr_cmp(&(lpcb->local_ip), &(netif->ip_addr)))) {
+ 500              		.loc 1 352 0 is_stmt 1 discriminator 2
+ 501 005e 3B69     		ldr	r3, [r7, #16]
+ 502 0060 1A68     		ldr	r2, [r3]
+ 503 0062 7B68     		ldr	r3, [r7, #4]
+ 504 0064 5B68     		ldr	r3, [r3, #4]
+ 351:Libraries/lwip-1.4.0/core/netif.c ****           (ip_addr_cmp(&(lpcb->local_ip), &(netif->ip_addr)))) {
+ 505              		.loc 1 351 0 discriminator 2
+ 506 0066 9A42     		cmp	r2, r3
+ 507 0068 08D1     		bne	.L36
+ 353:Libraries/lwip-1.4.0/core/netif.c ****         /* The PCB is listening to the old ipaddr and
+ 354:Libraries/lwip-1.4.0/core/netif.c ****          * is set to listen to the new one instead */
+ 355:Libraries/lwip-1.4.0/core/netif.c ****         ip_addr_set(&(lpcb->local_ip), ipaddr);
+ 508              		.loc 1 355 0
+ 509 006a 3B68     		ldr	r3, [r7]
+ 510 006c 002B     		cmp	r3, #0
+ 511 006e 02D0     		beq	.L37
+ 512              		.loc 1 355 0 is_stmt 0 discriminator 1
+ 513 0070 3B68     		ldr	r3, [r7]
+ 514 0072 1B68     		ldr	r3, [r3]
+ 515 0074 00E0     		b	.L38
+ 516              	.L37:
+ 517              		.loc 1 355 0 discriminator 2
+ 518 0076 0023     		movs	r3, #0
+ 519              	.L38:
+ 520              		.loc 1 355 0 discriminator 4
+ 521 0078 3A69     		ldr	r2, [r7, #16]
+ 522 007a 1360     		str	r3, [r2]
+ 523              	.L36:
+ 349:Libraries/lwip-1.4.0/core/netif.c ****       /* PCB bound to current local interface address? */
+ 524              		.loc 1 349 0 is_stmt 1 discriminator 2
+ 525 007c 3B69     		ldr	r3, [r7, #16]
+ 526 007e DB68     		ldr	r3, [r3, #12]
+ 527 0080 3B61     		str	r3, [r7, #16]
+ 528              	.L35:
+ 349:Libraries/lwip-1.4.0/core/netif.c ****       /* PCB bound to current local interface address? */
+ 529              		.loc 1 349 0 is_stmt 0 discriminator 1
+ 530 0082 3B69     		ldr	r3, [r7, #16]
+ 531 0084 002B     		cmp	r3, #0
+ 532 0086 E3D1     		bne	.L39
+ 533              	.L31:
+ 356:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 357:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 358:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 359:Libraries/lwip-1.4.0/core/netif.c **** #endif
+ 360:Libraries/lwip-1.4.0/core/netif.c ****   snmp_delete_ipaddridx_tree(netif);
+ 361:Libraries/lwip-1.4.0/core/netif.c ****   snmp_delete_iprteidx_tree(0,netif);
+ 362:Libraries/lwip-1.4.0/core/netif.c ****   /* set new IP address to netif */
+ 363:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set(&(netif->ip_addr), ipaddr);
+ 534              		.loc 1 363 0 is_stmt 1
+ 535 0088 3B68     		ldr	r3, [r7]
+ 536 008a 002B     		cmp	r3, #0
+ 537 008c 02D0     		beq	.L40
+ 538              		.loc 1 363 0 is_stmt 0 discriminator 1
+ 539 008e 3B68     		ldr	r3, [r7]
+ 540 0090 1B68     		ldr	r3, [r3]
+ 541 0092 00E0     		b	.L41
+ 542              	.L40:
+ 543              		.loc 1 363 0 discriminator 2
+ 544 0094 0023     		movs	r3, #0
+ 545              	.L41:
+ 546              		.loc 1 363 0 discriminator 4
+ 547 0096 7A68     		ldr	r2, [r7, #4]
+ 548 0098 5360     		str	r3, [r2, #4]
+ 364:Libraries/lwip-1.4.0/core/netif.c ****   snmp_insert_ipaddridx_tree(netif);
+ 365:Libraries/lwip-1.4.0/core/netif.c ****   snmp_insert_iprteidx_tree(0,netif);
+ 366:Libraries/lwip-1.4.0/core/netif.c **** 
+ 367:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("netif: IP address of interface %c%c 
+ 368:Libraries/lwip-1.4.0/core/netif.c ****     netif->name[0], netif->name[1],
+ 369:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr1_16(&netif->ip_addr),
+ 370:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr2_16(&netif->ip_addr),
+ 371:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr3_16(&netif->ip_addr),
+ 372:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr4_16(&netif->ip_addr)));
+ 373:Libraries/lwip-1.4.0/core/netif.c **** }
+ 549              		.loc 1 373 0 is_stmt 1 discriminator 4
+ 550 009a 00BF     		nop
+ 551 009c 1837     		adds	r7, r7, #24
+ 552              		.cfi_def_cfa_offset 8
+ 553 009e BD46     		mov	sp, r7
+ 554              		.cfi_def_cfa_register 13
+ 555              		@ sp needed
+ 556 00a0 80BD     		pop	{r7, pc}
+ 557              	.L43:
+ 558 00a2 00BF     		.align	2
+ 559              	.L42:
+ 560 00a4 00000000 		.word	tcp_active_pcbs
+ 561 00a8 00000000 		.word	tcp_listen_pcbs
+ 562              		.cfi_endproc
+ 563              	.LFE22:
+ 565              		.section	.text.netif_set_gw,"ax",%progbits
+ 566              		.align	2
+ 567              		.global	netif_set_gw
+ 568              		.thumb
+ 569              		.thumb_func
+ 571              	netif_set_gw:
+ 572              	.LFB23:
+ 374:Libraries/lwip-1.4.0/core/netif.c **** 
+ 375:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 376:Libraries/lwip-1.4.0/core/netif.c ****  * Change the default gateway for a network interface
+ 377:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 378:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the network interface to change
+ 379:Libraries/lwip-1.4.0/core/netif.c ****  * @param gw the new default gateway
+ 380:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 381:Libraries/lwip-1.4.0/core/netif.c ****  * @note call netif_set_addr() if you also want to change ip address and netmask
+ 382:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 383:Libraries/lwip-1.4.0/core/netif.c **** void
+ 384:Libraries/lwip-1.4.0/core/netif.c **** netif_set_gw(struct netif *netif, ip_addr_t *gw)
+ 385:Libraries/lwip-1.4.0/core/netif.c **** {
+ 573              		.loc 1 385 0
+ 574              		.cfi_startproc
+ 575              		@ args = 0, pretend = 0, frame = 8
+ 576              		@ frame_needed = 1, uses_anonymous_args = 0
+ 577              		@ link register save eliminated.
+ 578 0000 80B4     		push	{r7}
+ 579              		.cfi_def_cfa_offset 4
+ 580              		.cfi_offset 7, -4
+ 581 0002 83B0     		sub	sp, sp, #12
+ 582              		.cfi_def_cfa_offset 16
+ 583 0004 00AF     		add	r7, sp, #0
+ 584              		.cfi_def_cfa_register 7
+ 585 0006 7860     		str	r0, [r7, #4]
+ 586 0008 3960     		str	r1, [r7]
+ 386:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set(&(netif->gw), gw);
+ 587              		.loc 1 386 0
+ 588 000a 3B68     		ldr	r3, [r7]
+ 589 000c 002B     		cmp	r3, #0
+ 590 000e 02D0     		beq	.L45
+ 591              		.loc 1 386 0 is_stmt 0 discriminator 1
+ 592 0010 3B68     		ldr	r3, [r7]
+ 593 0012 1B68     		ldr	r3, [r3]
+ 594 0014 00E0     		b	.L46
+ 595              	.L45:
+ 596              		.loc 1 386 0 discriminator 2
+ 597 0016 0023     		movs	r3, #0
+ 598              	.L46:
+ 599              		.loc 1 386 0 discriminator 4
+ 600 0018 7A68     		ldr	r2, [r7, #4]
+ 601 001a D360     		str	r3, [r2, #12]
+ 387:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("netif: GW address of interface %c%c 
+ 388:Libraries/lwip-1.4.0/core/netif.c ****     netif->name[0], netif->name[1],
+ 389:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr1_16(&netif->gw),
+ 390:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr2_16(&netif->gw),
+ 391:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr3_16(&netif->gw),
+ 392:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr4_16(&netif->gw)));
+ 393:Libraries/lwip-1.4.0/core/netif.c **** }
+ 602              		.loc 1 393 0 is_stmt 1 discriminator 4
+ 603 001c 00BF     		nop
+ 604 001e 0C37     		adds	r7, r7, #12
+ 605              		.cfi_def_cfa_offset 4
+ 606 0020 BD46     		mov	sp, r7
+ 607              		.cfi_def_cfa_register 13
+ 608              		@ sp needed
+ 609 0022 80BC     		pop	{r7}
+ 610              		.cfi_restore 7
+ 611              		.cfi_def_cfa_offset 0
+ 612 0024 7047     		bx	lr
+ 613              		.cfi_endproc
+ 614              	.LFE23:
+ 616 0026 00BF     		.section	.text.netif_set_netmask,"ax",%progbits
+ 617              		.align	2
+ 618              		.global	netif_set_netmask
+ 619              		.thumb
+ 620              		.thumb_func
+ 622              	netif_set_netmask:
+ 623              	.LFB24:
+ 394:Libraries/lwip-1.4.0/core/netif.c **** 
+ 395:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 396:Libraries/lwip-1.4.0/core/netif.c ****  * Change the netmask of a network interface
+ 397:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 398:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the network interface to change
+ 399:Libraries/lwip-1.4.0/core/netif.c ****  * @param netmask the new netmask
+ 400:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 401:Libraries/lwip-1.4.0/core/netif.c ****  * @note call netif_set_addr() if you also want to change ip address and
+ 402:Libraries/lwip-1.4.0/core/netif.c ****  * default gateway
+ 403:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 404:Libraries/lwip-1.4.0/core/netif.c **** void
+ 405:Libraries/lwip-1.4.0/core/netif.c **** netif_set_netmask(struct netif *netif, ip_addr_t *netmask)
+ 406:Libraries/lwip-1.4.0/core/netif.c **** {
+ 624              		.loc 1 406 0
+ 625              		.cfi_startproc
+ 626              		@ args = 0, pretend = 0, frame = 8
+ 627              		@ frame_needed = 1, uses_anonymous_args = 0
+ 628              		@ link register save eliminated.
+ 629 0000 80B4     		push	{r7}
+ 630              		.cfi_def_cfa_offset 4
+ 631              		.cfi_offset 7, -4
+ 632 0002 83B0     		sub	sp, sp, #12
+ 633              		.cfi_def_cfa_offset 16
+ 634 0004 00AF     		add	r7, sp, #0
+ 635              		.cfi_def_cfa_register 7
+ 636 0006 7860     		str	r0, [r7, #4]
+ 637 0008 3960     		str	r1, [r7]
+ 407:Libraries/lwip-1.4.0/core/netif.c ****   snmp_delete_iprteidx_tree(0, netif);
+ 408:Libraries/lwip-1.4.0/core/netif.c ****   /* set new netmask to netif */
+ 409:Libraries/lwip-1.4.0/core/netif.c ****   ip_addr_set(&(netif->netmask), netmask);
+ 638              		.loc 1 409 0
+ 639 000a 3B68     		ldr	r3, [r7]
+ 640 000c 002B     		cmp	r3, #0
+ 641 000e 02D0     		beq	.L48
+ 642              		.loc 1 409 0 is_stmt 0 discriminator 1
+ 643 0010 3B68     		ldr	r3, [r7]
+ 644 0012 1B68     		ldr	r3, [r3]
+ 645 0014 00E0     		b	.L49
+ 646              	.L48:
+ 647              		.loc 1 409 0 discriminator 2
+ 648 0016 0023     		movs	r3, #0
+ 649              	.L49:
+ 650              		.loc 1 409 0 discriminator 4
+ 651 0018 7A68     		ldr	r2, [r7, #4]
+ 652 001a 9360     		str	r3, [r2, #8]
+ 410:Libraries/lwip-1.4.0/core/netif.c ****   snmp_insert_iprteidx_tree(0, netif);
+ 411:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("netif: netmask of interface %c%c set
+ 412:Libraries/lwip-1.4.0/core/netif.c ****     netif->name[0], netif->name[1],
+ 413:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr1_16(&netif->netmask),
+ 414:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr2_16(&netif->netmask),
+ 415:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr3_16(&netif->netmask),
+ 416:Libraries/lwip-1.4.0/core/netif.c ****     ip4_addr4_16(&netif->netmask)));
+ 417:Libraries/lwip-1.4.0/core/netif.c **** }
+ 653              		.loc 1 417 0 is_stmt 1 discriminator 4
+ 654 001c 00BF     		nop
+ 655 001e 0C37     		adds	r7, r7, #12
+ 656              		.cfi_def_cfa_offset 4
+ 657 0020 BD46     		mov	sp, r7
+ 658              		.cfi_def_cfa_register 13
+ 659              		@ sp needed
+ 660 0022 80BC     		pop	{r7}
+ 661              		.cfi_restore 7
+ 662              		.cfi_def_cfa_offset 0
+ 663 0024 7047     		bx	lr
+ 664              		.cfi_endproc
+ 665              	.LFE24:
+ 667 0026 00BF     		.section	.text.netif_set_default,"ax",%progbits
+ 668              		.align	2
+ 669              		.global	netif_set_default
+ 670              		.thumb
+ 671              		.thumb_func
+ 673              	netif_set_default:
+ 674              	.LFB25:
+ 418:Libraries/lwip-1.4.0/core/netif.c **** 
+ 419:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 420:Libraries/lwip-1.4.0/core/netif.c ****  * Set a network interface as the default network interface
+ 421:Libraries/lwip-1.4.0/core/netif.c ****  * (used to output all packets for which no specific route is found)
+ 422:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 423:Libraries/lwip-1.4.0/core/netif.c ****  * @param netif the default network interface
+ 424:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 425:Libraries/lwip-1.4.0/core/netif.c **** void
+ 426:Libraries/lwip-1.4.0/core/netif.c **** netif_set_default(struct netif *netif)
+ 427:Libraries/lwip-1.4.0/core/netif.c **** {
+ 675              		.loc 1 427 0
+ 676              		.cfi_startproc
+ 677              		@ args = 0, pretend = 0, frame = 8
+ 678              		@ frame_needed = 1, uses_anonymous_args = 0
+ 679              		@ link register save eliminated.
+ 680 0000 80B4     		push	{r7}
+ 681              		.cfi_def_cfa_offset 4
+ 682              		.cfi_offset 7, -4
+ 683 0002 83B0     		sub	sp, sp, #12
+ 684              		.cfi_def_cfa_offset 16
+ 685 0004 00AF     		add	r7, sp, #0
+ 686              		.cfi_def_cfa_register 7
+ 687 0006 7860     		str	r0, [r7, #4]
+ 428:Libraries/lwip-1.4.0/core/netif.c ****   if (netif == NULL) {
+ 429:Libraries/lwip-1.4.0/core/netif.c ****     /* remove default route */
+ 430:Libraries/lwip-1.4.0/core/netif.c ****     snmp_delete_iprteidx_tree(1, netif);
+ 431:Libraries/lwip-1.4.0/core/netif.c ****   } else {
+ 432:Libraries/lwip-1.4.0/core/netif.c ****     /* install default route */
+ 433:Libraries/lwip-1.4.0/core/netif.c ****     snmp_insert_iprteidx_tree(1, netif);
+ 434:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 435:Libraries/lwip-1.4.0/core/netif.c ****   netif_default = netif;
+ 688              		.loc 1 435 0
+ 689 0008 034A     		ldr	r2, .L51
+ 690 000a 7B68     		ldr	r3, [r7, #4]
+ 691 000c 1360     		str	r3, [r2]
+ 436:Libraries/lwip-1.4.0/core/netif.c ****   LWIP_DEBUGF(NETIF_DEBUG, ("netif: setting default interface %c%c\n",
+ 437:Libraries/lwip-1.4.0/core/netif.c ****            netif ? netif->name[0] : '\'', netif ? netif->name[1] : '\''));
+ 438:Libraries/lwip-1.4.0/core/netif.c **** }
+ 692              		.loc 1 438 0
+ 693 000e 00BF     		nop
+ 694 0010 0C37     		adds	r7, r7, #12
+ 695              		.cfi_def_cfa_offset 4
+ 696 0012 BD46     		mov	sp, r7
+ 697              		.cfi_def_cfa_register 13
+ 698              		@ sp needed
+ 699 0014 80BC     		pop	{r7}
+ 700              		.cfi_restore 7
+ 701              		.cfi_def_cfa_offset 0
+ 702 0016 7047     		bx	lr
+ 703              	.L52:
+ 704              		.align	2
+ 705              	.L51:
+ 706 0018 00000000 		.word	netif_default
+ 707              		.cfi_endproc
+ 708              	.LFE25:
+ 710              		.section	.text.netif_set_up,"ax",%progbits
+ 711              		.align	2
+ 712              		.global	netif_set_up
+ 713              		.thumb
+ 714              		.thumb_func
+ 716              	netif_set_up:
+ 717              	.LFB26:
+ 439:Libraries/lwip-1.4.0/core/netif.c **** 
+ 440:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 441:Libraries/lwip-1.4.0/core/netif.c ****  * Bring an interface up, available for processing
+ 442:Libraries/lwip-1.4.0/core/netif.c ****  * traffic.
+ 443:Libraries/lwip-1.4.0/core/netif.c ****  * 
+ 444:Libraries/lwip-1.4.0/core/netif.c ****  * @note: Enabling DHCP on a down interface will make it come
+ 445:Libraries/lwip-1.4.0/core/netif.c ****  * up once configured.
+ 446:Libraries/lwip-1.4.0/core/netif.c ****  * 
+ 447:Libraries/lwip-1.4.0/core/netif.c ****  * @see dhcp_start()
+ 448:Libraries/lwip-1.4.0/core/netif.c ****  */ 
+ 449:Libraries/lwip-1.4.0/core/netif.c **** void netif_set_up(struct netif *netif)
+ 450:Libraries/lwip-1.4.0/core/netif.c **** {
+ 718              		.loc 1 450 0
+ 719              		.cfi_startproc
+ 720              		@ args = 0, pretend = 0, frame = 8
+ 721              		@ frame_needed = 1, uses_anonymous_args = 0
+ 722 0000 80B5     		push	{r7, lr}
+ 723              		.cfi_def_cfa_offset 8
+ 724              		.cfi_offset 7, -8
+ 725              		.cfi_offset 14, -4
+ 726 0002 82B0     		sub	sp, sp, #8
+ 727              		.cfi_def_cfa_offset 16
+ 728 0004 00AF     		add	r7, sp, #0
+ 729              		.cfi_def_cfa_register 7
+ 730 0006 7860     		str	r0, [r7, #4]
+ 451:Libraries/lwip-1.4.0/core/netif.c ****   if (!(netif->flags & NETIF_FLAG_UP)) {
+ 731              		.loc 1 451 0
+ 732 0008 7B68     		ldr	r3, [r7, #4]
+ 733 000a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 734 000e 03F00103 		and	r3, r3, #1
+ 735 0012 002B     		cmp	r3, #0
+ 736 0014 1CD1     		bne	.L55
+ 452:Libraries/lwip-1.4.0/core/netif.c ****     netif->flags |= NETIF_FLAG_UP;
+ 737              		.loc 1 452 0
+ 738 0016 7B68     		ldr	r3, [r7, #4]
+ 739 0018 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 740 001c 43F00103 		orr	r3, r3, #1
+ 741 0020 DAB2     		uxtb	r2, r3
+ 742 0022 7B68     		ldr	r3, [r7, #4]
+ 743 0024 83F82920 		strb	r2, [r3, #41]
+ 453:Libraries/lwip-1.4.0/core/netif.c ****     
+ 454:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_SNMP
+ 455:Libraries/lwip-1.4.0/core/netif.c ****     snmp_get_sysuptime(&netif->ts);
+ 456:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_SNMP */
+ 457:Libraries/lwip-1.4.0/core/netif.c **** 
+ 458:Libraries/lwip-1.4.0/core/netif.c ****     NETIF_STATUS_CALLBACK(netif);
+ 459:Libraries/lwip-1.4.0/core/netif.c **** 
+ 460:Libraries/lwip-1.4.0/core/netif.c ****     if (netif->flags & NETIF_FLAG_LINK_UP) {
+ 744              		.loc 1 460 0
+ 745 0028 7B68     		ldr	r3, [r7, #4]
+ 746 002a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 747 002e 03F01003 		and	r3, r3, #16
+ 748 0032 002B     		cmp	r3, #0
+ 749 0034 0CD0     		beq	.L55
+ 461:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_ARP
+ 462:Libraries/lwip-1.4.0/core/netif.c ****       /* For Ethernet network interfaces, we would like to send a "gratuitous ARP" */ 
+ 463:Libraries/lwip-1.4.0/core/netif.c ****       if (netif->flags & (NETIF_FLAG_ETHARP)) {
+ 750              		.loc 1 463 0
+ 751 0036 7B68     		ldr	r3, [r7, #4]
+ 752 0038 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 753 003c 03F02003 		and	r3, r3, #32
+ 754 0040 002B     		cmp	r3, #0
+ 755 0042 05D0     		beq	.L55
+ 464:Libraries/lwip-1.4.0/core/netif.c ****         etharp_gratuitous(netif);
+ 756              		.loc 1 464 0
+ 757 0044 7B68     		ldr	r3, [r7, #4]
+ 758 0046 0433     		adds	r3, r3, #4
+ 759 0048 1946     		mov	r1, r3
+ 760 004a 7868     		ldr	r0, [r7, #4]
+ 761 004c FFF7FEFF 		bl	etharp_request
+ 762              	.L55:
+ 465:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 466:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_ARP */
+ 467:Libraries/lwip-1.4.0/core/netif.c **** 
+ 468:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_IGMP
+ 469:Libraries/lwip-1.4.0/core/netif.c ****       /* resend IGMP memberships */
+ 470:Libraries/lwip-1.4.0/core/netif.c ****       if (netif->flags & NETIF_FLAG_IGMP) {
+ 471:Libraries/lwip-1.4.0/core/netif.c ****         igmp_report_groups( netif);
+ 472:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 473:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_IGMP */
+ 474:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 475:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 476:Libraries/lwip-1.4.0/core/netif.c **** }
+ 763              		.loc 1 476 0
+ 764 0050 00BF     		nop
+ 765 0052 0837     		adds	r7, r7, #8
+ 766              		.cfi_def_cfa_offset 8
+ 767 0054 BD46     		mov	sp, r7
+ 768              		.cfi_def_cfa_register 13
+ 769              		@ sp needed
+ 770 0056 80BD     		pop	{r7, pc}
+ 771              		.cfi_endproc
+ 772              	.LFE26:
+ 774              		.section	.text.netif_set_down,"ax",%progbits
+ 775              		.align	2
+ 776              		.global	netif_set_down
+ 777              		.thumb
+ 778              		.thumb_func
+ 780              	netif_set_down:
+ 781              	.LFB27:
+ 477:Libraries/lwip-1.4.0/core/netif.c **** 
+ 478:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 479:Libraries/lwip-1.4.0/core/netif.c ****  * Bring an interface down, disabling any traffic processing.
+ 480:Libraries/lwip-1.4.0/core/netif.c ****  *
+ 481:Libraries/lwip-1.4.0/core/netif.c ****  * @note: Enabling DHCP on a down interface will make it come
+ 482:Libraries/lwip-1.4.0/core/netif.c ****  * up once configured.
+ 483:Libraries/lwip-1.4.0/core/netif.c ****  * 
+ 484:Libraries/lwip-1.4.0/core/netif.c ****  * @see dhcp_start()
+ 485:Libraries/lwip-1.4.0/core/netif.c ****  */ 
+ 486:Libraries/lwip-1.4.0/core/netif.c **** void netif_set_down(struct netif *netif)
+ 487:Libraries/lwip-1.4.0/core/netif.c **** {
+ 782              		.loc 1 487 0
+ 783              		.cfi_startproc
+ 784              		@ args = 0, pretend = 0, frame = 8
+ 785              		@ frame_needed = 1, uses_anonymous_args = 0
+ 786              		@ link register save eliminated.
+ 787 0000 80B4     		push	{r7}
+ 788              		.cfi_def_cfa_offset 4
+ 789              		.cfi_offset 7, -4
+ 790 0002 83B0     		sub	sp, sp, #12
+ 791              		.cfi_def_cfa_offset 16
+ 792 0004 00AF     		add	r7, sp, #0
+ 793              		.cfi_def_cfa_register 7
+ 794 0006 7860     		str	r0, [r7, #4]
+ 488:Libraries/lwip-1.4.0/core/netif.c ****   if (netif->flags & NETIF_FLAG_UP) {
+ 795              		.loc 1 488 0
+ 796 0008 7B68     		ldr	r3, [r7, #4]
+ 797 000a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 798 000e 03F00103 		and	r3, r3, #1
+ 799 0012 002B     		cmp	r3, #0
+ 800 0014 08D0     		beq	.L58
+ 489:Libraries/lwip-1.4.0/core/netif.c ****     netif->flags &= ~NETIF_FLAG_UP;
+ 801              		.loc 1 489 0
+ 802 0016 7B68     		ldr	r3, [r7, #4]
+ 803 0018 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 804 001c 23F00103 		bic	r3, r3, #1
+ 805 0020 DAB2     		uxtb	r2, r3
+ 806 0022 7B68     		ldr	r3, [r7, #4]
+ 807 0024 83F82920 		strb	r2, [r3, #41]
+ 808              	.L58:
+ 490:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_SNMP
+ 491:Libraries/lwip-1.4.0/core/netif.c ****     snmp_get_sysuptime(&netif->ts);
+ 492:Libraries/lwip-1.4.0/core/netif.c **** #endif
+ 493:Libraries/lwip-1.4.0/core/netif.c **** 
+ 494:Libraries/lwip-1.4.0/core/netif.c ****     NETIF_STATUS_CALLBACK(netif);
+ 495:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 496:Libraries/lwip-1.4.0/core/netif.c **** }
+ 809              		.loc 1 496 0
+ 810 0028 00BF     		nop
+ 811 002a 0C37     		adds	r7, r7, #12
+ 812              		.cfi_def_cfa_offset 4
+ 813 002c BD46     		mov	sp, r7
+ 814              		.cfi_def_cfa_register 13
+ 815              		@ sp needed
+ 816 002e 80BC     		pop	{r7}
+ 817              		.cfi_restore 7
+ 818              		.cfi_def_cfa_offset 0
+ 819 0030 7047     		bx	lr
+ 820              		.cfi_endproc
+ 821              	.LFE27:
+ 823 0032 00BF     		.section	.text.netif_set_link_up,"ax",%progbits
+ 824              		.align	2
+ 825              		.global	netif_set_link_up
+ 826              		.thumb
+ 827              		.thumb_func
+ 829              	netif_set_link_up:
+ 830              	.LFB28:
+ 497:Libraries/lwip-1.4.0/core/netif.c **** 
+ 498:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_NETIF_STATUS_CALLBACK
+ 499:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 500:Libraries/lwip-1.4.0/core/netif.c ****  * Set callback to be called when interface is brought up/down
+ 501:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 502:Libraries/lwip-1.4.0/core/netif.c **** void netif_set_status_callback(struct netif *netif, netif_status_callback_fn status_callback)
+ 503:Libraries/lwip-1.4.0/core/netif.c **** {
+ 504:Libraries/lwip-1.4.0/core/netif.c ****   if (netif) {
+ 505:Libraries/lwip-1.4.0/core/netif.c ****     netif->status_callback = status_callback;
+ 506:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 507:Libraries/lwip-1.4.0/core/netif.c **** }
+ 508:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_NETIF_STATUS_CALLBACK */
+ 509:Libraries/lwip-1.4.0/core/netif.c **** 
+ 510:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 511:Libraries/lwip-1.4.0/core/netif.c ****  * Called by a driver when its link goes up
+ 512:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 513:Libraries/lwip-1.4.0/core/netif.c **** void netif_set_link_up(struct netif *netif )
+ 514:Libraries/lwip-1.4.0/core/netif.c **** {
+ 831              		.loc 1 514 0
+ 832              		.cfi_startproc
+ 833              		@ args = 0, pretend = 0, frame = 8
+ 834              		@ frame_needed = 1, uses_anonymous_args = 0
+ 835 0000 80B5     		push	{r7, lr}
+ 836              		.cfi_def_cfa_offset 8
+ 837              		.cfi_offset 7, -8
+ 838              		.cfi_offset 14, -4
+ 839 0002 82B0     		sub	sp, sp, #8
+ 840              		.cfi_def_cfa_offset 16
+ 841 0004 00AF     		add	r7, sp, #0
+ 842              		.cfi_def_cfa_register 7
+ 843 0006 7860     		str	r0, [r7, #4]
+ 515:Libraries/lwip-1.4.0/core/netif.c ****   if (!(netif->flags & NETIF_FLAG_LINK_UP)) {
+ 844              		.loc 1 515 0
+ 845 0008 7B68     		ldr	r3, [r7, #4]
+ 846 000a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 847 000e 03F01003 		and	r3, r3, #16
+ 848 0012 002B     		cmp	r3, #0
+ 849 0014 1CD1     		bne	.L61
+ 516:Libraries/lwip-1.4.0/core/netif.c ****     netif->flags |= NETIF_FLAG_LINK_UP;
+ 850              		.loc 1 516 0
+ 851 0016 7B68     		ldr	r3, [r7, #4]
+ 852 0018 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 853 001c 43F01003 		orr	r3, r3, #16
+ 854 0020 DAB2     		uxtb	r2, r3
+ 855 0022 7B68     		ldr	r3, [r7, #4]
+ 856 0024 83F82920 		strb	r2, [r3, #41]
+ 517:Libraries/lwip-1.4.0/core/netif.c **** 
+ 518:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_DHCP
+ 519:Libraries/lwip-1.4.0/core/netif.c ****     if (netif->dhcp) {
+ 520:Libraries/lwip-1.4.0/core/netif.c ****       dhcp_network_changed(netif);
+ 521:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 522:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_DHCP */
+ 523:Libraries/lwip-1.4.0/core/netif.c **** 
+ 524:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_AUTOIP
+ 525:Libraries/lwip-1.4.0/core/netif.c ****     if (netif->autoip) {
+ 526:Libraries/lwip-1.4.0/core/netif.c ****       autoip_network_changed(netif);
+ 527:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 528:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_AUTOIP */
+ 529:Libraries/lwip-1.4.0/core/netif.c **** 
+ 530:Libraries/lwip-1.4.0/core/netif.c ****     if (netif->flags & NETIF_FLAG_UP) {
+ 857              		.loc 1 530 0
+ 858 0028 7B68     		ldr	r3, [r7, #4]
+ 859 002a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 860 002e 03F00103 		and	r3, r3, #1
+ 861 0032 002B     		cmp	r3, #0
+ 862 0034 0CD0     		beq	.L61
+ 531:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_ARP
+ 532:Libraries/lwip-1.4.0/core/netif.c ****       /* For Ethernet network interfaces, we would like to send a "gratuitous ARP" */ 
+ 533:Libraries/lwip-1.4.0/core/netif.c ****       if (netif->flags & NETIF_FLAG_ETHARP) {
+ 863              		.loc 1 533 0
+ 864 0036 7B68     		ldr	r3, [r7, #4]
+ 865 0038 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 866 003c 03F02003 		and	r3, r3, #32
+ 867 0040 002B     		cmp	r3, #0
+ 868 0042 05D0     		beq	.L61
+ 534:Libraries/lwip-1.4.0/core/netif.c ****         etharp_gratuitous(netif);
+ 869              		.loc 1 534 0
+ 870 0044 7B68     		ldr	r3, [r7, #4]
+ 871 0046 0433     		adds	r3, r3, #4
+ 872 0048 1946     		mov	r1, r3
+ 873 004a 7868     		ldr	r0, [r7, #4]
+ 874 004c FFF7FEFF 		bl	etharp_request
+ 875              	.L61:
+ 535:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 536:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_ARP */
+ 537:Libraries/lwip-1.4.0/core/netif.c **** 
+ 538:Libraries/lwip-1.4.0/core/netif.c **** #if LWIP_IGMP
+ 539:Libraries/lwip-1.4.0/core/netif.c ****       /* resend IGMP memberships */
+ 540:Libraries/lwip-1.4.0/core/netif.c ****       if (netif->flags & NETIF_FLAG_IGMP) {
+ 541:Libraries/lwip-1.4.0/core/netif.c ****         igmp_report_groups( netif);
+ 542:Libraries/lwip-1.4.0/core/netif.c ****       }
+ 543:Libraries/lwip-1.4.0/core/netif.c **** #endif /* LWIP_IGMP */
+ 544:Libraries/lwip-1.4.0/core/netif.c ****     }
+ 545:Libraries/lwip-1.4.0/core/netif.c ****     NETIF_LINK_CALLBACK(netif);
+ 546:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 547:Libraries/lwip-1.4.0/core/netif.c **** }
+ 876              		.loc 1 547 0
+ 877 0050 00BF     		nop
+ 878 0052 0837     		adds	r7, r7, #8
+ 879              		.cfi_def_cfa_offset 8
+ 880 0054 BD46     		mov	sp, r7
+ 881              		.cfi_def_cfa_register 13
+ 882              		@ sp needed
+ 883 0056 80BD     		pop	{r7, pc}
+ 884              		.cfi_endproc
+ 885              	.LFE28:
+ 887              		.section	.text.netif_set_link_down,"ax",%progbits
+ 888              		.align	2
+ 889              		.global	netif_set_link_down
+ 890              		.thumb
+ 891              		.thumb_func
+ 893              	netif_set_link_down:
+ 894              	.LFB29:
+ 548:Libraries/lwip-1.4.0/core/netif.c **** 
+ 549:Libraries/lwip-1.4.0/core/netif.c **** /**
+ 550:Libraries/lwip-1.4.0/core/netif.c ****  * Called by a driver when its link goes down
+ 551:Libraries/lwip-1.4.0/core/netif.c ****  */
+ 552:Libraries/lwip-1.4.0/core/netif.c **** void netif_set_link_down(struct netif *netif )
+ 553:Libraries/lwip-1.4.0/core/netif.c **** {
+ 895              		.loc 1 553 0
+ 896              		.cfi_startproc
+ 897              		@ args = 0, pretend = 0, frame = 8
+ 898              		@ frame_needed = 1, uses_anonymous_args = 0
+ 899              		@ link register save eliminated.
+ 900 0000 80B4     		push	{r7}
+ 901              		.cfi_def_cfa_offset 4
+ 902              		.cfi_offset 7, -4
+ 903 0002 83B0     		sub	sp, sp, #12
+ 904              		.cfi_def_cfa_offset 16
+ 905 0004 00AF     		add	r7, sp, #0
+ 906              		.cfi_def_cfa_register 7
+ 907 0006 7860     		str	r0, [r7, #4]
+ 554:Libraries/lwip-1.4.0/core/netif.c ****   if (netif->flags & NETIF_FLAG_LINK_UP) {
+ 908              		.loc 1 554 0
+ 909 0008 7B68     		ldr	r3, [r7, #4]
+ 910 000a 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 911 000e 03F01003 		and	r3, r3, #16
+ 912 0012 002B     		cmp	r3, #0
+ 913 0014 08D0     		beq	.L64
+ 555:Libraries/lwip-1.4.0/core/netif.c ****     netif->flags &= ~NETIF_FLAG_LINK_UP;
+ 914              		.loc 1 555 0
+ 915 0016 7B68     		ldr	r3, [r7, #4]
+ 916 0018 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 917 001c 23F01003 		bic	r3, r3, #16
+ 918 0020 DAB2     		uxtb	r2, r3
+ 919 0022 7B68     		ldr	r3, [r7, #4]
+ 920 0024 83F82920 		strb	r2, [r3, #41]
+ 921              	.L64:
+ 556:Libraries/lwip-1.4.0/core/netif.c ****     NETIF_LINK_CALLBACK(netif);
+ 557:Libraries/lwip-1.4.0/core/netif.c ****   }
+ 558:Libraries/lwip-1.4.0/core/netif.c **** }
+ 922              		.loc 1 558 0
+ 923 0028 00BF     		nop
+ 924 002a 0C37     		adds	r7, r7, #12
+ 925              		.cfi_def_cfa_offset 4
+ 926 002c BD46     		mov	sp, r7
+ 927              		.cfi_def_cfa_register 13
+ 928              		@ sp needed
+ 929 002e 80BC     		pop	{r7}
+ 930              		.cfi_restore 7
+ 931              		.cfi_def_cfa_offset 0
+ 932 0030 7047     		bx	lr
+ 933              		.cfi_endproc
+ 934              	.LFE29:
+ 936 0032 00BF     		.section	.bss.netifnum.6606,"aw",%nobits
+ 939              	netifnum.6606:
+ 940 0000 00       		.space	1
+ 941              		.text
+ 942              	.Letext0:
+ 943              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 944              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 945              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 946              		.file 5 "./Libraries/lwip-1.4.0/include/ipv4/lwip/ip_addr.h"
+ 947              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/err.h"
+ 948              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/pbuf.h"
+ 949              		.file 8 "./Libraries/lwip-1.4.0/include/lwip/netif.h"
+ 950              		.file 9 "./Libraries/lwip-1.4.0/include/lwip/tcp.h"
+ 951              		.file 10 "./Libraries/lwip-1.4.0/include/lwip/tcp_impl.h"
+ 952              		.file 11 "./Libraries/lwip-1.4.0/include/lwip/memp.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 netif.c
+                            *COM*:00000004 netif_list
+                            *COM*:00000004 netif_default
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:22     .text.netif_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:27     .text.netif_init:00000000 netif_init
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:53     .text.netif_add:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:58     .text.netif_add:00000000 netif_add
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:160    .text.netif_set_addr:00000000 netif_set_addr
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:149    .text.netif_add:0000007c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:939    .bss.netifnum.6606:00000000 netifnum.6606
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:155    .text.netif_set_addr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:425    .text.netif_set_ipaddr:00000000 netif_set_ipaddr
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:622    .text.netif_set_netmask:00000000 netif_set_netmask
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:571    .text.netif_set_gw:00000000 netif_set_gw
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:202    .text.netif_remove:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:207    .text.netif_remove:00000000 netif_remove
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:780    .text.netif_set_down:00000000 netif_set_down
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:673    .text.netif_set_default:00000000 netif_set_default
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:316    .text.netif_remove:00000084 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:322    .text.netif_find:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:327    .text.netif_find:00000000 netif_find
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:415    .text.netif_find:0000006c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:420    .text.netif_set_ipaddr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:560    .text.netif_set_ipaddr:000000a4 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:566    .text.netif_set_gw:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:617    .text.netif_set_netmask:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:668    .text.netif_set_default:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:706    .text.netif_set_default:00000018 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:711    .text.netif_set_up:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:716    .text.netif_set_up:00000000 netif_set_up
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:775    .text.netif_set_down:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:824    .text.netif_set_link_up:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:829    .text.netif_set_link_up:00000000 netif_set_link_up
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:888    .text.netif_set_link_down:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:893    .text.netif_set_link_down:00000000 netif_set_link_down
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccfOID1g.s:940    .bss.netifnum.6606:00000000 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+tcp_abort
+tcp_active_pcbs
+tcp_listen_pcbs
+etharp_request

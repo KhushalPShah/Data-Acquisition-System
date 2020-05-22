@@ -1,0 +1,1178 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"ip_addr.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	ip_addr_any
+  20              		.section	.rodata.ip_addr_any,"a",%progbits
+  21              		.align	2
+  24              	ip_addr_any:
+  25 0000 00000000 		.space	4
+  26              		.global	ip_addr_broadcast
+  27              		.section	.rodata.ip_addr_broadcast,"a",%progbits
+  28              		.align	2
+  31              	ip_addr_broadcast:
+  32 0000 FFFFFFFF 		.word	-1
+  33              		.section	.text.ip4_addr_isbroadcast,"ax",%progbits
+  34              		.align	2
+  35              		.global	ip4_addr_isbroadcast
+  36              		.thumb
+  37              		.thumb_func
+  39              	ip4_addr_isbroadcast:
+  40              	.LFB17:
+  41              		.file 1 "Libraries/lwip-1.4.0/core/ipv4/ip_addr.c"
+   1:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+   2:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * This is the IPv4 address tools implementation.
+   4:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+   5:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+   6:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+   7:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /*
+   8:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * All rights reserved. 
+  10:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 
+  11:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Redistribution and use in source and binary forms, with or without modification, 
+  12:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+  14:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *    derived from this software without specific prior written permission. 
+  21:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+  22:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
+  23:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+  24:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
+  25:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+  26:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT 
+  27:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+  28:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+  29:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
+  30:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+  31:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+  33:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 
+  35:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Author: Adam Dunkels <adam@sics.se>
+  36:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+  37:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+  38:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  39:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #include "lwip/ip_addr.h"
+  41:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #include "lwip/netif.h"
+  42:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  43:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /* used by IP_ADDR_ANY and IP_ADDR_BROADCAST in ip_addr.h */
+  44:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** const ip_addr_t ip_addr_any = { IPADDR_ANY };
+  45:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** const ip_addr_t ip_addr_broadcast = { IPADDR_BROADCAST };
+  46:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  47:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+  48:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Determine if an address is a broadcast address on a network interface 
+  49:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * 
+  50:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param addr address to be checked
+  51:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param netif the network interface against which the address is checked
+  52:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return returns non-zero if the address is a broadcast address
+  53:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+  54:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** u8_t
+  55:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** ip4_addr_isbroadcast(u32_t addr, const struct netif *netif)
+  56:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+  42              		.loc 1 56 0
+  43              		.cfi_startproc
+  44              		@ args = 0, pretend = 0, frame = 16
+  45              		@ frame_needed = 1, uses_anonymous_args = 0
+  46              		@ link register save eliminated.
+  47 0000 80B4     		push	{r7}
+  48              		.cfi_def_cfa_offset 4
+  49              		.cfi_offset 7, -4
+  50 0002 85B0     		sub	sp, sp, #20
+  51              		.cfi_def_cfa_offset 24
+  52 0004 00AF     		add	r7, sp, #0
+  53              		.cfi_def_cfa_register 7
+  54 0006 7860     		str	r0, [r7, #4]
+  55 0008 3960     		str	r1, [r7]
+  57:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   ip_addr_t ipaddr;
+  58:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   ip4_addr_set_u32(&ipaddr, addr);
+  56              		.loc 1 58 0
+  57 000a 7B68     		ldr	r3, [r7, #4]
+  58 000c FB60     		str	r3, [r7, #12]
+  59:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  60:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* all ones (broadcast) or all zeroes (old skool broadcast) */
+  61:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   if ((~addr == IPADDR_ANY) ||
+  59              		.loc 1 61 0
+  60 000e 7B68     		ldr	r3, [r7, #4]
+  61 0010 B3F1FF3F 		cmp	r3, #-1
+  62 0014 02D0     		beq	.L2
+  63              		.loc 1 61 0 is_stmt 0 discriminator 1
+  64 0016 7B68     		ldr	r3, [r7, #4]
+  65 0018 002B     		cmp	r3, #0
+  66 001a 01D1     		bne	.L3
+  67              	.L2:
+  62:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       (addr == IPADDR_ANY)) {
+  63:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return 1;
+  68              		.loc 1 63 0 is_stmt 1
+  69 001c 0123     		movs	r3, #1
+  70 001e 25E0     		b	.L8
+  71              	.L3:
+  64:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* no broadcast support on this network interface? */
+  65:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   } else if ((netif->flags & NETIF_FLAG_BROADCAST) == 0) {
+  72              		.loc 1 65 0
+  73 0020 3B68     		ldr	r3, [r7]
+  74 0022 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+  75 0026 03F00203 		and	r3, r3, #2
+  76 002a 002B     		cmp	r3, #0
+  77 002c 01D1     		bne	.L5
+  66:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     /* the given address cannot be a broadcast address
+  67:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****      * nor can we check against any broadcast addresses */
+  68:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return 0;
+  78              		.loc 1 68 0
+  79 002e 0023     		movs	r3, #0
+  80 0030 1CE0     		b	.L8
+  81              	.L5:
+  69:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* address matches network interface address exactly? => no broadcast */
+  70:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   } else if (addr == ip4_addr_get_u32(&netif->ip_addr)) {
+  82              		.loc 1 70 0
+  83 0032 3B68     		ldr	r3, [r7]
+  84 0034 5A68     		ldr	r2, [r3, #4]
+  85 0036 7B68     		ldr	r3, [r7, #4]
+  86 0038 9A42     		cmp	r2, r3
+  87 003a 01D1     		bne	.L6
+  71:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return 0;
+  88              		.loc 1 71 0
+  89 003c 0023     		movs	r3, #0
+  90 003e 15E0     		b	.L8
+  91              	.L6:
+  72:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /*  on the same (sub) network... */
+  73:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   } else if (ip_addr_netcmp(&ipaddr, &(netif->ip_addr), &(netif->netmask))
+  92              		.loc 1 73 0
+  93 0040 FA68     		ldr	r2, [r7, #12]
+  94 0042 3B68     		ldr	r3, [r7]
+  95 0044 5B68     		ldr	r3, [r3, #4]
+  96 0046 5A40     		eors	r2, r2, r3
+  97 0048 3B68     		ldr	r3, [r7]
+  98 004a 9B68     		ldr	r3, [r3, #8]
+  99 004c 1340     		ands	r3, r3, r2
+ 100 004e 002B     		cmp	r3, #0
+ 101 0050 0BD1     		bne	.L7
+  74:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****          /* ...and host identifier bits are all ones? =>... */
+  75:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****           && ((addr & ~ip4_addr_get_u32(&netif->netmask)) ==
+ 102              		.loc 1 75 0
+ 103 0052 3B68     		ldr	r3, [r7]
+ 104 0054 9B68     		ldr	r3, [r3, #8]
+ 105 0056 DA43     		mvns	r2, r3
+ 106 0058 7B68     		ldr	r3, [r7, #4]
+ 107 005a 1A40     		ands	r2, r2, r3
+  76:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****            (IPADDR_BROADCAST & ~ip4_addr_get_u32(&netif->netmask)))) {
+ 108              		.loc 1 76 0
+ 109 005c 3B68     		ldr	r3, [r7]
+ 110 005e 9B68     		ldr	r3, [r3, #8]
+ 111 0060 DB43     		mvns	r3, r3
+  75:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****            (IPADDR_BROADCAST & ~ip4_addr_get_u32(&netif->netmask)))) {
+ 112              		.loc 1 75 0
+ 113 0062 9A42     		cmp	r2, r3
+ 114 0064 01D1     		bne	.L7
+  77:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     /* => network broadcast address */
+  78:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return 1;
+ 115              		.loc 1 78 0
+ 116 0066 0123     		movs	r3, #1
+ 117 0068 00E0     		b	.L8
+ 118              	.L7:
+  79:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   } else {
+  80:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return 0;
+ 119              		.loc 1 80 0
+ 120 006a 0023     		movs	r3, #0
+ 121              	.L8:
+  81:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+  82:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 122              		.loc 1 82 0 discriminator 1
+ 123 006c 1846     		mov	r0, r3
+ 124 006e 1437     		adds	r7, r7, #20
+ 125              		.cfi_def_cfa_offset 4
+ 126 0070 BD46     		mov	sp, r7
+ 127              		.cfi_def_cfa_register 13
+ 128              		@ sp needed
+ 129 0072 80BC     		pop	{r7}
+ 130              		.cfi_restore 7
+ 131              		.cfi_def_cfa_offset 0
+ 132 0074 7047     		bx	lr
+ 133              		.cfi_endproc
+ 134              	.LFE17:
+ 136 0076 00BF     		.section	.text.ip4_addr_netmask_valid,"ax",%progbits
+ 137              		.align	2
+ 138              		.global	ip4_addr_netmask_valid
+ 139              		.thumb
+ 140              		.thumb_func
+ 142              	ip4_addr_netmask_valid:
+ 143              	.LFB18:
+  83:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  84:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /** Checks if a netmask is valid (starting with ones, then only zeros)
+  85:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+  86:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param netmask the IPv4 netmask to check (in network byte order!)
+  87:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return 1 if the netmask is valid, 0 if it is not
+  88:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+  89:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** u8_t
+  90:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** ip4_addr_netmask_valid(u32_t netmask)
+  91:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+ 144              		.loc 1 91 0
+ 145              		.cfi_startproc
+ 146              		@ args = 0, pretend = 0, frame = 16
+ 147              		@ frame_needed = 1, uses_anonymous_args = 0
+ 148 0000 80B5     		push	{r7, lr}
+ 149              		.cfi_def_cfa_offset 8
+ 150              		.cfi_offset 7, -8
+ 151              		.cfi_offset 14, -4
+ 152 0002 84B0     		sub	sp, sp, #16
+ 153              		.cfi_def_cfa_offset 24
+ 154 0004 00AF     		add	r7, sp, #0
+ 155              		.cfi_def_cfa_register 7
+ 156 0006 7860     		str	r0, [r7, #4]
+  92:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t mask;
+  93:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t nm_hostorder = lwip_htonl(netmask);
+ 157              		.loc 1 93 0
+ 158 0008 7868     		ldr	r0, [r7, #4]
+ 159 000a FFF7FEFF 		bl	lwip_htonl
+ 160 000e B860     		str	r0, [r7, #8]
+  94:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+  95:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* first, check for the first zero */
+  96:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   for (mask = 1UL << 31 ; mask != 0; mask >>= 1) {
+ 161              		.loc 1 96 0
+ 162 0010 4FF00043 		mov	r3, #-2147483648
+ 163 0014 FB60     		str	r3, [r7, #12]
+ 164 0016 07E0     		b	.L10
+ 165              	.L13:
+  97:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) == 0) {
+ 166              		.loc 1 97 0
+ 167 0018 BA68     		ldr	r2, [r7, #8]
+ 168 001a FB68     		ldr	r3, [r7, #12]
+ 169 001c 1340     		ands	r3, r3, r2
+ 170 001e 002B     		cmp	r3, #0
+ 171 0020 06D0     		beq	.L18
+  96:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) == 0) {
+ 172              		.loc 1 96 0 discriminator 2
+ 173 0022 FB68     		ldr	r3, [r7, #12]
+ 174 0024 5B08     		lsrs	r3, r3, #1
+ 175 0026 FB60     		str	r3, [r7, #12]
+ 176              	.L10:
+  96:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) == 0) {
+ 177              		.loc 1 96 0 is_stmt 0 discriminator 1
+ 178 0028 FB68     		ldr	r3, [r7, #12]
+ 179 002a 002B     		cmp	r3, #0
+ 180 002c F4D1     		bne	.L13
+ 181 002e 0BE0     		b	.L14
+ 182              	.L18:
+  98:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       break;
+ 183              		.loc 1 98 0 is_stmt 1
+ 184 0030 00BF     		nop
+  99:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 100:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 101:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* then check that there is no one */
+ 102:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   for (; mask != 0; mask >>= 1) {
+ 185              		.loc 1 102 0
+ 186 0032 09E0     		b	.L14
+ 187              	.L17:
+ 103:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) != 0) {
+ 188              		.loc 1 103 0
+ 189 0034 BA68     		ldr	r2, [r7, #8]
+ 190 0036 FB68     		ldr	r3, [r7, #12]
+ 191 0038 1340     		ands	r3, r3, r2
+ 192 003a 002B     		cmp	r3, #0
+ 193 003c 01D0     		beq	.L15
+ 104:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       /* there is a one after the first zero -> invalid */
+ 105:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return 0;
+ 194              		.loc 1 105 0
+ 195 003e 0023     		movs	r3, #0
+ 196 0040 06E0     		b	.L16
+ 197              	.L15:
+ 102:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) != 0) {
+ 198              		.loc 1 102 0
+ 199 0042 FB68     		ldr	r3, [r7, #12]
+ 200 0044 5B08     		lsrs	r3, r3, #1
+ 201 0046 FB60     		str	r3, [r7, #12]
+ 202              	.L14:
+ 102:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if ((nm_hostorder & mask) != 0) {
+ 203              		.loc 1 102 0 is_stmt 0 discriminator 1
+ 204 0048 FB68     		ldr	r3, [r7, #12]
+ 205 004a 002B     		cmp	r3, #0
+ 206 004c F2D1     		bne	.L17
+ 106:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 107:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 108:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /* no one after the first zero -> valid */
+ 109:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   return 1;
+ 207              		.loc 1 109 0 is_stmt 1
+ 208 004e 0123     		movs	r3, #1
+ 209              	.L16:
+ 110:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 210              		.loc 1 110 0
+ 211 0050 1846     		mov	r0, r3
+ 212 0052 1037     		adds	r7, r7, #16
+ 213              		.cfi_def_cfa_offset 8
+ 214 0054 BD46     		mov	sp, r7
+ 215              		.cfi_def_cfa_register 13
+ 216              		@ sp needed
+ 217 0056 80BD     		pop	{r7, pc}
+ 218              		.cfi_endproc
+ 219              	.LFE18:
+ 221              		.section	.text.ipaddr_addr,"ax",%progbits
+ 222              		.align	2
+ 223              		.global	ipaddr_addr
+ 224              		.thumb
+ 225              		.thumb_func
+ 227              	ipaddr_addr:
+ 228              	.LFB19:
+ 111:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 112:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /* Here for now until needed in other places in lwIP */
+ 113:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #ifndef isprint
+ 114:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define in_range(c, lo, up)  ((u8_t)c >= lo && (u8_t)c <= up)
+ 115:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define isprint(c)           in_range(c, 0x20, 0x7f)
+ 116:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define isdigit(c)           in_range(c, '0', '9')
+ 117:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define isxdigit(c)          (isdigit(c) || in_range(c, 'a', 'f') || in_range(c, 'A', 'F'))
+ 118:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define islower(c)           in_range(c, 'a', 'z')
+ 119:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #define isspace(c)           (c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t' || c == 
+ 120:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** #endif
+ 121:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 122:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+ 123:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Ascii internet address interpretation routine.
+ 124:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * The value returned is in network order.
+ 125:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+ 126:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param cp IP address in ascii represenation (e.g. "127.0.0.1")
+ 127:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return ip address in network order
+ 128:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+ 129:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** u32_t
+ 130:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** ipaddr_addr(const char *cp)
+ 131:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+ 229              		.loc 1 131 0
+ 230              		.cfi_startproc
+ 231              		@ args = 0, pretend = 0, frame = 16
+ 232              		@ frame_needed = 1, uses_anonymous_args = 0
+ 233 0000 80B5     		push	{r7, lr}
+ 234              		.cfi_def_cfa_offset 8
+ 235              		.cfi_offset 7, -8
+ 236              		.cfi_offset 14, -4
+ 237 0002 84B0     		sub	sp, sp, #16
+ 238              		.cfi_def_cfa_offset 24
+ 239 0004 00AF     		add	r7, sp, #0
+ 240              		.cfi_def_cfa_register 7
+ 241 0006 7860     		str	r0, [r7, #4]
+ 132:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   ip_addr_t val;
+ 133:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 134:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   if (ipaddr_aton(cp, &val)) {
+ 242              		.loc 1 134 0
+ 243 0008 07F10C03 		add	r3, r7, #12
+ 244 000c 1946     		mov	r1, r3
+ 245 000e 7868     		ldr	r0, [r7, #4]
+ 246 0010 FFF7FEFF 		bl	ipaddr_aton
+ 247 0014 0346     		mov	r3, r0
+ 248 0016 002B     		cmp	r3, #0
+ 249 0018 01D0     		beq	.L20
+ 135:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return ip4_addr_get_u32(&val);
+ 250              		.loc 1 135 0
+ 251 001a FB68     		ldr	r3, [r7, #12]
+ 252 001c 01E0     		b	.L22
+ 253              	.L20:
+ 136:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 137:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   return (IPADDR_NONE);
+ 254              		.loc 1 137 0
+ 255 001e 4FF0FF33 		mov	r3, #-1
+ 256              	.L22:
+ 138:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 257              		.loc 1 138 0 discriminator 1
+ 258 0022 1846     		mov	r0, r3
+ 259 0024 1037     		adds	r7, r7, #16
+ 260              		.cfi_def_cfa_offset 8
+ 261 0026 BD46     		mov	sp, r7
+ 262              		.cfi_def_cfa_register 13
+ 263              		@ sp needed
+ 264 0028 80BD     		pop	{r7, pc}
+ 265              		.cfi_endproc
+ 266              	.LFE19:
+ 268 002a 00BF     		.section	.text.ipaddr_aton,"ax",%progbits
+ 269              		.align	2
+ 270              		.global	ipaddr_aton
+ 271              		.thumb
+ 272              		.thumb_func
+ 274              	ipaddr_aton:
+ 275              	.LFB20:
+ 139:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 140:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+ 141:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Check whether "cp" is a valid ascii representation
+ 142:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * of an Internet address and convert to a binary address.
+ 143:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Returns 1 if the address is valid, 0 if not.
+ 144:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * This replaces inet_addr, the return value from which
+ 145:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * cannot distinguish between failure and a local broadcast address.
+ 146:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+ 147:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param cp IP address in ascii represenation (e.g. "127.0.0.1")
+ 148:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param addr pointer to which to save the ip address in network order
+ 149:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return 1 if cp could be converted to addr, 0 on failure
+ 150:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+ 151:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** int
+ 152:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** ipaddr_aton(const char *cp, ip_addr_t *addr)
+ 153:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+ 276              		.loc 1 153 0
+ 277              		.cfi_startproc
+ 278              		@ args = 0, pretend = 0, frame = 40
+ 279              		@ frame_needed = 1, uses_anonymous_args = 0
+ 280 0000 80B5     		push	{r7, lr}
+ 281              		.cfi_def_cfa_offset 8
+ 282              		.cfi_offset 7, -8
+ 283              		.cfi_offset 14, -4
+ 284 0002 8AB0     		sub	sp, sp, #40
+ 285              		.cfi_def_cfa_offset 48
+ 286 0004 00AF     		add	r7, sp, #0
+ 287              		.cfi_def_cfa_register 7
+ 288 0006 7860     		str	r0, [r7, #4]
+ 289 0008 3960     		str	r1, [r7]
+ 154:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t val;
+ 155:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u8_t base;
+ 156:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   char c;
+ 157:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t parts[4];
+ 158:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t *pp = parts;
+ 290              		.loc 1 158 0
+ 291 000a 07F10C03 		add	r3, r7, #12
+ 292 000e FB61     		str	r3, [r7, #28]
+ 159:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 160:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   c = *cp;
+ 293              		.loc 1 160 0
+ 294 0010 7B68     		ldr	r3, [r7, #4]
+ 295 0012 1B78     		ldrb	r3, [r3]
+ 296 0014 87F82230 		strb	r3, [r7, #34]
+ 297              	.L42:
+ 161:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   for (;;) {
+ 162:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     /*
+ 163:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****      * Collect number up to ``.''.
+ 164:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****      * Values are specified as for C:
+ 165:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****      * 0x=hex, 0=octal, 1-9=decimal.
+ 166:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****      */
+ 167:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (!isdigit(c))
+ 298              		.loc 1 167 0
+ 299 0018 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 300 001c 2F2B     		cmp	r3, #47
+ 301 001e 03D9     		bls	.L24
+ 302              		.loc 1 167 0 is_stmt 0 discriminator 1
+ 303 0020 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 304 0024 392B     		cmp	r3, #57
+ 305 0026 01D9     		bls	.L25
+ 306              	.L24:
+ 168:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return (0);
+ 307              		.loc 1 168 0 is_stmt 1
+ 308 0028 0023     		movs	r3, #0
+ 309 002a FEE0     		b	.L56
+ 310              	.L25:
+ 169:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     val = 0;
+ 311              		.loc 1 169 0
+ 312 002c 0023     		movs	r3, #0
+ 313 002e 7B62     		str	r3, [r7, #36]
+ 170:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     base = 10;
+ 314              		.loc 1 170 0
+ 315 0030 0A23     		movs	r3, #10
+ 316 0032 87F82330 		strb	r3, [r7, #35]
+ 171:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (c == '0') {
+ 317              		.loc 1 171 0
+ 318 0036 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 319 003a 302B     		cmp	r3, #48
+ 320 003c 1CD1     		bne	.L27
+ 172:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       c = *++cp;
+ 321              		.loc 1 172 0
+ 322 003e 7B68     		ldr	r3, [r7, #4]
+ 323 0040 0133     		adds	r3, r3, #1
+ 324 0042 7B60     		str	r3, [r7, #4]
+ 325 0044 7B68     		ldr	r3, [r7, #4]
+ 326 0046 1B78     		ldrb	r3, [r3]
+ 327 0048 87F82230 		strb	r3, [r7, #34]
+ 173:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       if (c == 'x' || c == 'X') {
+ 328              		.loc 1 173 0
+ 329 004c 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 330 0050 782B     		cmp	r3, #120
+ 331 0052 03D0     		beq	.L28
+ 332              		.loc 1 173 0 is_stmt 0 discriminator 1
+ 333 0054 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 334 0058 582B     		cmp	r3, #88
+ 335 005a 0AD1     		bne	.L29
+ 336              	.L28:
+ 174:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         base = 16;
+ 337              		.loc 1 174 0 is_stmt 1
+ 338 005c 1023     		movs	r3, #16
+ 339 005e 87F82330 		strb	r3, [r7, #35]
+ 175:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         c = *++cp;
+ 340              		.loc 1 175 0
+ 341 0062 7B68     		ldr	r3, [r7, #4]
+ 342 0064 0133     		adds	r3, r3, #1
+ 343 0066 7B60     		str	r3, [r7, #4]
+ 344 0068 7B68     		ldr	r3, [r7, #4]
+ 345 006a 1B78     		ldrb	r3, [r3]
+ 346 006c 87F82230 		strb	r3, [r7, #34]
+ 347 0070 02E0     		b	.L27
+ 348              	.L29:
+ 176:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       } else
+ 177:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         base = 8;
+ 349              		.loc 1 177 0
+ 350 0072 0823     		movs	r3, #8
+ 351 0074 87F82330 		strb	r3, [r7, #35]
+ 352              	.L27:
+ 178:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 179:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     for (;;) {
+ 180:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       if (isdigit(c)) {
+ 353              		.loc 1 180 0
+ 354 0078 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 355 007c 2F2B     		cmp	r3, #47
+ 356 007e 15D9     		bls	.L30
+ 357              		.loc 1 180 0 is_stmt 0 discriminator 1
+ 358 0080 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 359 0084 392B     		cmp	r3, #57
+ 360 0086 11D8     		bhi	.L30
+ 181:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         val = (val * base) + (int)(c - '0');
+ 361              		.loc 1 181 0 is_stmt 1
+ 362 0088 97F82330 		ldrb	r3, [r7, #35]	@ zero_extendqisi2
+ 363 008c 7A6A     		ldr	r2, [r7, #36]
+ 364 008e 02FB03F2 		mul	r2, r2, r3
+ 365 0092 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 366 0096 1344     		add	r3, r3, r2
+ 367 0098 303B     		subs	r3, r3, #48
+ 368 009a 7B62     		str	r3, [r7, #36]
+ 182:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         c = *++cp;
+ 369              		.loc 1 182 0
+ 370 009c 7B68     		ldr	r3, [r7, #4]
+ 371 009e 0133     		adds	r3, r3, #1
+ 372 00a0 7B60     		str	r3, [r7, #4]
+ 373 00a2 7B68     		ldr	r3, [r7, #4]
+ 374 00a4 1B78     		ldrb	r3, [r3]
+ 375 00a6 87F82230 		strb	r3, [r7, #34]
+ 376 00aa 36E0     		b	.L31
+ 377              	.L30:
+ 183:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       } else if (base == 16 && isxdigit(c)) {
+ 378              		.loc 1 183 0
+ 379 00ac 97F82330 		ldrb	r3, [r7, #35]	@ zero_extendqisi2
+ 380 00b0 102B     		cmp	r3, #16
+ 381 00b2 33D1     		bne	.L32
+ 382              		.loc 1 183 0 is_stmt 0 discriminator 1
+ 383 00b4 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 384 00b8 2F2B     		cmp	r3, #47
+ 385 00ba 03D9     		bls	.L33
+ 386              		.loc 1 183 0 discriminator 2
+ 387 00bc 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 388 00c0 392B     		cmp	r3, #57
+ 389 00c2 0FD9     		bls	.L34
+ 390              	.L33:
+ 391              		.loc 1 183 0 discriminator 4
+ 392 00c4 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 393 00c8 602B     		cmp	r3, #96
+ 394 00ca 03D9     		bls	.L35
+ 395              		.loc 1 183 0 discriminator 5
+ 396 00cc 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 397 00d0 662B     		cmp	r3, #102
+ 398 00d2 07D9     		bls	.L34
+ 399              	.L35:
+ 400              		.loc 1 183 0 discriminator 7
+ 401 00d4 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 402 00d8 402B     		cmp	r3, #64
+ 403 00da 1FD9     		bls	.L32
+ 404              		.loc 1 183 0 discriminator 8
+ 405 00dc 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 406 00e0 462B     		cmp	r3, #70
+ 407 00e2 1BD8     		bhi	.L32
+ 408              	.L34:
+ 184:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         val = (val << 4) | (int)(c + 10 - (islower(c) ? 'a' : 'A'));
+ 409              		.loc 1 184 0 is_stmt 1
+ 410 00e4 7B6A     		ldr	r3, [r7, #36]
+ 411 00e6 1B01     		lsls	r3, r3, #4
+ 412 00e8 97F82220 		ldrb	r2, [r7, #34]	@ zero_extendqisi2
+ 413 00ec 02F10A01 		add	r1, r2, #10
+ 414 00f0 97F82220 		ldrb	r2, [r7, #34]	@ zero_extendqisi2
+ 415 00f4 602A     		cmp	r2, #96
+ 416 00f6 05D9     		bls	.L36
+ 417              		.loc 1 184 0 is_stmt 0 discriminator 1
+ 418 00f8 97F82220 		ldrb	r2, [r7, #34]	@ zero_extendqisi2
+ 419 00fc 7A2A     		cmp	r2, #122
+ 420 00fe 01D8     		bhi	.L36
+ 421              		.loc 1 184 0 discriminator 3
+ 422 0100 6122     		movs	r2, #97
+ 423 0102 00E0     		b	.L37
+ 424              	.L36:
+ 425              		.loc 1 184 0 discriminator 4
+ 426 0104 4122     		movs	r2, #65
+ 427              	.L37:
+ 428              		.loc 1 184 0 discriminator 6
+ 429 0106 8A1A     		subs	r2, r1, r2
+ 430 0108 1343     		orrs	r3, r3, r2
+ 431 010a 7B62     		str	r3, [r7, #36]
+ 185:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         c = *++cp;
+ 432              		.loc 1 185 0 is_stmt 1 discriminator 6
+ 433 010c 7B68     		ldr	r3, [r7, #4]
+ 434 010e 0133     		adds	r3, r3, #1
+ 435 0110 7B60     		str	r3, [r7, #4]
+ 436 0112 7B68     		ldr	r3, [r7, #4]
+ 437 0114 1B78     		ldrb	r3, [r3]
+ 438 0116 87F82230 		strb	r3, [r7, #34]
+ 439              	.L31:
+ 186:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       } else
+ 187:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         break;
+ 188:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 440              		.loc 1 188 0
+ 441 011a ADE7     		b	.L27
+ 442              	.L32:
+ 189:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (c == '.') {
+ 443              		.loc 1 189 0
+ 444 011c 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 445 0120 2E2B     		cmp	r3, #46
+ 446 0122 14D1     		bne	.L57
+ 190:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       /*
+ 191:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****        * Internet format:
+ 192:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****        *  a.b.c.d
+ 193:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****        *  a.b.c   (with c treated as 16 bits)
+ 194:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****        *  a.b (with b treated as 24 bits)
+ 195:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****        */
+ 196:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       if (pp >= parts + 3) {
+ 447              		.loc 1 196 0
+ 448 0124 07F10C03 		add	r3, r7, #12
+ 449 0128 0C33     		adds	r3, r3, #12
+ 450 012a FA69     		ldr	r2, [r7, #28]
+ 451 012c 9342     		cmp	r3, r2
+ 452 012e 01D8     		bhi	.L39
+ 197:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         return (0);
+ 453              		.loc 1 197 0
+ 454 0130 0023     		movs	r3, #0
+ 455 0132 7AE0     		b	.L56
+ 456              	.L39:
+ 198:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       }
+ 199:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       *pp++ = val;
+ 457              		.loc 1 199 0
+ 458 0134 FB69     		ldr	r3, [r7, #28]
+ 459 0136 1A1D     		adds	r2, r3, #4
+ 460 0138 FA61     		str	r2, [r7, #28]
+ 461 013a 7A6A     		ldr	r2, [r7, #36]
+ 462 013c 1A60     		str	r2, [r3]
+ 200:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       c = *++cp;
+ 463              		.loc 1 200 0
+ 464 013e 7B68     		ldr	r3, [r7, #4]
+ 465 0140 0133     		adds	r3, r3, #1
+ 466 0142 7B60     		str	r3, [r7, #4]
+ 467 0144 7B68     		ldr	r3, [r7, #4]
+ 468 0146 1B78     		ldrb	r3, [r3]
+ 469 0148 87F82230 		strb	r3, [r7, #34]
+ 201:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     } else
+ 202:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       break;
+ 203:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 470              		.loc 1 203 0
+ 471 014c 64E7     		b	.L42
+ 472              	.L57:
+ 202:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 473              		.loc 1 202 0
+ 474 014e 00BF     		nop
+ 204:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /*
+ 205:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****    * Check for trailing characters.
+ 206:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****    */
+ 207:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   if (c != '\0' && !isspace(c)) {
+ 475              		.loc 1 207 0
+ 476 0150 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 477 0154 002B     		cmp	r3, #0
+ 478 0156 19D0     		beq	.L43
+ 479              		.loc 1 207 0 is_stmt 0 discriminator 1
+ 480 0158 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 481 015c 202B     		cmp	r3, #32
+ 482 015e 15D0     		beq	.L43
+ 483              		.loc 1 207 0 discriminator 2
+ 484 0160 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 485 0164 0C2B     		cmp	r3, #12
+ 486 0166 11D0     		beq	.L43
+ 487              		.loc 1 207 0 discriminator 3
+ 488 0168 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 489 016c 0A2B     		cmp	r3, #10
+ 490 016e 0DD0     		beq	.L43
+ 491              		.loc 1 207 0 discriminator 4
+ 492 0170 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 493 0174 0D2B     		cmp	r3, #13
+ 494 0176 09D0     		beq	.L43
+ 495              		.loc 1 207 0 discriminator 5
+ 496 0178 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 497 017c 092B     		cmp	r3, #9
+ 498 017e 05D0     		beq	.L43
+ 499              		.loc 1 207 0 discriminator 6
+ 500 0180 97F82230 		ldrb	r3, [r7, #34]	@ zero_extendqisi2
+ 501 0184 0B2B     		cmp	r3, #11
+ 502 0186 01D0     		beq	.L43
+ 208:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return (0);
+ 503              		.loc 1 208 0 is_stmt 1
+ 504 0188 0023     		movs	r3, #0
+ 505 018a 4EE0     		b	.L56
+ 506              	.L43:
+ 209:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 210:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   /*
+ 211:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****    * Concoct the address according to
+ 212:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****    * the number of parts specified.
+ 213:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****    */
+ 214:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   switch (pp - parts + 1) {
+ 507              		.loc 1 214 0
+ 508 018c FA69     		ldr	r2, [r7, #28]
+ 509 018e 07F10C03 		add	r3, r7, #12
+ 510 0192 D31A     		subs	r3, r2, r3
+ 511 0194 9B10     		asrs	r3, r3, #2
+ 512 0196 0133     		adds	r3, r3, #1
+ 513 0198 042B     		cmp	r3, #4
+ 514 019a 3BD8     		bhi	.L58
+ 515 019c 01A2     		adr	r2, .L46
+ 516 019e 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 517 01a2 00BF     		.p2align 2
+ 518              	.L46:
+ 519 01a4 B9010000 		.word	.L45+1
+ 520 01a8 15020000 		.word	.L58+1
+ 521 01ac BD010000 		.word	.L48+1
+ 522 01b0 D5010000 		.word	.L49+1
+ 523 01b4 F3010000 		.word	.L50+1
+ 524              		.p2align 1
+ 525              	.L45:
+ 215:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 216:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   case 0:
+ 217:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     return (0);       /* initial nondigit */
+ 526              		.loc 1 217 0
+ 527 01b8 0023     		movs	r3, #0
+ 528 01ba 36E0     		b	.L56
+ 529              	.L48:
+ 218:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 219:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   case 1:             /* a -- 32 bits */
+ 220:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     break;
+ 221:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 222:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   case 2:             /* a.b -- 8.24 bits */
+ 223:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (val > 0xffffffUL) {
+ 530              		.loc 1 223 0
+ 531 01bc 7B6A     		ldr	r3, [r7, #36]
+ 532 01be B3F1807F 		cmp	r3, #16777216
+ 533 01c2 01D3     		bcc	.L52
+ 224:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return (0);
+ 534              		.loc 1 224 0
+ 535 01c4 0023     		movs	r3, #0
+ 536 01c6 30E0     		b	.L56
+ 537              	.L52:
+ 225:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 226:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     val |= parts[0] << 24;
+ 538              		.loc 1 226 0
+ 539 01c8 FB68     		ldr	r3, [r7, #12]
+ 540 01ca 1B06     		lsls	r3, r3, #24
+ 541 01cc 7A6A     		ldr	r2, [r7, #36]
+ 542 01ce 1343     		orrs	r3, r3, r2
+ 543 01d0 7B62     		str	r3, [r7, #36]
+ 227:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     break;
+ 544              		.loc 1 227 0
+ 545 01d2 20E0     		b	.L51
+ 546              	.L49:
+ 228:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 229:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   case 3:             /* a.b.c -- 8.8.16 bits */
+ 230:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (val > 0xffff) {
+ 547              		.loc 1 230 0
+ 548 01d4 7B6A     		ldr	r3, [r7, #36]
+ 549 01d6 B3F5803F 		cmp	r3, #65536
+ 550 01da 01D3     		bcc	.L53
+ 231:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return (0);
+ 551              		.loc 1 231 0
+ 552 01dc 0023     		movs	r3, #0
+ 553 01de 24E0     		b	.L56
+ 554              	.L53:
+ 232:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 233:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     val |= (parts[0] << 24) | (parts[1] << 16);
+ 555              		.loc 1 233 0
+ 556 01e0 FB68     		ldr	r3, [r7, #12]
+ 557 01e2 1A06     		lsls	r2, r3, #24
+ 558 01e4 3B69     		ldr	r3, [r7, #16]
+ 559 01e6 1B04     		lsls	r3, r3, #16
+ 560 01e8 1343     		orrs	r3, r3, r2
+ 561 01ea 7A6A     		ldr	r2, [r7, #36]
+ 562 01ec 1343     		orrs	r3, r3, r2
+ 563 01ee 7B62     		str	r3, [r7, #36]
+ 234:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     break;
+ 564              		.loc 1 234 0
+ 565 01f0 11E0     		b	.L51
+ 566              	.L50:
+ 235:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 236:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   case 4:             /* a.b.c.d -- 8.8.8.8 bits */
+ 237:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (val > 0xff) {
+ 567              		.loc 1 237 0
+ 568 01f2 7B6A     		ldr	r3, [r7, #36]
+ 569 01f4 FF2B     		cmp	r3, #255
+ 570 01f6 01D9     		bls	.L54
+ 238:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return (0);
+ 571              		.loc 1 238 0
+ 572 01f8 0023     		movs	r3, #0
+ 573 01fa 16E0     		b	.L56
+ 574              	.L54:
+ 239:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 240:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     val |= (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8);
+ 575              		.loc 1 240 0
+ 576 01fc FB68     		ldr	r3, [r7, #12]
+ 577 01fe 1A06     		lsls	r2, r3, #24
+ 578 0200 3B69     		ldr	r3, [r7, #16]
+ 579 0202 1B04     		lsls	r3, r3, #16
+ 580 0204 1A43     		orrs	r2, r2, r3
+ 581 0206 7B69     		ldr	r3, [r7, #20]
+ 582 0208 1B02     		lsls	r3, r3, #8
+ 583 020a 1343     		orrs	r3, r3, r2
+ 584 020c 7A6A     		ldr	r2, [r7, #36]
+ 585 020e 1343     		orrs	r3, r3, r2
+ 586 0210 7B62     		str	r3, [r7, #36]
+ 241:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     break;
+ 587              		.loc 1 241 0
+ 588 0212 00E0     		b	.L51
+ 589              	.L58:
+ 242:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   default:
+ 243:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     LWIP_ASSERT("unhandled", 0);
+ 244:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     break;
+ 590              		.loc 1 244 0
+ 591 0214 00BF     		nop
+ 592              	.L51:
+ 245:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 246:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   if (addr) {
+ 593              		.loc 1 246 0
+ 594 0216 3B68     		ldr	r3, [r7]
+ 595 0218 002B     		cmp	r3, #0
+ 596 021a 05D0     		beq	.L55
+ 247:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     ip4_addr_set_u32(addr, htonl(val));
+ 597              		.loc 1 247 0
+ 598 021c 786A     		ldr	r0, [r7, #36]
+ 599 021e FFF7FEFF 		bl	lwip_htonl
+ 600 0222 0246     		mov	r2, r0
+ 601 0224 3B68     		ldr	r3, [r7]
+ 602 0226 1A60     		str	r2, [r3]
+ 603              	.L55:
+ 248:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 249:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   return (1);
+ 604              		.loc 1 249 0
+ 605 0228 0123     		movs	r3, #1
+ 606              	.L56:
+ 250:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 607              		.loc 1 250 0 discriminator 1
+ 608 022a 1846     		mov	r0, r3
+ 609 022c 2837     		adds	r7, r7, #40
+ 610              		.cfi_def_cfa_offset 8
+ 611 022e BD46     		mov	sp, r7
+ 612              		.cfi_def_cfa_register 13
+ 613              		@ sp needed
+ 614 0230 80BD     		pop	{r7, pc}
+ 615              		.cfi_endproc
+ 616              	.LFE20:
+ 618 0232 00BF     		.section	.text.ipaddr_ntoa,"ax",%progbits
+ 619              		.align	2
+ 620              		.global	ipaddr_ntoa
+ 621              		.thumb
+ 622              		.thumb_func
+ 624              	ipaddr_ntoa:
+ 625              	.LFB21:
+ 251:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 252:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+ 253:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Convert numeric IP address into decimal dotted ASCII representation.
+ 254:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * returns ptr to static buffer; not reentrant!
+ 255:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+ 256:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param addr ip address in network order to convert
+ 257:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return pointer to a global static (!) buffer that holds the ASCII
+ 258:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *         represenation of addr
+ 259:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+ 260:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** char *
+ 261:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** ipaddr_ntoa(const ip_addr_t *addr)
+ 262:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+ 626              		.loc 1 262 0
+ 627              		.cfi_startproc
+ 628              		@ args = 0, pretend = 0, frame = 8
+ 629              		@ frame_needed = 1, uses_anonymous_args = 0
+ 630 0000 80B5     		push	{r7, lr}
+ 631              		.cfi_def_cfa_offset 8
+ 632              		.cfi_offset 7, -8
+ 633              		.cfi_offset 14, -4
+ 634 0002 82B0     		sub	sp, sp, #8
+ 635              		.cfi_def_cfa_offset 16
+ 636 0004 00AF     		add	r7, sp, #0
+ 637              		.cfi_def_cfa_register 7
+ 638 0006 7860     		str	r0, [r7, #4]
+ 263:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   static char str[16];
+ 264:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   return ipaddr_ntoa_r(addr, str, 16);
+ 639              		.loc 1 264 0
+ 640 0008 1022     		movs	r2, #16
+ 641 000a 0449     		ldr	r1, .L61
+ 642 000c 7868     		ldr	r0, [r7, #4]
+ 643 000e FFF7FEFF 		bl	ipaddr_ntoa_r
+ 644 0012 0346     		mov	r3, r0
+ 265:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 645              		.loc 1 265 0
+ 646 0014 1846     		mov	r0, r3
+ 647 0016 0837     		adds	r7, r7, #8
+ 648              		.cfi_def_cfa_offset 8
+ 649 0018 BD46     		mov	sp, r7
+ 650              		.cfi_def_cfa_register 13
+ 651              		@ sp needed
+ 652 001a 80BD     		pop	{r7, pc}
+ 653              	.L62:
+ 654              		.align	2
+ 655              	.L61:
+ 656 001c 00000000 		.word	str.6150
+ 657              		.cfi_endproc
+ 658              	.LFE21:
+ 660              		.section	.text.ipaddr_ntoa_r,"ax",%progbits
+ 661              		.align	2
+ 662              		.global	ipaddr_ntoa_r
+ 663              		.thumb
+ 664              		.thumb_func
+ 666              	ipaddr_ntoa_r:
+ 667              	.LFB22:
+ 266:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 267:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** /**
+ 268:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * Same as ipaddr_ntoa, but reentrant since a user-supplied buffer is used.
+ 269:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *
+ 270:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param addr ip address in network order to convert
+ 271:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param buf target buffer where the string is stored
+ 272:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @param buflen length of buf
+ 273:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  * @return either pointer to buf which now holds the ASCII
+ 274:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  *         representation of addr or NULL if buf was too small
+ 275:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****  */
+ 276:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** char *ipaddr_ntoa_r(const ip_addr_t *addr, char *buf, int buflen)
+ 277:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** {
+ 668              		.loc 1 277 0
+ 669              		.cfi_startproc
+ 670              		@ args = 0, pretend = 0, frame = 48
+ 671              		@ frame_needed = 1, uses_anonymous_args = 0
+ 672              		@ link register save eliminated.
+ 673 0000 80B4     		push	{r7}
+ 674              		.cfi_def_cfa_offset 4
+ 675              		.cfi_offset 7, -4
+ 676 0002 8DB0     		sub	sp, sp, #52
+ 677              		.cfi_def_cfa_offset 56
+ 678 0004 00AF     		add	r7, sp, #0
+ 679              		.cfi_def_cfa_register 7
+ 680 0006 F860     		str	r0, [r7, #12]
+ 681 0008 B960     		str	r1, [r7, #8]
+ 682 000a 7A60     		str	r2, [r7, #4]
+ 278:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u32_t s_addr;
+ 279:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   char inv[3];
+ 280:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   char *rp;
+ 281:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u8_t *ap;
+ 282:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u8_t rem;
+ 283:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u8_t n;
+ 284:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   u8_t i;
+ 285:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   int len = 0;
+ 683              		.loc 1 285 0
+ 684 000c 0023     		movs	r3, #0
+ 685 000e 3B62     		str	r3, [r7, #32]
+ 286:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 287:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   s_addr = ip4_addr_get_u32(addr);
+ 686              		.loc 1 287 0
+ 687 0010 FB68     		ldr	r3, [r7, #12]
+ 688 0012 1B68     		ldr	r3, [r3]
+ 689 0014 BB61     		str	r3, [r7, #24]
+ 288:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** 
+ 289:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   rp = buf;
+ 690              		.loc 1 289 0
+ 691 0016 BB68     		ldr	r3, [r7, #8]
+ 692 0018 FB62     		str	r3, [r7, #44]
+ 290:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   ap = (u8_t *)&s_addr;
+ 693              		.loc 1 290 0
+ 694 001a 07F11803 		add	r3, r7, #24
+ 695 001e BB62     		str	r3, [r7, #40]
+ 291:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   for(n = 0; n < 4; n++) {
+ 696              		.loc 1 291 0
+ 697 0020 0023     		movs	r3, #0
+ 698 0022 87F82730 		strb	r3, [r7, #39]
+ 699 0026 59E0     		b	.L64
+ 700              	.L71:
+ 292:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     i = 0;
+ 701              		.loc 1 292 0
+ 702 0028 0023     		movs	r3, #0
+ 703 002a 87F82630 		strb	r3, [r7, #38]
+ 704              	.L65:
+ 293:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     do {
+ 294:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       rem = *ap % (u8_t)10;
+ 705              		.loc 1 294 0 discriminator 1
+ 706 002e BB6A     		ldr	r3, [r7, #40]
+ 707 0030 1A78     		ldrb	r2, [r3]	@ zero_extendqisi2
+ 708 0032 324B     		ldr	r3, .L73
+ 709 0034 A3FB0213 		umull	r1, r3, r3, r2
+ 710 0038 D908     		lsrs	r1, r3, #3
+ 711 003a 0B46     		mov	r3, r1
+ 712 003c 9B00     		lsls	r3, r3, #2
+ 713 003e 0B44     		add	r3, r3, r1
+ 714 0040 5B00     		lsls	r3, r3, #1
+ 715 0042 D31A     		subs	r3, r2, r3
+ 716 0044 FB77     		strb	r3, [r7, #31]
+ 295:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       *ap /= (u8_t)10;
+ 717              		.loc 1 295 0 discriminator 1
+ 718 0046 BB6A     		ldr	r3, [r7, #40]
+ 719 0048 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 720 004a 2C4A     		ldr	r2, .L73
+ 721 004c A2FB0323 		umull	r2, r3, r2, r3
+ 722 0050 DB08     		lsrs	r3, r3, #3
+ 723 0052 DAB2     		uxtb	r2, r3
+ 724 0054 BB6A     		ldr	r3, [r7, #40]
+ 725 0056 1A70     		strb	r2, [r3]
+ 296:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       inv[i++] = '0' + rem;
+ 726              		.loc 1 296 0 discriminator 1
+ 727 0058 97F82630 		ldrb	r3, [r7, #38]	@ zero_extendqisi2
+ 728 005c 5A1C     		adds	r2, r3, #1
+ 729 005e 87F82620 		strb	r2, [r7, #38]
+ 730 0062 1946     		mov	r1, r3
+ 731 0064 FB7F     		ldrb	r3, [r7, #31]
+ 732 0066 3033     		adds	r3, r3, #48
+ 733 0068 DAB2     		uxtb	r2, r3
+ 734 006a 07F13003 		add	r3, r7, #48
+ 735 006e 0B44     		add	r3, r3, r1
+ 736 0070 03F81C2C 		strb	r2, [r3, #-28]
+ 297:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     } while(*ap);
+ 737              		.loc 1 297 0 discriminator 1
+ 738 0074 BB6A     		ldr	r3, [r7, #40]
+ 739 0076 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 740 0078 002B     		cmp	r3, #0
+ 741 007a D8D1     		bne	.L65
+ 298:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     while(i--) {
+ 742              		.loc 1 298 0
+ 743 007c 12E0     		b	.L66
+ 744              	.L69:
+ 299:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       if (len++ >= buflen) {
+ 745              		.loc 1 299 0
+ 746 007e 3B6A     		ldr	r3, [r7, #32]
+ 747 0080 5A1C     		adds	r2, r3, #1
+ 748 0082 3A62     		str	r2, [r7, #32]
+ 749 0084 7A68     		ldr	r2, [r7, #4]
+ 750 0086 9342     		cmp	r3, r2
+ 751 0088 01DB     		blt	.L67
+ 300:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****         return NULL;
+ 752              		.loc 1 300 0
+ 753 008a 0023     		movs	r3, #0
+ 754 008c 31E0     		b	.L72
+ 755              	.L67:
+ 301:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       }
+ 302:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       *rp++ = inv[i];
+ 756              		.loc 1 302 0
+ 757 008e FB6A     		ldr	r3, [r7, #44]
+ 758 0090 5A1C     		adds	r2, r3, #1
+ 759 0092 FA62     		str	r2, [r7, #44]
+ 760 0094 97F82620 		ldrb	r2, [r7, #38]	@ zero_extendqisi2
+ 761 0098 07F13001 		add	r1, r7, #48
+ 762 009c 0A44     		add	r2, r2, r1
+ 763 009e 12F81C2C 		ldrb	r2, [r2, #-28]	@ zero_extendqisi2
+ 764 00a2 1A70     		strb	r2, [r3]
+ 765              	.L66:
+ 298:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       if (len++ >= buflen) {
+ 766              		.loc 1 298 0
+ 767 00a4 97F82630 		ldrb	r3, [r7, #38]	@ zero_extendqisi2
+ 768 00a8 5A1E     		subs	r2, r3, #1
+ 769 00aa 87F82620 		strb	r2, [r7, #38]
+ 770 00ae 002B     		cmp	r3, #0
+ 771 00b0 E5D1     		bne	.L69
+ 303:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 304:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     if (len++ >= buflen) {
+ 772              		.loc 1 304 0
+ 773 00b2 3B6A     		ldr	r3, [r7, #32]
+ 774 00b4 5A1C     		adds	r2, r3, #1
+ 775 00b6 3A62     		str	r2, [r7, #32]
+ 776 00b8 7A68     		ldr	r2, [r7, #4]
+ 777 00ba 9342     		cmp	r3, r2
+ 778 00bc 01DB     		blt	.L70
+ 305:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****       return NULL;
+ 779              		.loc 1 305 0
+ 780 00be 0023     		movs	r3, #0
+ 781 00c0 17E0     		b	.L72
+ 782              	.L70:
+ 306:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     }
+ 307:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     *rp++ = '.';
+ 783              		.loc 1 307 0 discriminator 2
+ 784 00c2 FB6A     		ldr	r3, [r7, #44]
+ 785 00c4 5A1C     		adds	r2, r3, #1
+ 786 00c6 FA62     		str	r2, [r7, #44]
+ 787 00c8 2E22     		movs	r2, #46
+ 788 00ca 1A70     		strb	r2, [r3]
+ 308:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     ap++;
+ 789              		.loc 1 308 0 discriminator 2
+ 790 00cc BB6A     		ldr	r3, [r7, #40]
+ 791 00ce 0133     		adds	r3, r3, #1
+ 792 00d0 BB62     		str	r3, [r7, #40]
+ 291:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     i = 0;
+ 793              		.loc 1 291 0 discriminator 2
+ 794 00d2 97F82730 		ldrb	r3, [r7, #39]	@ zero_extendqisi2
+ 795 00d6 0133     		adds	r3, r3, #1
+ 796 00d8 87F82730 		strb	r3, [r7, #39]
+ 797              	.L64:
+ 291:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****     i = 0;
+ 798              		.loc 1 291 0 is_stmt 0 discriminator 1
+ 799 00dc 97F82730 		ldrb	r3, [r7, #39]	@ zero_extendqisi2
+ 800 00e0 032B     		cmp	r3, #3
+ 801 00e2 A1D9     		bls	.L71
+ 309:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   }
+ 310:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   *--rp = 0;
+ 802              		.loc 1 310 0 is_stmt 1
+ 803 00e4 FB6A     		ldr	r3, [r7, #44]
+ 804 00e6 013B     		subs	r3, r3, #1
+ 805 00e8 FB62     		str	r3, [r7, #44]
+ 806 00ea FB6A     		ldr	r3, [r7, #44]
+ 807 00ec 0022     		movs	r2, #0
+ 808 00ee 1A70     		strb	r2, [r3]
+ 311:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c ****   return buf;
+ 809              		.loc 1 311 0
+ 810 00f0 BB68     		ldr	r3, [r7, #8]
+ 811              	.L72:
+ 312:Libraries/lwip-1.4.0/core/ipv4/ip_addr.c **** }
+ 812              		.loc 1 312 0 discriminator 1
+ 813 00f2 1846     		mov	r0, r3
+ 814 00f4 3437     		adds	r7, r7, #52
+ 815              		.cfi_def_cfa_offset 4
+ 816 00f6 BD46     		mov	sp, r7
+ 817              		.cfi_def_cfa_register 13
+ 818              		@ sp needed
+ 819 00f8 80BC     		pop	{r7}
+ 820              		.cfi_restore 7
+ 821              		.cfi_def_cfa_offset 0
+ 822 00fa 7047     		bx	lr
+ 823              	.L74:
+ 824              		.align	2
+ 825              	.L73:
+ 826 00fc CDCCCCCC 		.word	-858993459
+ 827              		.cfi_endproc
+ 828              	.LFE22:
+ 830              		.section	.bss.str.6150,"aw",%nobits
+ 831              		.align	2
+ 834              	str.6150:
+ 835 0000 00000000 		.space	16
+ 835      00000000 
+ 835      00000000 
+ 835      00000000 
+ 836              		.text
+ 837              	.Letext0:
+ 838              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 839              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 840              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 841              		.file 5 "./Libraries/lwip-1.4.0/include/ipv4/lwip/ip_addr.h"
+ 842              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/err.h"
+ 843              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/pbuf.h"
+ 844              		.file 8 "./Libraries/lwip-1.4.0/include/lwip/netif.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 ip_addr.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:24     .rodata.ip_addr_any:00000000 ip_addr_any
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:21     .rodata.ip_addr_any:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:31     .rodata.ip_addr_broadcast:00000000 ip_addr_broadcast
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:28     .rodata.ip_addr_broadcast:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:34     .text.ip4_addr_isbroadcast:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:39     .text.ip4_addr_isbroadcast:00000000 ip4_addr_isbroadcast
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:137    .text.ip4_addr_netmask_valid:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:142    .text.ip4_addr_netmask_valid:00000000 ip4_addr_netmask_valid
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:222    .text.ipaddr_addr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:227    .text.ipaddr_addr:00000000 ipaddr_addr
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:274    .text.ipaddr_aton:00000000 ipaddr_aton
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:269    .text.ipaddr_aton:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:519    .text.ipaddr_aton:000001a4 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:524    .text.ipaddr_aton:000001b8 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:619    .text.ipaddr_ntoa:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:624    .text.ipaddr_ntoa:00000000 ipaddr_ntoa
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:666    .text.ipaddr_ntoa_r:00000000 ipaddr_ntoa_r
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:656    .text.ipaddr_ntoa:0000001c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:834    .bss.str.6150:00000000 str.6150
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:661    .text.ipaddr_ntoa_r:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:826    .text.ipaddr_ntoa_r:000000fc $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccVpdR9I.s:831    .bss.str.6150:00000000 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+lwip_htonl

@@ -1,0 +1,90 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"delay.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.delay_ms,"ax",%progbits
+  20              		.align	2
+  21              		.global	delay_ms
+  22              		.thumb
+  23              		.thumb_func
+  25              	delay_ms:
+  26              	.LFB29:
+  27              		.file 1 "delay.c"
+   1:delay.c       **** #include <LPC17xx.h>
+   2:delay.c       **** #include "delay.h"
+   3:delay.c       **** 
+   4:delay.c       ****  extern volatile unsigned long timer_tick;
+   5:delay.c       **** 
+   6:delay.c       **** void delay_ms(unsigned int time_ms)
+   7:delay.c       **** {
+  28              		.loc 1 7 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 8
+  31              		@ frame_needed = 1, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  33 0000 80B4     		push	{r7}
+  34              		.cfi_def_cfa_offset 4
+  35              		.cfi_offset 7, -4
+  36 0002 83B0     		sub	sp, sp, #12
+  37              		.cfi_def_cfa_offset 16
+  38 0004 00AF     		add	r7, sp, #0
+  39              		.cfi_def_cfa_register 7
+  40 0006 7860     		str	r0, [r7, #4]
+   8:delay.c       **** 	timer_tick = time_ms;
+  41              		.loc 1 8 0
+  42 0008 064A     		ldr	r2, .L3
+  43 000a 7B68     		ldr	r3, [r7, #4]
+  44 000c 1360     		str	r3, [r2]
+   9:delay.c       **** 	while(timer_tick);
+  45              		.loc 1 9 0
+  46 000e 00BF     		nop
+  47              	.L2:
+  48              		.loc 1 9 0 is_stmt 0 discriminator 1
+  49 0010 044B     		ldr	r3, .L3
+  50 0012 1B68     		ldr	r3, [r3]
+  51 0014 002B     		cmp	r3, #0
+  52 0016 FBD1     		bne	.L2
+  10:delay.c       **** }
+  53              		.loc 1 10 0 is_stmt 1
+  54 0018 00BF     		nop
+  55 001a 0C37     		adds	r7, r7, #12
+  56              		.cfi_def_cfa_offset 4
+  57 001c BD46     		mov	sp, r7
+  58              		.cfi_def_cfa_register 13
+  59              		@ sp needed
+  60 001e 80BC     		pop	{r7}
+  61              		.cfi_restore 7
+  62              		.cfi_def_cfa_offset 0
+  63 0020 7047     		bx	lr
+  64              	.L4:
+  65 0022 00BF     		.align	2
+  66              	.L3:
+  67 0024 00000000 		.word	timer_tick
+  68              		.cfi_endproc
+  69              	.LFE29:
+  71              		.text
+  72              	.Letext0:
+  73              		.file 2 "./Libraries/NXP/Core/CM3/CoreSupport/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 delay.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccEW0HFC.s:20     .text.delay_ms:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccEW0HFC.s:25     .text.delay_ms:00000000 delay_ms
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccEW0HFC.s:67     .text.delay_ms:00000024 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+timer_tick

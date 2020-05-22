@@ -1,0 +1,1699 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"mem.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.comm	ram_heap,1620,4
+  20              		.section	.bss.ram,"aw",%nobits
+  21              		.align	2
+  24              	ram:
+  25 0000 00000000 		.space	4
+  26              		.section	.bss.ram_end,"aw",%nobits
+  27              		.align	2
+  30              	ram_end:
+  31 0000 00000000 		.space	4
+  32              		.section	.bss.lfree,"aw",%nobits
+  33              		.align	2
+  36              	lfree:
+  37 0000 00000000 		.space	4
+  38              		.section	.bss.mem_mutex,"aw",%nobits
+  41              	mem_mutex:
+  42 0000 00       		.space	1
+  43              		.section	.text.plug_holes,"ax",%progbits
+  44              		.align	2
+  45              		.thumb
+  46              		.thumb_func
+  48              	plug_holes:
+  49              	.LFB17:
+  50              		.file 1 "Libraries/lwip-1.4.0/core/mem.c"
+   1:Libraries/lwip-1.4.0/core/mem.c **** /**
+   2:Libraries/lwip-1.4.0/core/mem.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/mem.c ****  * Dynamic memory manager
+   4:Libraries/lwip-1.4.0/core/mem.c ****  *
+   5:Libraries/lwip-1.4.0/core/mem.c ****  * This is a lightweight replacement for the standard C library malloc().
+   6:Libraries/lwip-1.4.0/core/mem.c ****  *
+   7:Libraries/lwip-1.4.0/core/mem.c ****  * If you want to use the standard C library malloc() instead, define
+   8:Libraries/lwip-1.4.0/core/mem.c ****  * MEM_LIBC_MALLOC to 1 in your lwipopts.h
+   9:Libraries/lwip-1.4.0/core/mem.c ****  *
+  10:Libraries/lwip-1.4.0/core/mem.c ****  * To let mem_malloc() use pools (prevents fragmentation and is much faster than
+  11:Libraries/lwip-1.4.0/core/mem.c ****  * a heap but might waste some memory), define MEM_USE_POOLS to 1, define
+  12:Libraries/lwip-1.4.0/core/mem.c ****  * MEM_USE_CUSTOM_POOLS to 1 and create a file "lwippools.h" that includes a list
+  13:Libraries/lwip-1.4.0/core/mem.c ****  * of pools like this (more pools can be added between _START and _END):
+  14:Libraries/lwip-1.4.0/core/mem.c ****  *
+  15:Libraries/lwip-1.4.0/core/mem.c ****  * Define three pools with sizes 256, 512, and 1512 bytes
+  16:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_MALLOC_MEMPOOL_START
+  17:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_MALLOC_MEMPOOL(20, 256)
+  18:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_MALLOC_MEMPOOL(10, 512)
+  19:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_MALLOC_MEMPOOL(5, 1512)
+  20:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_MALLOC_MEMPOOL_END
+  21:Libraries/lwip-1.4.0/core/mem.c ****  */
+  22:Libraries/lwip-1.4.0/core/mem.c **** 
+  23:Libraries/lwip-1.4.0/core/mem.c **** /*
+  24:Libraries/lwip-1.4.0/core/mem.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+  25:Libraries/lwip-1.4.0/core/mem.c ****  * All rights reserved.
+  26:Libraries/lwip-1.4.0/core/mem.c ****  *
+  27:Libraries/lwip-1.4.0/core/mem.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  28:Libraries/lwip-1.4.0/core/mem.c ****  * are permitted provided that the following conditions are met:
+  29:Libraries/lwip-1.4.0/core/mem.c ****  *
+  30:Libraries/lwip-1.4.0/core/mem.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  31:Libraries/lwip-1.4.0/core/mem.c ****  *    this list of conditions and the following disclaimer.
+  32:Libraries/lwip-1.4.0/core/mem.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  33:Libraries/lwip-1.4.0/core/mem.c ****  *    this list of conditions and the following disclaimer in the documentation
+  34:Libraries/lwip-1.4.0/core/mem.c ****  *    and/or other materials provided with the distribution.
+  35:Libraries/lwip-1.4.0/core/mem.c ****  * 3. The name of the author may not be used to endorse or promote products
+  36:Libraries/lwip-1.4.0/core/mem.c ****  *    derived from this software without specific prior written permission.
+  37:Libraries/lwip-1.4.0/core/mem.c ****  *
+  38:Libraries/lwip-1.4.0/core/mem.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  39:Libraries/lwip-1.4.0/core/mem.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  40:Libraries/lwip-1.4.0/core/mem.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  41:Libraries/lwip-1.4.0/core/mem.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  42:Libraries/lwip-1.4.0/core/mem.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  43:Libraries/lwip-1.4.0/core/mem.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  44:Libraries/lwip-1.4.0/core/mem.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  45:Libraries/lwip-1.4.0/core/mem.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  46:Libraries/lwip-1.4.0/core/mem.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  47:Libraries/lwip-1.4.0/core/mem.c ****  * OF SUCH DAMAGE.
+  48:Libraries/lwip-1.4.0/core/mem.c ****  *
+  49:Libraries/lwip-1.4.0/core/mem.c ****  * This file is part of the lwIP TCP/IP stack.
+  50:Libraries/lwip-1.4.0/core/mem.c ****  *
+  51:Libraries/lwip-1.4.0/core/mem.c ****  * Author: Adam Dunkels <adam@sics.se>
+  52:Libraries/lwip-1.4.0/core/mem.c ****  *         Simon Goldschmidt
+  53:Libraries/lwip-1.4.0/core/mem.c ****  *
+  54:Libraries/lwip-1.4.0/core/mem.c ****  */
+  55:Libraries/lwip-1.4.0/core/mem.c **** 
+  56:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/opt.h"
+  57:Libraries/lwip-1.4.0/core/mem.c **** 
+  58:Libraries/lwip-1.4.0/core/mem.c **** #if !MEM_LIBC_MALLOC /* don't build if not configured for use in lwipopts.h */
+  59:Libraries/lwip-1.4.0/core/mem.c **** 
+  60:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/def.h"
+  61:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/mem.h"
+  62:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/sys.h"
+  63:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/stats.h"
+  64:Libraries/lwip-1.4.0/core/mem.c **** #include "lwip/err.h"
+  65:Libraries/lwip-1.4.0/core/mem.c **** 
+  66:Libraries/lwip-1.4.0/core/mem.c **** #include <string.h>
+  67:Libraries/lwip-1.4.0/core/mem.c **** 
+  68:Libraries/lwip-1.4.0/core/mem.c **** #if MEM_USE_POOLS
+  69:Libraries/lwip-1.4.0/core/mem.c **** /* lwIP head implemented with different sized pools */
+  70:Libraries/lwip-1.4.0/core/mem.c **** 
+  71:Libraries/lwip-1.4.0/core/mem.c **** /**
+  72:Libraries/lwip-1.4.0/core/mem.c ****  * Allocate memory: determine the smallest pool that is big enough
+  73:Libraries/lwip-1.4.0/core/mem.c ****  * to contain an element of 'size' and get an element from that pool.
+  74:Libraries/lwip-1.4.0/core/mem.c ****  *
+  75:Libraries/lwip-1.4.0/core/mem.c ****  * @param size the size in bytes of the memory needed
+  76:Libraries/lwip-1.4.0/core/mem.c ****  * @return a pointer to the allocated memory or NULL if the pool is empty
+  77:Libraries/lwip-1.4.0/core/mem.c ****  */
+  78:Libraries/lwip-1.4.0/core/mem.c **** void *
+  79:Libraries/lwip-1.4.0/core/mem.c **** mem_malloc(mem_size_t size)
+  80:Libraries/lwip-1.4.0/core/mem.c **** {
+  81:Libraries/lwip-1.4.0/core/mem.c ****   struct memp_malloc_helper *element;
+  82:Libraries/lwip-1.4.0/core/mem.c ****   memp_t poolnr;
+  83:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t required_size = size + sizeof(struct memp_malloc_helper);
+  84:Libraries/lwip-1.4.0/core/mem.c **** 
+  85:Libraries/lwip-1.4.0/core/mem.c ****   for (poolnr = MEMP_POOL_FIRST; poolnr <= MEMP_POOL_LAST; poolnr = (memp_t)(poolnr + 1)) {
+  86:Libraries/lwip-1.4.0/core/mem.c **** #if MEM_USE_POOLS_TRY_BIGGER_POOL
+  87:Libraries/lwip-1.4.0/core/mem.c **** again:
+  88:Libraries/lwip-1.4.0/core/mem.c **** #endif /* MEM_USE_POOLS_TRY_BIGGER_POOL */
+  89:Libraries/lwip-1.4.0/core/mem.c ****     /* is this pool big enough to hold an element of the required size
+  90:Libraries/lwip-1.4.0/core/mem.c ****        plus a struct memp_malloc_helper that saves the pool this element came from? */
+  91:Libraries/lwip-1.4.0/core/mem.c ****     if (required_size <= memp_sizes[poolnr]) {
+  92:Libraries/lwip-1.4.0/core/mem.c ****       break;
+  93:Libraries/lwip-1.4.0/core/mem.c ****     }
+  94:Libraries/lwip-1.4.0/core/mem.c ****   }
+  95:Libraries/lwip-1.4.0/core/mem.c ****   if (poolnr > MEMP_POOL_LAST) {
+  96:Libraries/lwip-1.4.0/core/mem.c ****     LWIP_ASSERT("mem_malloc(): no pool is that big!", 0);
+  97:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+  98:Libraries/lwip-1.4.0/core/mem.c ****   }
+  99:Libraries/lwip-1.4.0/core/mem.c ****   element = (struct memp_malloc_helper*)memp_malloc(poolnr);
+ 100:Libraries/lwip-1.4.0/core/mem.c ****   if (element == NULL) {
+ 101:Libraries/lwip-1.4.0/core/mem.c ****     /* No need to DEBUGF or ASSERT: This error is already
+ 102:Libraries/lwip-1.4.0/core/mem.c ****        taken care of in memp.c */
+ 103:Libraries/lwip-1.4.0/core/mem.c **** #if MEM_USE_POOLS_TRY_BIGGER_POOL
+ 104:Libraries/lwip-1.4.0/core/mem.c ****     /** Try a bigger pool if this one is empty! */
+ 105:Libraries/lwip-1.4.0/core/mem.c ****     if (poolnr < MEMP_POOL_LAST) {
+ 106:Libraries/lwip-1.4.0/core/mem.c ****       poolnr++;
+ 107:Libraries/lwip-1.4.0/core/mem.c ****       goto again;
+ 108:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 109:Libraries/lwip-1.4.0/core/mem.c **** #endif /* MEM_USE_POOLS_TRY_BIGGER_POOL */
+ 110:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+ 111:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 112:Libraries/lwip-1.4.0/core/mem.c **** 
+ 113:Libraries/lwip-1.4.0/core/mem.c ****   /* save the pool number this element came from */
+ 114:Libraries/lwip-1.4.0/core/mem.c ****   element->poolnr = poolnr;
+ 115:Libraries/lwip-1.4.0/core/mem.c ****   /* and return a pointer to the memory directly after the struct memp_malloc_helper */
+ 116:Libraries/lwip-1.4.0/core/mem.c ****   element++;
+ 117:Libraries/lwip-1.4.0/core/mem.c **** 
+ 118:Libraries/lwip-1.4.0/core/mem.c ****   return element;
+ 119:Libraries/lwip-1.4.0/core/mem.c **** }
+ 120:Libraries/lwip-1.4.0/core/mem.c **** 
+ 121:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 122:Libraries/lwip-1.4.0/core/mem.c ****  * Free memory previously allocated by mem_malloc. Loads the pool number
+ 123:Libraries/lwip-1.4.0/core/mem.c ****  * and calls memp_free with that pool number to put the element back into
+ 124:Libraries/lwip-1.4.0/core/mem.c ****  * its pool
+ 125:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 126:Libraries/lwip-1.4.0/core/mem.c ****  * @param rmem the memory element to free
+ 127:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 128:Libraries/lwip-1.4.0/core/mem.c **** void
+ 129:Libraries/lwip-1.4.0/core/mem.c **** mem_free(void *rmem)
+ 130:Libraries/lwip-1.4.0/core/mem.c **** {
+ 131:Libraries/lwip-1.4.0/core/mem.c ****   struct memp_malloc_helper *hmem = (struct memp_malloc_helper*)rmem;
+ 132:Libraries/lwip-1.4.0/core/mem.c **** 
+ 133:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("rmem != NULL", (rmem != NULL));
+ 134:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("rmem == MEM_ALIGN(rmem)", (rmem == LWIP_MEM_ALIGN(rmem)));
+ 135:Libraries/lwip-1.4.0/core/mem.c **** 
+ 136:Libraries/lwip-1.4.0/core/mem.c ****   /* get the original struct memp_malloc_helper */
+ 137:Libraries/lwip-1.4.0/core/mem.c ****   hmem--;
+ 138:Libraries/lwip-1.4.0/core/mem.c **** 
+ 139:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("hmem != NULL", (hmem != NULL));
+ 140:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("hmem == MEM_ALIGN(hmem)", (hmem == LWIP_MEM_ALIGN(hmem)));
+ 141:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("hmem->poolnr < MEMP_MAX", (hmem->poolnr < MEMP_MAX));
+ 142:Libraries/lwip-1.4.0/core/mem.c **** 
+ 143:Libraries/lwip-1.4.0/core/mem.c ****   /* and put it in the pool we saved earlier */
+ 144:Libraries/lwip-1.4.0/core/mem.c ****   memp_free(hmem->poolnr, hmem);
+ 145:Libraries/lwip-1.4.0/core/mem.c **** }
+ 146:Libraries/lwip-1.4.0/core/mem.c **** 
+ 147:Libraries/lwip-1.4.0/core/mem.c **** #else /* MEM_USE_POOLS */
+ 148:Libraries/lwip-1.4.0/core/mem.c **** /* lwIP replacement for your libc malloc() */
+ 149:Libraries/lwip-1.4.0/core/mem.c **** 
+ 150:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 151:Libraries/lwip-1.4.0/core/mem.c ****  * The heap is made up as a list of structs of this type.
+ 152:Libraries/lwip-1.4.0/core/mem.c ****  * This does not have to be aligned since for getting its size,
+ 153:Libraries/lwip-1.4.0/core/mem.c ****  * we only use the macro SIZEOF_STRUCT_MEM, which automatically alignes.
+ 154:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 155:Libraries/lwip-1.4.0/core/mem.c **** struct mem {
+ 156:Libraries/lwip-1.4.0/core/mem.c ****   /** index (-> ram[next]) of the next struct */
+ 157:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t next;
+ 158:Libraries/lwip-1.4.0/core/mem.c ****   /** index (-> ram[prev]) of the previous struct */
+ 159:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t prev;
+ 160:Libraries/lwip-1.4.0/core/mem.c ****   /** 1: this area is used; 0: this area is unused */
+ 161:Libraries/lwip-1.4.0/core/mem.c ****   u8_t used;
+ 162:Libraries/lwip-1.4.0/core/mem.c **** };
+ 163:Libraries/lwip-1.4.0/core/mem.c **** 
+ 164:Libraries/lwip-1.4.0/core/mem.c **** /** All allocated blocks will be MIN_SIZE bytes big, at least!
+ 165:Libraries/lwip-1.4.0/core/mem.c ****  * MIN_SIZE can be overridden to suit your needs. Smaller values save space,
+ 166:Libraries/lwip-1.4.0/core/mem.c ****  * larger values could prevent too small blocks to fragment the RAM too much. */
+ 167:Libraries/lwip-1.4.0/core/mem.c **** #ifndef MIN_SIZE
+ 168:Libraries/lwip-1.4.0/core/mem.c **** #define MIN_SIZE             12
+ 169:Libraries/lwip-1.4.0/core/mem.c **** #endif /* MIN_SIZE */
+ 170:Libraries/lwip-1.4.0/core/mem.c **** /* some alignment macros: we define them here for better source code layout */
+ 171:Libraries/lwip-1.4.0/core/mem.c **** #define MIN_SIZE_ALIGNED     LWIP_MEM_ALIGN_SIZE(MIN_SIZE)
+ 172:Libraries/lwip-1.4.0/core/mem.c **** #define SIZEOF_STRUCT_MEM    LWIP_MEM_ALIGN_SIZE(sizeof(struct mem))
+ 173:Libraries/lwip-1.4.0/core/mem.c **** #define MEM_SIZE_ALIGNED     LWIP_MEM_ALIGN_SIZE(MEM_SIZE)
+ 174:Libraries/lwip-1.4.0/core/mem.c **** 
+ 175:Libraries/lwip-1.4.0/core/mem.c **** /** If you want to relocate the heap to external memory, simply define
+ 176:Libraries/lwip-1.4.0/core/mem.c ****  * LWIP_RAM_HEAP_POINTER as a void-pointer to that location.
+ 177:Libraries/lwip-1.4.0/core/mem.c ****  * If so, make sure the memory at that location is big enough (see below on
+ 178:Libraries/lwip-1.4.0/core/mem.c ****  * how that space is calculated). */
+ 179:Libraries/lwip-1.4.0/core/mem.c **** #ifndef LWIP_RAM_HEAP_POINTER
+ 180:Libraries/lwip-1.4.0/core/mem.c **** /** the heap. we need one struct mem at the end and some room for alignment */
+ 181:Libraries/lwip-1.4.0/core/mem.c **** u8_t ram_heap[MEM_SIZE_ALIGNED + (2*SIZEOF_STRUCT_MEM) + MEM_ALIGNMENT];
+ 182:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_RAM_HEAP_POINTER ram_heap
+ 183:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_RAM_HEAP_POINTER */
+ 184:Libraries/lwip-1.4.0/core/mem.c **** 
+ 185:Libraries/lwip-1.4.0/core/mem.c **** /** pointer to the heap (ram_heap): for alignment, ram is now a pointer instead of an array */
+ 186:Libraries/lwip-1.4.0/core/mem.c **** static u8_t *ram;
+ 187:Libraries/lwip-1.4.0/core/mem.c **** /** the last entry, always unused! */
+ 188:Libraries/lwip-1.4.0/core/mem.c **** static struct mem *ram_end;
+ 189:Libraries/lwip-1.4.0/core/mem.c **** /** pointer to the lowest free block, this is used for faster search */
+ 190:Libraries/lwip-1.4.0/core/mem.c **** static struct mem *lfree;
+ 191:Libraries/lwip-1.4.0/core/mem.c **** 
+ 192:Libraries/lwip-1.4.0/core/mem.c **** /** concurrent access protection */
+ 193:Libraries/lwip-1.4.0/core/mem.c **** static sys_mutex_t mem_mutex;
+ 194:Libraries/lwip-1.4.0/core/mem.c **** 
+ 195:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 196:Libraries/lwip-1.4.0/core/mem.c **** 
+ 197:Libraries/lwip-1.4.0/core/mem.c **** static volatile u8_t mem_free_count;
+ 198:Libraries/lwip-1.4.0/core/mem.c **** 
+ 199:Libraries/lwip-1.4.0/core/mem.c **** /* Allow mem_free from other (e.g. interrupt) context */
+ 200:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_DECL_PROTECT()  SYS_ARCH_DECL_PROTECT(lev_free)
+ 201:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_PROTECT()       SYS_ARCH_PROTECT(lev_free)
+ 202:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_UNPROTECT()     SYS_ARCH_UNPROTECT(lev_free)
+ 203:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_DECL_PROTECT() SYS_ARCH_DECL_PROTECT(lev_alloc)
+ 204:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_PROTECT()      SYS_ARCH_PROTECT(lev_alloc)
+ 205:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_UNPROTECT()    SYS_ARCH_UNPROTECT(lev_alloc)
+ 206:Libraries/lwip-1.4.0/core/mem.c **** 
+ 207:Libraries/lwip-1.4.0/core/mem.c **** #else /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 208:Libraries/lwip-1.4.0/core/mem.c **** 
+ 209:Libraries/lwip-1.4.0/core/mem.c **** /* Protect the heap only by using a semaphore */
+ 210:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_DECL_PROTECT()
+ 211:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_PROTECT()    sys_mutex_lock(&mem_mutex)
+ 212:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_FREE_UNPROTECT()  sys_mutex_unlock(&mem_mutex)
+ 213:Libraries/lwip-1.4.0/core/mem.c **** /* mem_malloc is protected using semaphore AND LWIP_MEM_ALLOC_PROTECT */
+ 214:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_DECL_PROTECT()
+ 215:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_PROTECT()
+ 216:Libraries/lwip-1.4.0/core/mem.c **** #define LWIP_MEM_ALLOC_UNPROTECT()
+ 217:Libraries/lwip-1.4.0/core/mem.c **** 
+ 218:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 219:Libraries/lwip-1.4.0/core/mem.c **** 
+ 220:Libraries/lwip-1.4.0/core/mem.c **** 
+ 221:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 222:Libraries/lwip-1.4.0/core/mem.c ****  * "Plug holes" by combining adjacent empty struct mems.
+ 223:Libraries/lwip-1.4.0/core/mem.c ****  * After this function is through, there should not exist
+ 224:Libraries/lwip-1.4.0/core/mem.c ****  * one empty struct mem pointing to another empty struct mem.
+ 225:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 226:Libraries/lwip-1.4.0/core/mem.c ****  * @param mem this points to a struct mem which just has been freed
+ 227:Libraries/lwip-1.4.0/core/mem.c ****  * @internal this function is only called by mem_free() and mem_trim()
+ 228:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 229:Libraries/lwip-1.4.0/core/mem.c ****  * This assumes access to the heap is protected by the calling function
+ 230:Libraries/lwip-1.4.0/core/mem.c ****  * already.
+ 231:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 232:Libraries/lwip-1.4.0/core/mem.c **** static void
+ 233:Libraries/lwip-1.4.0/core/mem.c **** plug_holes(struct mem *mem)
+ 234:Libraries/lwip-1.4.0/core/mem.c **** {
+  51              		.loc 1 234 0
+  52              		.cfi_startproc
+  53              		@ args = 0, pretend = 0, frame = 16
+  54              		@ frame_needed = 1, uses_anonymous_args = 0
+  55              		@ link register save eliminated.
+  56 0000 80B4     		push	{r7}
+  57              		.cfi_def_cfa_offset 4
+  58              		.cfi_offset 7, -4
+  59 0002 85B0     		sub	sp, sp, #20
+  60              		.cfi_def_cfa_offset 24
+  61 0004 00AF     		add	r7, sp, #0
+  62              		.cfi_def_cfa_register 7
+  63 0006 7860     		str	r0, [r7, #4]
+ 235:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *nmem;
+ 236:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *pmem;
+ 237:Libraries/lwip-1.4.0/core/mem.c **** 
+ 238:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("plug_holes: mem >= ram", (u8_t *)mem >= ram);
+ 239:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("plug_holes: mem < ram_end", (u8_t *)mem < (u8_t *)ram_end);
+ 240:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("plug_holes: mem->used == 0", mem->used == 0);
+ 241:Libraries/lwip-1.4.0/core/mem.c **** 
+ 242:Libraries/lwip-1.4.0/core/mem.c ****   /* plug hole forward */
+ 243:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("plug_holes: mem->next <= MEM_SIZE_ALIGNED", mem->next <= MEM_SIZE_ALIGNED);
+ 244:Libraries/lwip-1.4.0/core/mem.c **** 
+ 245:Libraries/lwip-1.4.0/core/mem.c ****   nmem = (struct mem *)(void *)&ram[mem->next];
+  64              		.loc 1 245 0
+  65 0008 294B     		ldr	r3, .L7
+  66 000a 1B68     		ldr	r3, [r3]
+  67 000c 7A68     		ldr	r2, [r7, #4]
+  68 000e 1288     		ldrh	r2, [r2]
+  69 0010 1344     		add	r3, r3, r2
+  70 0012 FB60     		str	r3, [r7, #12]
+ 246:Libraries/lwip-1.4.0/core/mem.c ****   if (mem != nmem && nmem->used == 0 && (u8_t *)nmem != (u8_t *)ram_end) {
+  71              		.loc 1 246 0
+  72 0014 7A68     		ldr	r2, [r7, #4]
+  73 0016 FB68     		ldr	r3, [r7, #12]
+  74 0018 9A42     		cmp	r2, r3
+  75 001a 1FD0     		beq	.L2
+  76              		.loc 1 246 0 is_stmt 0 discriminator 1
+  77 001c FB68     		ldr	r3, [r7, #12]
+  78 001e 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+  79 0020 002B     		cmp	r3, #0
+  80 0022 1BD1     		bne	.L2
+  81              		.loc 1 246 0 discriminator 2
+  82 0024 234B     		ldr	r3, .L7+4
+  83 0026 1B68     		ldr	r3, [r3]
+  84 0028 FA68     		ldr	r2, [r7, #12]
+  85 002a 9A42     		cmp	r2, r3
+  86 002c 16D0     		beq	.L2
+ 247:Libraries/lwip-1.4.0/core/mem.c ****     /* if mem->next is unused and not end of ram, combine mem and mem->next */
+ 248:Libraries/lwip-1.4.0/core/mem.c ****     if (lfree == nmem) {
+  87              		.loc 1 248 0 is_stmt 1
+  88 002e 224B     		ldr	r3, .L7+8
+  89 0030 1A68     		ldr	r2, [r3]
+  90 0032 FB68     		ldr	r3, [r7, #12]
+  91 0034 9A42     		cmp	r2, r3
+  92 0036 02D1     		bne	.L3
+ 249:Libraries/lwip-1.4.0/core/mem.c ****       lfree = mem;
+  93              		.loc 1 249 0
+  94 0038 1F4A     		ldr	r2, .L7+8
+  95 003a 7B68     		ldr	r3, [r7, #4]
+  96 003c 1360     		str	r3, [r2]
+  97              	.L3:
+ 250:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 251:Libraries/lwip-1.4.0/core/mem.c ****     mem->next = nmem->next;
+  98              		.loc 1 251 0
+  99 003e FB68     		ldr	r3, [r7, #12]
+ 100 0040 1A88     		ldrh	r2, [r3]
+ 101 0042 7B68     		ldr	r3, [r7, #4]
+ 102 0044 1A80     		strh	r2, [r3]	@ movhi
+ 252:Libraries/lwip-1.4.0/core/mem.c ****     ((struct mem *)(void *)&ram[nmem->next])->prev = (mem_size_t)((u8_t *)mem - ram);
+ 103              		.loc 1 252 0
+ 104 0046 1A4B     		ldr	r3, .L7
+ 105 0048 1B68     		ldr	r3, [r3]
+ 106 004a FA68     		ldr	r2, [r7, #12]
+ 107 004c 1288     		ldrh	r2, [r2]
+ 108 004e 1344     		add	r3, r3, r2
+ 109 0050 7A68     		ldr	r2, [r7, #4]
+ 110 0052 1749     		ldr	r1, .L7
+ 111 0054 0968     		ldr	r1, [r1]
+ 112 0056 521A     		subs	r2, r2, r1
+ 113 0058 92B2     		uxth	r2, r2
+ 114 005a 5A80     		strh	r2, [r3, #2]	@ movhi
+ 115              	.L2:
+ 253:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 254:Libraries/lwip-1.4.0/core/mem.c **** 
+ 255:Libraries/lwip-1.4.0/core/mem.c ****   /* plug hole backward */
+ 256:Libraries/lwip-1.4.0/core/mem.c ****   pmem = (struct mem *)(void *)&ram[mem->prev];
+ 116              		.loc 1 256 0
+ 117 005c 144B     		ldr	r3, .L7
+ 118 005e 1B68     		ldr	r3, [r3]
+ 119 0060 7A68     		ldr	r2, [r7, #4]
+ 120 0062 5288     		ldrh	r2, [r2, #2]
+ 121 0064 1344     		add	r3, r3, r2
+ 122 0066 BB60     		str	r3, [r7, #8]
+ 257:Libraries/lwip-1.4.0/core/mem.c ****   if (pmem != mem && pmem->used == 0) {
+ 123              		.loc 1 257 0
+ 124 0068 BA68     		ldr	r2, [r7, #8]
+ 125 006a 7B68     		ldr	r3, [r7, #4]
+ 126 006c 9A42     		cmp	r2, r3
+ 127 006e 1AD0     		beq	.L6
+ 128              		.loc 1 257 0 is_stmt 0 discriminator 1
+ 129 0070 BB68     		ldr	r3, [r7, #8]
+ 130 0072 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 131 0074 002B     		cmp	r3, #0
+ 132 0076 16D1     		bne	.L6
+ 258:Libraries/lwip-1.4.0/core/mem.c ****     /* if mem->prev is unused, combine mem and mem->prev */
+ 259:Libraries/lwip-1.4.0/core/mem.c ****     if (lfree == mem) {
+ 133              		.loc 1 259 0 is_stmt 1
+ 134 0078 0F4B     		ldr	r3, .L7+8
+ 135 007a 1A68     		ldr	r2, [r3]
+ 136 007c 7B68     		ldr	r3, [r7, #4]
+ 137 007e 9A42     		cmp	r2, r3
+ 138 0080 02D1     		bne	.L5
+ 260:Libraries/lwip-1.4.0/core/mem.c ****       lfree = pmem;
+ 139              		.loc 1 260 0
+ 140 0082 0D4A     		ldr	r2, .L7+8
+ 141 0084 BB68     		ldr	r3, [r7, #8]
+ 142 0086 1360     		str	r3, [r2]
+ 143              	.L5:
+ 261:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 262:Libraries/lwip-1.4.0/core/mem.c ****     pmem->next = mem->next;
+ 144              		.loc 1 262 0
+ 145 0088 7B68     		ldr	r3, [r7, #4]
+ 146 008a 1A88     		ldrh	r2, [r3]
+ 147 008c BB68     		ldr	r3, [r7, #8]
+ 148 008e 1A80     		strh	r2, [r3]	@ movhi
+ 263:Libraries/lwip-1.4.0/core/mem.c ****     ((struct mem *)(void *)&ram[mem->next])->prev = (mem_size_t)((u8_t *)pmem - ram);
+ 149              		.loc 1 263 0
+ 150 0090 074B     		ldr	r3, .L7
+ 151 0092 1B68     		ldr	r3, [r3]
+ 152 0094 7A68     		ldr	r2, [r7, #4]
+ 153 0096 1288     		ldrh	r2, [r2]
+ 154 0098 1344     		add	r3, r3, r2
+ 155 009a BA68     		ldr	r2, [r7, #8]
+ 156 009c 0449     		ldr	r1, .L7
+ 157 009e 0968     		ldr	r1, [r1]
+ 158 00a0 521A     		subs	r2, r2, r1
+ 159 00a2 92B2     		uxth	r2, r2
+ 160 00a4 5A80     		strh	r2, [r3, #2]	@ movhi
+ 161              	.L6:
+ 264:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 265:Libraries/lwip-1.4.0/core/mem.c **** }
+ 162              		.loc 1 265 0
+ 163 00a6 00BF     		nop
+ 164 00a8 1437     		adds	r7, r7, #20
+ 165              		.cfi_def_cfa_offset 4
+ 166 00aa BD46     		mov	sp, r7
+ 167              		.cfi_def_cfa_register 13
+ 168              		@ sp needed
+ 169 00ac 80BC     		pop	{r7}
+ 170              		.cfi_restore 7
+ 171              		.cfi_def_cfa_offset 0
+ 172 00ae 7047     		bx	lr
+ 173              	.L8:
+ 174              		.align	2
+ 175              	.L7:
+ 176 00b0 00000000 		.word	ram
+ 177 00b4 00000000 		.word	ram_end
+ 178 00b8 00000000 		.word	lfree
+ 179              		.cfi_endproc
+ 180              	.LFE17:
+ 182              		.section	.text.mem_init,"ax",%progbits
+ 183              		.align	2
+ 184              		.global	mem_init
+ 185              		.thumb
+ 186              		.thumb_func
+ 188              	mem_init:
+ 189              	.LFB18:
+ 266:Libraries/lwip-1.4.0/core/mem.c **** 
+ 267:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 268:Libraries/lwip-1.4.0/core/mem.c ****  * Zero the heap and initialize start, end and lowest-free
+ 269:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 270:Libraries/lwip-1.4.0/core/mem.c **** void
+ 271:Libraries/lwip-1.4.0/core/mem.c **** mem_init(void)
+ 272:Libraries/lwip-1.4.0/core/mem.c **** {
+ 190              		.loc 1 272 0
+ 191              		.cfi_startproc
+ 192              		@ args = 0, pretend = 0, frame = 8
+ 193              		@ frame_needed = 1, uses_anonymous_args = 0
+ 194              		@ link register save eliminated.
+ 195 0000 80B4     		push	{r7}
+ 196              		.cfi_def_cfa_offset 4
+ 197              		.cfi_offset 7, -4
+ 198 0002 83B0     		sub	sp, sp, #12
+ 199              		.cfi_def_cfa_offset 16
+ 200 0004 00AF     		add	r7, sp, #0
+ 201              		.cfi_def_cfa_register 7
+ 273:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *mem;
+ 274:Libraries/lwip-1.4.0/core/mem.c **** 
+ 275:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("Sanity check alignment",
+ 276:Libraries/lwip-1.4.0/core/mem.c ****     (SIZEOF_STRUCT_MEM & (MEM_ALIGNMENT-1)) == 0);
+ 277:Libraries/lwip-1.4.0/core/mem.c **** 
+ 278:Libraries/lwip-1.4.0/core/mem.c ****   /* align the heap */
+ 279:Libraries/lwip-1.4.0/core/mem.c ****   ram = (u8_t *)LWIP_MEM_ALIGN(LWIP_RAM_HEAP_POINTER);
+ 202              		.loc 1 279 0
+ 203 0006 1B4B     		ldr	r3, .L10
+ 204 0008 0333     		adds	r3, r3, #3
+ 205 000a 23F00303 		bic	r3, r3, #3
+ 206 000e 1A46     		mov	r2, r3
+ 207 0010 194B     		ldr	r3, .L10+4
+ 208 0012 1A60     		str	r2, [r3]
+ 280:Libraries/lwip-1.4.0/core/mem.c ****   /* initialize the start of the heap */
+ 281:Libraries/lwip-1.4.0/core/mem.c ****   mem = (struct mem *)(void *)ram;
+ 209              		.loc 1 281 0
+ 210 0014 184B     		ldr	r3, .L10+4
+ 211 0016 1B68     		ldr	r3, [r3]
+ 212 0018 7B60     		str	r3, [r7, #4]
+ 282:Libraries/lwip-1.4.0/core/mem.c ****   mem->next = MEM_SIZE_ALIGNED;
+ 213              		.loc 1 282 0
+ 214 001a 7B68     		ldr	r3, [r7, #4]
+ 215 001c 4FF4C862 		mov	r2, #1600
+ 216 0020 1A80     		strh	r2, [r3]	@ movhi
+ 283:Libraries/lwip-1.4.0/core/mem.c ****   mem->prev = 0;
+ 217              		.loc 1 283 0
+ 218 0022 7B68     		ldr	r3, [r7, #4]
+ 219 0024 0022     		movs	r2, #0
+ 220 0026 5A80     		strh	r2, [r3, #2]	@ movhi
+ 284:Libraries/lwip-1.4.0/core/mem.c ****   mem->used = 0;
+ 221              		.loc 1 284 0
+ 222 0028 7B68     		ldr	r3, [r7, #4]
+ 223 002a 0022     		movs	r2, #0
+ 224 002c 1A71     		strb	r2, [r3, #4]
+ 285:Libraries/lwip-1.4.0/core/mem.c ****   /* initialize the end of the heap */
+ 286:Libraries/lwip-1.4.0/core/mem.c ****   ram_end = (struct mem *)(void *)&ram[MEM_SIZE_ALIGNED];
+ 225              		.loc 1 286 0
+ 226 002e 124B     		ldr	r3, .L10+4
+ 227 0030 1B68     		ldr	r3, [r3]
+ 228 0032 03F5C863 		add	r3, r3, #1600
+ 229 0036 114A     		ldr	r2, .L10+8
+ 230 0038 1360     		str	r3, [r2]
+ 287:Libraries/lwip-1.4.0/core/mem.c ****   ram_end->used = 1;
+ 231              		.loc 1 287 0
+ 232 003a 104B     		ldr	r3, .L10+8
+ 233 003c 1B68     		ldr	r3, [r3]
+ 234 003e 0122     		movs	r2, #1
+ 235 0040 1A71     		strb	r2, [r3, #4]
+ 288:Libraries/lwip-1.4.0/core/mem.c ****   ram_end->next = MEM_SIZE_ALIGNED;
+ 236              		.loc 1 288 0
+ 237 0042 0E4B     		ldr	r3, .L10+8
+ 238 0044 1B68     		ldr	r3, [r3]
+ 239 0046 4FF4C862 		mov	r2, #1600
+ 240 004a 1A80     		strh	r2, [r3]	@ movhi
+ 289:Libraries/lwip-1.4.0/core/mem.c ****   ram_end->prev = MEM_SIZE_ALIGNED;
+ 241              		.loc 1 289 0
+ 242 004c 0B4B     		ldr	r3, .L10+8
+ 243 004e 1B68     		ldr	r3, [r3]
+ 244 0050 4FF4C862 		mov	r2, #1600
+ 245 0054 5A80     		strh	r2, [r3, #2]	@ movhi
+ 290:Libraries/lwip-1.4.0/core/mem.c **** 
+ 291:Libraries/lwip-1.4.0/core/mem.c ****   /* initialize the lowest-free pointer to the start of the heap */
+ 292:Libraries/lwip-1.4.0/core/mem.c ****   lfree = (struct mem *)(void *)ram;
+ 246              		.loc 1 292 0
+ 247 0056 084B     		ldr	r3, .L10+4
+ 248 0058 1B68     		ldr	r3, [r3]
+ 249 005a 094A     		ldr	r2, .L10+12
+ 250 005c 1360     		str	r3, [r2]
+ 293:Libraries/lwip-1.4.0/core/mem.c **** 
+ 294:Libraries/lwip-1.4.0/core/mem.c ****   MEM_STATS_AVAIL(avail, MEM_SIZE_ALIGNED);
+ 251              		.loc 1 294 0
+ 252 005e 094B     		ldr	r3, .L10+16
+ 253 0060 4FF4C862 		mov	r2, #1600
+ 254 0064 A3F8A820 		strh	r2, [r3, #168]	@ movhi
+ 295:Libraries/lwip-1.4.0/core/mem.c **** 
+ 296:Libraries/lwip-1.4.0/core/mem.c ****   if(sys_mutex_new(&mem_mutex) != ERR_OK) {
+ 297:Libraries/lwip-1.4.0/core/mem.c ****     LWIP_ASSERT("failed to create mem_mutex", 0);
+ 298:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 299:Libraries/lwip-1.4.0/core/mem.c **** }
+ 255              		.loc 1 299 0
+ 256 0068 00BF     		nop
+ 257 006a 0C37     		adds	r7, r7, #12
+ 258              		.cfi_def_cfa_offset 4
+ 259 006c BD46     		mov	sp, r7
+ 260              		.cfi_def_cfa_register 13
+ 261              		@ sp needed
+ 262 006e 80BC     		pop	{r7}
+ 263              		.cfi_restore 7
+ 264              		.cfi_def_cfa_offset 0
+ 265 0070 7047     		bx	lr
+ 266              	.L11:
+ 267 0072 00BF     		.align	2
+ 268              	.L10:
+ 269 0074 00000000 		.word	ram_heap
+ 270 0078 00000000 		.word	ram
+ 271 007c 00000000 		.word	ram_end
+ 272 0080 00000000 		.word	lfree
+ 273 0084 00000000 		.word	lwip_stats
+ 274              		.cfi_endproc
+ 275              	.LFE18:
+ 277              		.section	.text.mem_free,"ax",%progbits
+ 278              		.align	2
+ 279              		.global	mem_free
+ 280              		.thumb
+ 281              		.thumb_func
+ 283              	mem_free:
+ 284              	.LFB19:
+ 300:Libraries/lwip-1.4.0/core/mem.c **** 
+ 301:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 302:Libraries/lwip-1.4.0/core/mem.c ****  * Put a struct mem back on the heap
+ 303:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 304:Libraries/lwip-1.4.0/core/mem.c ****  * @param rmem is the data portion of a struct mem as returned by a previous
+ 305:Libraries/lwip-1.4.0/core/mem.c ****  *             call to mem_malloc()
+ 306:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 307:Libraries/lwip-1.4.0/core/mem.c **** void
+ 308:Libraries/lwip-1.4.0/core/mem.c **** mem_free(void *rmem)
+ 309:Libraries/lwip-1.4.0/core/mem.c **** {
+ 285              		.loc 1 309 0
+ 286              		.cfi_startproc
+ 287              		@ args = 0, pretend = 0, frame = 16
+ 288              		@ frame_needed = 1, uses_anonymous_args = 0
+ 289 0000 80B5     		push	{r7, lr}
+ 290              		.cfi_def_cfa_offset 8
+ 291              		.cfi_offset 7, -8
+ 292              		.cfi_offset 14, -4
+ 293 0002 84B0     		sub	sp, sp, #16
+ 294              		.cfi_def_cfa_offset 24
+ 295 0004 00AF     		add	r7, sp, #0
+ 296              		.cfi_def_cfa_register 7
+ 297 0006 7860     		str	r0, [r7, #4]
+ 310:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *mem;
+ 311:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_DECL_PROTECT();
+ 312:Libraries/lwip-1.4.0/core/mem.c **** 
+ 313:Libraries/lwip-1.4.0/core/mem.c ****   if (rmem == NULL) {
+ 298              		.loc 1 313 0
+ 299 0008 7B68     		ldr	r3, [r7, #4]
+ 300 000a 002B     		cmp	r3, #0
+ 301 000c 39D0     		beq	.L19
+ 314:Libraries/lwip-1.4.0/core/mem.c ****     LWIP_DEBUGF(MEM_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS, ("mem_free(p == NULL) was call
+ 315:Libraries/lwip-1.4.0/core/mem.c ****     return;
+ 316:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 317:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("mem_free: sanity check alignment", (((mem_ptr_t)rmem) & (MEM_ALIGNMENT-1)) == 0);
+ 318:Libraries/lwip-1.4.0/core/mem.c **** 
+ 319:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("mem_free: legal memory", (u8_t *)rmem >= (u8_t *)ram &&
+ 302              		.loc 1 319 0
+ 303 000e 1F4B     		ldr	r3, .L20
+ 304 0010 1B68     		ldr	r3, [r3]
+ 305 0012 7A68     		ldr	r2, [r7, #4]
+ 306 0014 9A42     		cmp	r2, r3
+ 320:Libraries/lwip-1.4.0/core/mem.c ****     (u8_t *)rmem < (u8_t *)ram_end);
+ 321:Libraries/lwip-1.4.0/core/mem.c **** 
+ 322:Libraries/lwip-1.4.0/core/mem.c ****   if ((u8_t *)rmem < (u8_t *)ram || (u8_t *)rmem >= (u8_t *)ram_end) {
+ 307              		.loc 1 322 0
+ 308 0016 1D4B     		ldr	r3, .L20
+ 309 0018 1B68     		ldr	r3, [r3]
+ 310 001a 7A68     		ldr	r2, [r7, #4]
+ 311 001c 9A42     		cmp	r2, r3
+ 312 001e 04D3     		bcc	.L16
+ 313              		.loc 1 322 0 is_stmt 0 discriminator 1
+ 314 0020 1B4B     		ldr	r3, .L20+4
+ 315 0022 1B68     		ldr	r3, [r3]
+ 316 0024 7A68     		ldr	r2, [r7, #4]
+ 317 0026 9A42     		cmp	r2, r3
+ 318 0028 08D3     		bcc	.L17
+ 319              	.L16:
+ 323:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_DECL_PROTECT(lev);
+ 324:Libraries/lwip-1.4.0/core/mem.c ****     LWIP_DEBUGF(MEM_DEBUG | LWIP_DBG_LEVEL_SEVERE, ("mem_free: illegal memory\n"));
+ 325:Libraries/lwip-1.4.0/core/mem.c ****     /* protect mem stats from concurrent access */
+ 326:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_PROTECT(lev);
+ 327:Libraries/lwip-1.4.0/core/mem.c ****     MEM_STATS_INC(illegal);
+ 320              		.loc 1 327 0 is_stmt 1
+ 321 002a 1A4B     		ldr	r3, .L20+8
+ 322 002c B3F8B030 		ldrh	r3, [r3, #176]
+ 323 0030 0133     		adds	r3, r3, #1
+ 324 0032 9AB2     		uxth	r2, r3
+ 325 0034 174B     		ldr	r3, .L20+8
+ 326 0036 A3F8B020 		strh	r2, [r3, #176]	@ movhi
+ 328:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_UNPROTECT(lev);
+ 329:Libraries/lwip-1.4.0/core/mem.c ****     return;
+ 327              		.loc 1 329 0
+ 328 003a 23E0     		b	.L12
+ 329              	.L17:
+ 330:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 331:Libraries/lwip-1.4.0/core/mem.c ****   /* protect the heap from concurrent access */
+ 332:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_PROTECT();
+ 333:Libraries/lwip-1.4.0/core/mem.c ****   /* Get the corresponding struct mem ... */
+ 334:Libraries/lwip-1.4.0/core/mem.c ****   mem = (struct mem *)(void *)((u8_t *)rmem - SIZEOF_STRUCT_MEM);
+ 330              		.loc 1 334 0
+ 331 003c 7B68     		ldr	r3, [r7, #4]
+ 332 003e 083B     		subs	r3, r3, #8
+ 333 0040 FB60     		str	r3, [r7, #12]
+ 335:Libraries/lwip-1.4.0/core/mem.c ****   /* ... which has to be in a used state ... */
+ 336:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("mem_free: mem->used", mem->used);
+ 337:Libraries/lwip-1.4.0/core/mem.c ****   /* ... and is now unused. */
+ 338:Libraries/lwip-1.4.0/core/mem.c ****   mem->used = 0;
+ 334              		.loc 1 338 0
+ 335 0042 FB68     		ldr	r3, [r7, #12]
+ 336 0044 0022     		movs	r2, #0
+ 337 0046 1A71     		strb	r2, [r3, #4]
+ 339:Libraries/lwip-1.4.0/core/mem.c **** 
+ 340:Libraries/lwip-1.4.0/core/mem.c ****   if (mem < lfree) {
+ 338              		.loc 1 340 0
+ 339 0048 134B     		ldr	r3, .L20+12
+ 340 004a 1B68     		ldr	r3, [r3]
+ 341 004c FA68     		ldr	r2, [r7, #12]
+ 342 004e 9A42     		cmp	r2, r3
+ 343 0050 02D2     		bcs	.L18
+ 341:Libraries/lwip-1.4.0/core/mem.c ****     /* the newly freed struct is now the lowest */
+ 342:Libraries/lwip-1.4.0/core/mem.c ****     lfree = mem;
+ 344              		.loc 1 342 0
+ 345 0052 114A     		ldr	r2, .L20+12
+ 346 0054 FB68     		ldr	r3, [r7, #12]
+ 347 0056 1360     		str	r3, [r2]
+ 348              	.L18:
+ 343:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 344:Libraries/lwip-1.4.0/core/mem.c **** 
+ 345:Libraries/lwip-1.4.0/core/mem.c ****   MEM_STATS_DEC_USED(used, mem->next - (mem_size_t)(((u8_t *)mem - ram)));
+ 349              		.loc 1 345 0
+ 350 0058 0E4B     		ldr	r3, .L20+8
+ 351 005a B3F8AA20 		ldrh	r2, [r3, #170]
+ 352 005e FB68     		ldr	r3, [r7, #12]
+ 353 0060 0A49     		ldr	r1, .L20
+ 354 0062 0968     		ldr	r1, [r1]
+ 355 0064 5B1A     		subs	r3, r3, r1
+ 356 0066 99B2     		uxth	r1, r3
+ 357 0068 FB68     		ldr	r3, [r7, #12]
+ 358 006a 1B88     		ldrh	r3, [r3]
+ 359 006c CB1A     		subs	r3, r1, r3
+ 360 006e 9BB2     		uxth	r3, r3
+ 361 0070 1344     		add	r3, r3, r2
+ 362 0072 9AB2     		uxth	r2, r3
+ 363 0074 074B     		ldr	r3, .L20+8
+ 364 0076 A3F8AA20 		strh	r2, [r3, #170]	@ movhi
+ 346:Libraries/lwip-1.4.0/core/mem.c **** 
+ 347:Libraries/lwip-1.4.0/core/mem.c ****   /* finally, see if prev or next are free also */
+ 348:Libraries/lwip-1.4.0/core/mem.c ****   plug_holes(mem);
+ 365              		.loc 1 348 0
+ 366 007a F868     		ldr	r0, [r7, #12]
+ 367 007c FFF7FEFF 		bl	plug_holes
+ 368 0080 00E0     		b	.L12
+ 369              	.L19:
+ 315:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 370              		.loc 1 315 0
+ 371 0082 00BF     		nop
+ 372              	.L12:
+ 349:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 350:Libraries/lwip-1.4.0/core/mem.c ****   mem_free_count = 1;
+ 351:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 352:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_UNPROTECT();
+ 353:Libraries/lwip-1.4.0/core/mem.c **** }
+ 373              		.loc 1 353 0
+ 374 0084 1037     		adds	r7, r7, #16
+ 375              		.cfi_def_cfa_offset 8
+ 376 0086 BD46     		mov	sp, r7
+ 377              		.cfi_def_cfa_register 13
+ 378              		@ sp needed
+ 379 0088 80BD     		pop	{r7, pc}
+ 380              	.L21:
+ 381 008a 00BF     		.align	2
+ 382              	.L20:
+ 383 008c 00000000 		.word	ram
+ 384 0090 00000000 		.word	ram_end
+ 385 0094 00000000 		.word	lwip_stats
+ 386 0098 00000000 		.word	lfree
+ 387              		.cfi_endproc
+ 388              	.LFE19:
+ 390              		.section	.text.mem_trim,"ax",%progbits
+ 391              		.align	2
+ 392              		.global	mem_trim
+ 393              		.thumb
+ 394              		.thumb_func
+ 396              	mem_trim:
+ 397              	.LFB20:
+ 354:Libraries/lwip-1.4.0/core/mem.c **** 
+ 355:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 356:Libraries/lwip-1.4.0/core/mem.c ****  * Shrink memory returned by mem_malloc().
+ 357:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 358:Libraries/lwip-1.4.0/core/mem.c ****  * @param rmem pointer to memory allocated by mem_malloc the is to be shrinked
+ 359:Libraries/lwip-1.4.0/core/mem.c ****  * @param newsize required size after shrinking (needs to be smaller than or
+ 360:Libraries/lwip-1.4.0/core/mem.c ****  *                equal to the previous size)
+ 361:Libraries/lwip-1.4.0/core/mem.c ****  * @return for compatibility reasons: is always == rmem, at the moment
+ 362:Libraries/lwip-1.4.0/core/mem.c ****  *         or NULL if newsize is > old size, in which case rmem is NOT touched
+ 363:Libraries/lwip-1.4.0/core/mem.c ****  *         or freed!
+ 364:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 365:Libraries/lwip-1.4.0/core/mem.c **** void *
+ 366:Libraries/lwip-1.4.0/core/mem.c **** mem_trim(void *rmem, mem_size_t newsize)
+ 367:Libraries/lwip-1.4.0/core/mem.c **** {
+ 398              		.loc 1 367 0
+ 399              		.cfi_startproc
+ 400              		@ args = 0, pretend = 0, frame = 24
+ 401              		@ frame_needed = 1, uses_anonymous_args = 0
+ 402              		@ link register save eliminated.
+ 403 0000 80B4     		push	{r7}
+ 404              		.cfi_def_cfa_offset 4
+ 405              		.cfi_offset 7, -4
+ 406 0002 87B0     		sub	sp, sp, #28
+ 407              		.cfi_def_cfa_offset 32
+ 408 0004 00AF     		add	r7, sp, #0
+ 409              		.cfi_def_cfa_register 7
+ 410 0006 7860     		str	r0, [r7, #4]
+ 411 0008 0B46     		mov	r3, r1
+ 412 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+ 368:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t size;
+ 369:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t ptr, ptr2;
+ 370:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *mem, *mem2;
+ 371:Libraries/lwip-1.4.0/core/mem.c ****   /* use the FREE_PROTECT here: it protects with sem OR SYS_ARCH_PROTECT */
+ 372:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_DECL_PROTECT();
+ 373:Libraries/lwip-1.4.0/core/mem.c **** 
+ 374:Libraries/lwip-1.4.0/core/mem.c ****   /* Expand the size of the allocated memory region so that we can
+ 375:Libraries/lwip-1.4.0/core/mem.c ****      adjust for alignment. */
+ 376:Libraries/lwip-1.4.0/core/mem.c ****   newsize = LWIP_MEM_ALIGN_SIZE(newsize);
+ 413              		.loc 1 376 0
+ 414 000c 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 415 000e 0333     		adds	r3, r3, #3
+ 416 0010 9BB2     		uxth	r3, r3
+ 417 0012 23F00303 		bic	r3, r3, #3
+ 418 0016 7B80     		strh	r3, [r7, #2]	@ movhi
+ 377:Libraries/lwip-1.4.0/core/mem.c **** 
+ 378:Libraries/lwip-1.4.0/core/mem.c ****   if(newsize < MIN_SIZE_ALIGNED) {
+ 419              		.loc 1 378 0
+ 420 0018 7B88     		ldrh	r3, [r7, #2]
+ 421 001a 0B2B     		cmp	r3, #11
+ 422 001c 01D8     		bhi	.L23
+ 379:Libraries/lwip-1.4.0/core/mem.c ****     /* every data block must be at least MIN_SIZE_ALIGNED long */
+ 380:Libraries/lwip-1.4.0/core/mem.c ****     newsize = MIN_SIZE_ALIGNED;
+ 423              		.loc 1 380 0
+ 424 001e 0C23     		movs	r3, #12
+ 425 0020 7B80     		strh	r3, [r7, #2]	@ movhi
+ 426              	.L23:
+ 381:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 382:Libraries/lwip-1.4.0/core/mem.c **** 
+ 383:Libraries/lwip-1.4.0/core/mem.c ****   if (newsize > MEM_SIZE_ALIGNED) {
+ 427              		.loc 1 383 0
+ 428 0022 7B88     		ldrh	r3, [r7, #2]
+ 429 0024 B3F5C86F 		cmp	r3, #1600
+ 430 0028 01D9     		bls	.L24
+ 384:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+ 431              		.loc 1 384 0
+ 432 002a 0023     		movs	r3, #0
+ 433 002c B9E0     		b	.L25
+ 434              	.L24:
+ 385:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 386:Libraries/lwip-1.4.0/core/mem.c **** 
+ 387:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("mem_trim: legal memory", (u8_t *)rmem >= (u8_t *)ram &&
+ 435              		.loc 1 387 0
+ 436 002e 5F4B     		ldr	r3, .L37
+ 437 0030 1B68     		ldr	r3, [r3]
+ 438 0032 7A68     		ldr	r2, [r7, #4]
+ 439 0034 9A42     		cmp	r2, r3
+ 388:Libraries/lwip-1.4.0/core/mem.c ****    (u8_t *)rmem < (u8_t *)ram_end);
+ 389:Libraries/lwip-1.4.0/core/mem.c **** 
+ 390:Libraries/lwip-1.4.0/core/mem.c ****   if ((u8_t *)rmem < (u8_t *)ram || (u8_t *)rmem >= (u8_t *)ram_end) {
+ 440              		.loc 1 390 0
+ 441 0036 5D4B     		ldr	r3, .L37
+ 442 0038 1B68     		ldr	r3, [r3]
+ 443 003a 7A68     		ldr	r2, [r7, #4]
+ 444 003c 9A42     		cmp	r2, r3
+ 445 003e 04D3     		bcc	.L27
+ 446              		.loc 1 390 0 is_stmt 0 discriminator 1
+ 447 0040 5B4B     		ldr	r3, .L37+4
+ 448 0042 1B68     		ldr	r3, [r3]
+ 449 0044 7A68     		ldr	r2, [r7, #4]
+ 450 0046 9A42     		cmp	r2, r3
+ 451 0048 09D3     		bcc	.L28
+ 452              	.L27:
+ 391:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_DECL_PROTECT(lev);
+ 392:Libraries/lwip-1.4.0/core/mem.c ****     LWIP_DEBUGF(MEM_DEBUG | LWIP_DBG_LEVEL_SEVERE, ("mem_trim: illegal memory\n"));
+ 393:Libraries/lwip-1.4.0/core/mem.c ****     /* protect mem stats from concurrent access */
+ 394:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_PROTECT(lev);
+ 395:Libraries/lwip-1.4.0/core/mem.c ****     MEM_STATS_INC(illegal);
+ 453              		.loc 1 395 0 is_stmt 1
+ 454 004a 5A4B     		ldr	r3, .L37+8
+ 455 004c B3F8B030 		ldrh	r3, [r3, #176]
+ 456 0050 0133     		adds	r3, r3, #1
+ 457 0052 9AB2     		uxth	r2, r3
+ 458 0054 574B     		ldr	r3, .L37+8
+ 459 0056 A3F8B020 		strh	r2, [r3, #176]	@ movhi
+ 396:Libraries/lwip-1.4.0/core/mem.c ****     SYS_ARCH_UNPROTECT(lev);
+ 397:Libraries/lwip-1.4.0/core/mem.c ****     return rmem;
+ 460              		.loc 1 397 0
+ 461 005a 7B68     		ldr	r3, [r7, #4]
+ 462 005c A1E0     		b	.L25
+ 463              	.L28:
+ 398:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 399:Libraries/lwip-1.4.0/core/mem.c ****   /* Get the corresponding struct mem ... */
+ 400:Libraries/lwip-1.4.0/core/mem.c ****   mem = (struct mem *)(void *)((u8_t *)rmem - SIZEOF_STRUCT_MEM);
+ 464              		.loc 1 400 0
+ 465 005e 7B68     		ldr	r3, [r7, #4]
+ 466 0060 083B     		subs	r3, r3, #8
+ 467 0062 7B61     		str	r3, [r7, #20]
+ 401:Libraries/lwip-1.4.0/core/mem.c ****   /* ... and its offset pointer */
+ 402:Libraries/lwip-1.4.0/core/mem.c ****   ptr = (mem_size_t)((u8_t *)mem - ram);
+ 468              		.loc 1 402 0
+ 469 0064 7B69     		ldr	r3, [r7, #20]
+ 470 0066 514A     		ldr	r2, .L37
+ 471 0068 1268     		ldr	r2, [r2]
+ 472 006a 9B1A     		subs	r3, r3, r2
+ 473 006c 7B82     		strh	r3, [r7, #18]	@ movhi
+ 403:Libraries/lwip-1.4.0/core/mem.c **** 
+ 404:Libraries/lwip-1.4.0/core/mem.c ****   size = mem->next - ptr - SIZEOF_STRUCT_MEM;
+ 474              		.loc 1 404 0
+ 475 006e 7B69     		ldr	r3, [r7, #20]
+ 476 0070 1A88     		ldrh	r2, [r3]
+ 477 0072 7B8A     		ldrh	r3, [r7, #18]	@ movhi
+ 478 0074 D31A     		subs	r3, r2, r3
+ 479 0076 9BB2     		uxth	r3, r3
+ 480 0078 083B     		subs	r3, r3, #8
+ 481 007a 3B82     		strh	r3, [r7, #16]	@ movhi
+ 405:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_ASSERT("mem_trim can only shrink memory", newsize <= size);
+ 406:Libraries/lwip-1.4.0/core/mem.c ****   if (newsize > size) {
+ 482              		.loc 1 406 0
+ 483 007c 7A88     		ldrh	r2, [r7, #2]
+ 484 007e 3B8A     		ldrh	r3, [r7, #16]
+ 485 0080 9A42     		cmp	r2, r3
+ 486 0082 01D9     		bls	.L29
+ 407:Libraries/lwip-1.4.0/core/mem.c ****     /* not supported */
+ 408:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+ 487              		.loc 1 408 0
+ 488 0084 0023     		movs	r3, #0
+ 489 0086 8CE0     		b	.L25
+ 490              	.L29:
+ 409:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 410:Libraries/lwip-1.4.0/core/mem.c ****   if (newsize == size) {
+ 491              		.loc 1 410 0
+ 492 0088 7A88     		ldrh	r2, [r7, #2]
+ 493 008a 3B8A     		ldrh	r3, [r7, #16]
+ 494 008c 9A42     		cmp	r2, r3
+ 495 008e 01D1     		bne	.L30
+ 411:Libraries/lwip-1.4.0/core/mem.c ****     /* No change in size, simply return */
+ 412:Libraries/lwip-1.4.0/core/mem.c ****     return rmem;
+ 496              		.loc 1 412 0
+ 497 0090 7B68     		ldr	r3, [r7, #4]
+ 498 0092 86E0     		b	.L25
+ 499              	.L30:
+ 413:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 414:Libraries/lwip-1.4.0/core/mem.c **** 
+ 415:Libraries/lwip-1.4.0/core/mem.c ****   /* protect the heap from concurrent access */
+ 416:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_PROTECT();
+ 417:Libraries/lwip-1.4.0/core/mem.c **** 
+ 418:Libraries/lwip-1.4.0/core/mem.c ****   mem2 = (struct mem *)(void *)&ram[mem->next];
+ 500              		.loc 1 418 0
+ 501 0094 454B     		ldr	r3, .L37
+ 502 0096 1B68     		ldr	r3, [r3]
+ 503 0098 7A69     		ldr	r2, [r7, #20]
+ 504 009a 1288     		ldrh	r2, [r2]
+ 505 009c 1344     		add	r3, r3, r2
+ 506 009e FB60     		str	r3, [r7, #12]
+ 419:Libraries/lwip-1.4.0/core/mem.c ****   if(mem2->used == 0) {
+ 507              		.loc 1 419 0
+ 508 00a0 FB68     		ldr	r3, [r7, #12]
+ 509 00a2 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 510 00a4 002B     		cmp	r3, #0
+ 511 00a6 3DD1     		bne	.L31
+ 512              	.LBB2:
+ 420:Libraries/lwip-1.4.0/core/mem.c ****     /* The next struct is unused, we can simply move it at little */
+ 421:Libraries/lwip-1.4.0/core/mem.c ****     mem_size_t next;
+ 422:Libraries/lwip-1.4.0/core/mem.c ****     /* remember the old next pointer */
+ 423:Libraries/lwip-1.4.0/core/mem.c ****     next = mem2->next;
+ 513              		.loc 1 423 0
+ 514 00a8 FB68     		ldr	r3, [r7, #12]
+ 515 00aa 1B88     		ldrh	r3, [r3]	@ movhi
+ 516 00ac 7B81     		strh	r3, [r7, #10]	@ movhi
+ 424:Libraries/lwip-1.4.0/core/mem.c ****     /* create new struct mem which is moved directly after the shrinked mem */
+ 425:Libraries/lwip-1.4.0/core/mem.c ****     ptr2 = ptr + SIZEOF_STRUCT_MEM + newsize;
+ 517              		.loc 1 425 0
+ 518 00ae 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 519 00b0 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 520 00b2 1344     		add	r3, r3, r2
+ 521 00b4 9BB2     		uxth	r3, r3
+ 522 00b6 0833     		adds	r3, r3, #8
+ 523 00b8 3B81     		strh	r3, [r7, #8]	@ movhi
+ 426:Libraries/lwip-1.4.0/core/mem.c ****     if (lfree == mem2) {
+ 524              		.loc 1 426 0
+ 525 00ba 3F4B     		ldr	r3, .L37+12
+ 526 00bc 1A68     		ldr	r2, [r3]
+ 527 00be FB68     		ldr	r3, [r7, #12]
+ 528 00c0 9A42     		cmp	r2, r3
+ 529 00c2 05D1     		bne	.L32
+ 427:Libraries/lwip-1.4.0/core/mem.c ****       lfree = (struct mem *)(void *)&ram[ptr2];
+ 530              		.loc 1 427 0
+ 531 00c4 394B     		ldr	r3, .L37
+ 532 00c6 1A68     		ldr	r2, [r3]
+ 533 00c8 3B89     		ldrh	r3, [r7, #8]
+ 534 00ca 1344     		add	r3, r3, r2
+ 535 00cc 3A4A     		ldr	r2, .L37+12
+ 536 00ce 1360     		str	r3, [r2]
+ 537              	.L32:
+ 428:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 429:Libraries/lwip-1.4.0/core/mem.c ****     mem2 = (struct mem *)(void *)&ram[ptr2];
+ 538              		.loc 1 429 0
+ 539 00d0 364B     		ldr	r3, .L37
+ 540 00d2 1A68     		ldr	r2, [r3]
+ 541 00d4 3B89     		ldrh	r3, [r7, #8]
+ 542 00d6 1344     		add	r3, r3, r2
+ 543 00d8 FB60     		str	r3, [r7, #12]
+ 430:Libraries/lwip-1.4.0/core/mem.c ****     mem2->used = 0;
+ 544              		.loc 1 430 0
+ 545 00da FB68     		ldr	r3, [r7, #12]
+ 546 00dc 0022     		movs	r2, #0
+ 547 00de 1A71     		strb	r2, [r3, #4]
+ 431:Libraries/lwip-1.4.0/core/mem.c ****     /* restore the next pointer */
+ 432:Libraries/lwip-1.4.0/core/mem.c ****     mem2->next = next;
+ 548              		.loc 1 432 0
+ 549 00e0 FB68     		ldr	r3, [r7, #12]
+ 550 00e2 7A89     		ldrh	r2, [r7, #10]	@ movhi
+ 551 00e4 1A80     		strh	r2, [r3]	@ movhi
+ 433:Libraries/lwip-1.4.0/core/mem.c ****     /* link it back to mem */
+ 434:Libraries/lwip-1.4.0/core/mem.c ****     mem2->prev = ptr;
+ 552              		.loc 1 434 0
+ 553 00e6 FB68     		ldr	r3, [r7, #12]
+ 554 00e8 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 555 00ea 5A80     		strh	r2, [r3, #2]	@ movhi
+ 435:Libraries/lwip-1.4.0/core/mem.c ****     /* link mem to it */
+ 436:Libraries/lwip-1.4.0/core/mem.c ****     mem->next = ptr2;
+ 556              		.loc 1 436 0
+ 557 00ec 7B69     		ldr	r3, [r7, #20]
+ 558 00ee 3A89     		ldrh	r2, [r7, #8]	@ movhi
+ 559 00f0 1A80     		strh	r2, [r3]	@ movhi
+ 437:Libraries/lwip-1.4.0/core/mem.c ****     /* last thing to restore linked list: as we have moved mem2,
+ 438:Libraries/lwip-1.4.0/core/mem.c ****      * let 'mem2->next->prev' point to mem2 again. but only if mem2->next is not
+ 439:Libraries/lwip-1.4.0/core/mem.c ****      * the end of the heap */
+ 440:Libraries/lwip-1.4.0/core/mem.c ****     if (mem2->next != MEM_SIZE_ALIGNED) {
+ 560              		.loc 1 440 0
+ 561 00f2 FB68     		ldr	r3, [r7, #12]
+ 562 00f4 1B88     		ldrh	r3, [r3]
+ 563 00f6 B3F5C86F 		cmp	r3, #1600
+ 564 00fa 06D0     		beq	.L33
+ 441:Libraries/lwip-1.4.0/core/mem.c ****       ((struct mem *)(void *)&ram[mem2->next])->prev = ptr2;
+ 565              		.loc 1 441 0
+ 566 00fc 2B4B     		ldr	r3, .L37
+ 567 00fe 1B68     		ldr	r3, [r3]
+ 568 0100 FA68     		ldr	r2, [r7, #12]
+ 569 0102 1288     		ldrh	r2, [r2]
+ 570 0104 1344     		add	r3, r3, r2
+ 571 0106 3A89     		ldrh	r2, [r7, #8]	@ movhi
+ 572 0108 5A80     		strh	r2, [r3, #2]	@ movhi
+ 573              	.L33:
+ 442:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 443:Libraries/lwip-1.4.0/core/mem.c ****     MEM_STATS_DEC_USED(used, (size - newsize));
+ 574              		.loc 1 443 0
+ 575 010a 2A4B     		ldr	r3, .L37+8
+ 576 010c B3F8AA20 		ldrh	r2, [r3, #170]
+ 577 0110 7988     		ldrh	r1, [r7, #2]	@ movhi
+ 578 0112 3B8A     		ldrh	r3, [r7, #16]	@ movhi
+ 579 0114 CB1A     		subs	r3, r1, r3
+ 580 0116 9BB2     		uxth	r3, r3
+ 581 0118 1344     		add	r3, r3, r2
+ 582 011a 9AB2     		uxth	r2, r3
+ 583 011c 254B     		ldr	r3, .L37+8
+ 584 011e A3F8AA20 		strh	r2, [r3, #170]	@ movhi
+ 585              	.LBE2:
+ 586 0122 3DE0     		b	.L34
+ 587              	.L31:
+ 444:Libraries/lwip-1.4.0/core/mem.c ****     /* no need to plug holes, we've already done that */
+ 445:Libraries/lwip-1.4.0/core/mem.c ****   } else if (newsize + SIZEOF_STRUCT_MEM + MIN_SIZE_ALIGNED <= size) {
+ 588              		.loc 1 445 0
+ 589 0124 7B88     		ldrh	r3, [r7, #2]
+ 590 0126 03F11402 		add	r2, r3, #20
+ 591 012a 3B8A     		ldrh	r3, [r7, #16]
+ 592 012c 9A42     		cmp	r2, r3
+ 593 012e 37D8     		bhi	.L34
+ 446:Libraries/lwip-1.4.0/core/mem.c ****     /* Next struct is used but there's room for another struct mem with
+ 447:Libraries/lwip-1.4.0/core/mem.c ****      * at least MIN_SIZE_ALIGNED of data.
+ 448:Libraries/lwip-1.4.0/core/mem.c ****      * Old size ('size') must be big enough to contain at least 'newsize' plus a struct mem
+ 449:Libraries/lwip-1.4.0/core/mem.c ****      * ('SIZEOF_STRUCT_MEM') with some data ('MIN_SIZE_ALIGNED').
+ 450:Libraries/lwip-1.4.0/core/mem.c ****      * @todo we could leave out MIN_SIZE_ALIGNED. We would create an empty
+ 451:Libraries/lwip-1.4.0/core/mem.c ****      *       region that couldn't hold data, but when mem->next gets freed,
+ 452:Libraries/lwip-1.4.0/core/mem.c ****      *       the 2 regions would be combined, resulting in more free memory */
+ 453:Libraries/lwip-1.4.0/core/mem.c ****     ptr2 = ptr + SIZEOF_STRUCT_MEM + newsize;
+ 594              		.loc 1 453 0
+ 595 0130 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 596 0132 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 597 0134 1344     		add	r3, r3, r2
+ 598 0136 9BB2     		uxth	r3, r3
+ 599 0138 0833     		adds	r3, r3, #8
+ 600 013a 3B81     		strh	r3, [r7, #8]	@ movhi
+ 454:Libraries/lwip-1.4.0/core/mem.c ****     mem2 = (struct mem *)(void *)&ram[ptr2];
+ 601              		.loc 1 454 0
+ 602 013c 1B4B     		ldr	r3, .L37
+ 603 013e 1A68     		ldr	r2, [r3]
+ 604 0140 3B89     		ldrh	r3, [r7, #8]
+ 605 0142 1344     		add	r3, r3, r2
+ 606 0144 FB60     		str	r3, [r7, #12]
+ 455:Libraries/lwip-1.4.0/core/mem.c ****     if (mem2 < lfree) {
+ 607              		.loc 1 455 0
+ 608 0146 1C4B     		ldr	r3, .L37+12
+ 609 0148 1B68     		ldr	r3, [r3]
+ 610 014a FA68     		ldr	r2, [r7, #12]
+ 611 014c 9A42     		cmp	r2, r3
+ 612 014e 02D2     		bcs	.L35
+ 456:Libraries/lwip-1.4.0/core/mem.c ****       lfree = mem2;
+ 613              		.loc 1 456 0
+ 614 0150 194A     		ldr	r2, .L37+12
+ 615 0152 FB68     		ldr	r3, [r7, #12]
+ 616 0154 1360     		str	r3, [r2]
+ 617              	.L35:
+ 457:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 458:Libraries/lwip-1.4.0/core/mem.c ****     mem2->used = 0;
+ 618              		.loc 1 458 0
+ 619 0156 FB68     		ldr	r3, [r7, #12]
+ 620 0158 0022     		movs	r2, #0
+ 621 015a 1A71     		strb	r2, [r3, #4]
+ 459:Libraries/lwip-1.4.0/core/mem.c ****     mem2->next = mem->next;
+ 622              		.loc 1 459 0
+ 623 015c 7B69     		ldr	r3, [r7, #20]
+ 624 015e 1A88     		ldrh	r2, [r3]
+ 625 0160 FB68     		ldr	r3, [r7, #12]
+ 626 0162 1A80     		strh	r2, [r3]	@ movhi
+ 460:Libraries/lwip-1.4.0/core/mem.c ****     mem2->prev = ptr;
+ 627              		.loc 1 460 0
+ 628 0164 FB68     		ldr	r3, [r7, #12]
+ 629 0166 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 630 0168 5A80     		strh	r2, [r3, #2]	@ movhi
+ 461:Libraries/lwip-1.4.0/core/mem.c ****     mem->next = ptr2;
+ 631              		.loc 1 461 0
+ 632 016a 7B69     		ldr	r3, [r7, #20]
+ 633 016c 3A89     		ldrh	r2, [r7, #8]	@ movhi
+ 634 016e 1A80     		strh	r2, [r3]	@ movhi
+ 462:Libraries/lwip-1.4.0/core/mem.c ****     if (mem2->next != MEM_SIZE_ALIGNED) {
+ 635              		.loc 1 462 0
+ 636 0170 FB68     		ldr	r3, [r7, #12]
+ 637 0172 1B88     		ldrh	r3, [r3]
+ 638 0174 B3F5C86F 		cmp	r3, #1600
+ 639 0178 06D0     		beq	.L36
+ 463:Libraries/lwip-1.4.0/core/mem.c ****       ((struct mem *)(void *)&ram[mem2->next])->prev = ptr2;
+ 640              		.loc 1 463 0
+ 641 017a 0C4B     		ldr	r3, .L37
+ 642 017c 1B68     		ldr	r3, [r3]
+ 643 017e FA68     		ldr	r2, [r7, #12]
+ 644 0180 1288     		ldrh	r2, [r2]
+ 645 0182 1344     		add	r3, r3, r2
+ 646 0184 3A89     		ldrh	r2, [r7, #8]	@ movhi
+ 647 0186 5A80     		strh	r2, [r3, #2]	@ movhi
+ 648              	.L36:
+ 464:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 465:Libraries/lwip-1.4.0/core/mem.c ****     MEM_STATS_DEC_USED(used, (size - newsize));
+ 649              		.loc 1 465 0
+ 650 0188 0A4B     		ldr	r3, .L37+8
+ 651 018a B3F8AA20 		ldrh	r2, [r3, #170]
+ 652 018e 7988     		ldrh	r1, [r7, #2]	@ movhi
+ 653 0190 3B8A     		ldrh	r3, [r7, #16]	@ movhi
+ 654 0192 CB1A     		subs	r3, r1, r3
+ 655 0194 9BB2     		uxth	r3, r3
+ 656 0196 1344     		add	r3, r3, r2
+ 657 0198 9AB2     		uxth	r2, r3
+ 658 019a 064B     		ldr	r3, .L37+8
+ 659 019c A3F8AA20 		strh	r2, [r3, #170]	@ movhi
+ 660              	.L34:
+ 466:Libraries/lwip-1.4.0/core/mem.c ****     /* the original mem->next is used, so no need to plug holes! */
+ 467:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 468:Libraries/lwip-1.4.0/core/mem.c ****   /* else {
+ 469:Libraries/lwip-1.4.0/core/mem.c ****     next struct mem is used but size between mem and mem2 is not big enough
+ 470:Libraries/lwip-1.4.0/core/mem.c ****     to create another struct mem
+ 471:Libraries/lwip-1.4.0/core/mem.c ****     -> don't do anyhting. 
+ 472:Libraries/lwip-1.4.0/core/mem.c ****     -> the remaining space stays unused since it is too small
+ 473:Libraries/lwip-1.4.0/core/mem.c ****   } */
+ 474:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 475:Libraries/lwip-1.4.0/core/mem.c ****   mem_free_count = 1;
+ 476:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 477:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_FREE_UNPROTECT();
+ 478:Libraries/lwip-1.4.0/core/mem.c ****   return rmem;
+ 661              		.loc 1 478 0
+ 662 01a0 7B68     		ldr	r3, [r7, #4]
+ 663              	.L25:
+ 479:Libraries/lwip-1.4.0/core/mem.c **** }
+ 664              		.loc 1 479 0
+ 665 01a2 1846     		mov	r0, r3
+ 666 01a4 1C37     		adds	r7, r7, #28
+ 667              		.cfi_def_cfa_offset 4
+ 668 01a6 BD46     		mov	sp, r7
+ 669              		.cfi_def_cfa_register 13
+ 670              		@ sp needed
+ 671 01a8 80BC     		pop	{r7}
+ 672              		.cfi_restore 7
+ 673              		.cfi_def_cfa_offset 0
+ 674 01aa 7047     		bx	lr
+ 675              	.L38:
+ 676              		.align	2
+ 677              	.L37:
+ 678 01ac 00000000 		.word	ram
+ 679 01b0 00000000 		.word	ram_end
+ 680 01b4 00000000 		.word	lwip_stats
+ 681 01b8 00000000 		.word	lfree
+ 682              		.cfi_endproc
+ 683              	.LFE20:
+ 685              		.section	.text.mem_malloc,"ax",%progbits
+ 686              		.align	2
+ 687              		.global	mem_malloc
+ 688              		.thumb
+ 689              		.thumb_func
+ 691              	mem_malloc:
+ 692              	.LFB21:
+ 480:Libraries/lwip-1.4.0/core/mem.c **** 
+ 481:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 482:Libraries/lwip-1.4.0/core/mem.c ****  * Adam's mem_malloc() plus solution for bug #17922
+ 483:Libraries/lwip-1.4.0/core/mem.c ****  * Allocate a block of memory with a minimum of 'size' bytes.
+ 484:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 485:Libraries/lwip-1.4.0/core/mem.c ****  * @param size is the minimum size of the requested block in bytes.
+ 486:Libraries/lwip-1.4.0/core/mem.c ****  * @return pointer to allocated memory or NULL if no free memory was found.
+ 487:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 488:Libraries/lwip-1.4.0/core/mem.c ****  * Note that the returned value will always be aligned (as defined by MEM_ALIGNMENT).
+ 489:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 490:Libraries/lwip-1.4.0/core/mem.c **** void *
+ 491:Libraries/lwip-1.4.0/core/mem.c **** mem_malloc(mem_size_t size)
+ 492:Libraries/lwip-1.4.0/core/mem.c **** {
+ 693              		.loc 1 492 0
+ 694              		.cfi_startproc
+ 695              		@ args = 0, pretend = 0, frame = 24
+ 696              		@ frame_needed = 1, uses_anonymous_args = 0
+ 697              		@ link register save eliminated.
+ 698 0000 80B4     		push	{r7}
+ 699              		.cfi_def_cfa_offset 4
+ 700              		.cfi_offset 7, -4
+ 701 0002 87B0     		sub	sp, sp, #28
+ 702              		.cfi_def_cfa_offset 32
+ 703 0004 00AF     		add	r7, sp, #0
+ 704              		.cfi_def_cfa_register 7
+ 705 0006 0346     		mov	r3, r0
+ 706 0008 FB80     		strh	r3, [r7, #6]	@ movhi
+ 493:Libraries/lwip-1.4.0/core/mem.c ****   mem_size_t ptr, ptr2;
+ 494:Libraries/lwip-1.4.0/core/mem.c ****   struct mem *mem, *mem2;
+ 495:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 496:Libraries/lwip-1.4.0/core/mem.c ****   u8_t local_mem_free_count = 0;
+ 497:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 498:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_ALLOC_DECL_PROTECT();
+ 499:Libraries/lwip-1.4.0/core/mem.c **** 
+ 500:Libraries/lwip-1.4.0/core/mem.c ****   if (size == 0) {
+ 707              		.loc 1 500 0
+ 708 000a FB88     		ldrh	r3, [r7, #6]
+ 709 000c 002B     		cmp	r3, #0
+ 710 000e 01D1     		bne	.L40
+ 501:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+ 711              		.loc 1 501 0
+ 712 0010 0023     		movs	r3, #0
+ 713 0012 D2E0     		b	.L41
+ 714              	.L40:
+ 502:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 503:Libraries/lwip-1.4.0/core/mem.c **** 
+ 504:Libraries/lwip-1.4.0/core/mem.c ****   /* Expand the size of the allocated memory region so that we can
+ 505:Libraries/lwip-1.4.0/core/mem.c ****      adjust for alignment. */
+ 506:Libraries/lwip-1.4.0/core/mem.c ****   size = LWIP_MEM_ALIGN_SIZE(size);
+ 715              		.loc 1 506 0
+ 716 0014 FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 717 0016 0333     		adds	r3, r3, #3
+ 718 0018 9BB2     		uxth	r3, r3
+ 719 001a 23F00303 		bic	r3, r3, #3
+ 720 001e FB80     		strh	r3, [r7, #6]	@ movhi
+ 507:Libraries/lwip-1.4.0/core/mem.c **** 
+ 508:Libraries/lwip-1.4.0/core/mem.c ****   if(size < MIN_SIZE_ALIGNED) {
+ 721              		.loc 1 508 0
+ 722 0020 FB88     		ldrh	r3, [r7, #6]
+ 723 0022 0B2B     		cmp	r3, #11
+ 724 0024 01D8     		bhi	.L42
+ 509:Libraries/lwip-1.4.0/core/mem.c ****     /* every data block must be at least MIN_SIZE_ALIGNED long */
+ 510:Libraries/lwip-1.4.0/core/mem.c ****     size = MIN_SIZE_ALIGNED;
+ 725              		.loc 1 510 0
+ 726 0026 0C23     		movs	r3, #12
+ 727 0028 FB80     		strh	r3, [r7, #6]	@ movhi
+ 728              	.L42:
+ 511:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 512:Libraries/lwip-1.4.0/core/mem.c **** 
+ 513:Libraries/lwip-1.4.0/core/mem.c ****   if (size > MEM_SIZE_ALIGNED) {
+ 729              		.loc 1 513 0
+ 730 002a FB88     		ldrh	r3, [r7, #6]
+ 731 002c B3F5C86F 		cmp	r3, #1600
+ 732 0030 01D9     		bls	.L43
+ 514:Libraries/lwip-1.4.0/core/mem.c ****     return NULL;
+ 733              		.loc 1 514 0
+ 734 0032 0023     		movs	r3, #0
+ 735 0034 C1E0     		b	.L41
+ 736              	.L43:
+ 515:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 516:Libraries/lwip-1.4.0/core/mem.c **** 
+ 517:Libraries/lwip-1.4.0/core/mem.c ****   /* protect the heap from concurrent access */
+ 518:Libraries/lwip-1.4.0/core/mem.c ****   sys_mutex_lock(&mem_mutex);
+ 519:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_ALLOC_PROTECT();
+ 520:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 521:Libraries/lwip-1.4.0/core/mem.c ****   /* run as long as a mem_free disturbed mem_malloc */
+ 522:Libraries/lwip-1.4.0/core/mem.c ****   do {
+ 523:Libraries/lwip-1.4.0/core/mem.c ****     local_mem_free_count = 0;
+ 524:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 525:Libraries/lwip-1.4.0/core/mem.c **** 
+ 526:Libraries/lwip-1.4.0/core/mem.c ****     /* Scan through the heap searching for a free block that is big enough,
+ 527:Libraries/lwip-1.4.0/core/mem.c ****      * beginning with the lowest free block.
+ 528:Libraries/lwip-1.4.0/core/mem.c ****      */
+ 529:Libraries/lwip-1.4.0/core/mem.c ****     for (ptr = (mem_size_t)((u8_t *)lfree - ram); ptr < MEM_SIZE_ALIGNED - size;
+ 737              		.loc 1 529 0
+ 738 0036 634B     		ldr	r3, .L55
+ 739 0038 1B68     		ldr	r3, [r3]
+ 740 003a 1A46     		mov	r2, r3
+ 741 003c 624B     		ldr	r3, .L55+4
+ 742 003e 1B68     		ldr	r3, [r3]
+ 743 0040 D31A     		subs	r3, r2, r3
+ 744 0042 FB82     		strh	r3, [r7, #22]	@ movhi
+ 745 0044 A9E0     		b	.L44
+ 746              	.L54:
+ 530:Libraries/lwip-1.4.0/core/mem.c ****          ptr = ((struct mem *)(void *)&ram[ptr])->next) {
+ 531:Libraries/lwip-1.4.0/core/mem.c ****       mem = (struct mem *)(void *)&ram[ptr];
+ 747              		.loc 1 531 0
+ 748 0046 604B     		ldr	r3, .L55+4
+ 749 0048 1A68     		ldr	r2, [r3]
+ 750 004a FB8A     		ldrh	r3, [r7, #22]
+ 751 004c 1344     		add	r3, r3, r2
+ 752 004e 3B61     		str	r3, [r7, #16]
+ 532:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 533:Libraries/lwip-1.4.0/core/mem.c ****       mem_free_count = 0;
+ 534:Libraries/lwip-1.4.0/core/mem.c ****       LWIP_MEM_ALLOC_UNPROTECT();
+ 535:Libraries/lwip-1.4.0/core/mem.c ****       /* allow mem_free to run */
+ 536:Libraries/lwip-1.4.0/core/mem.c ****       LWIP_MEM_ALLOC_PROTECT();
+ 537:Libraries/lwip-1.4.0/core/mem.c ****       if (mem_free_count != 0) {
+ 538:Libraries/lwip-1.4.0/core/mem.c ****         local_mem_free_count = mem_free_count;
+ 539:Libraries/lwip-1.4.0/core/mem.c ****       }
+ 540:Libraries/lwip-1.4.0/core/mem.c ****       mem_free_count = 0;
+ 541:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 542:Libraries/lwip-1.4.0/core/mem.c **** 
+ 543:Libraries/lwip-1.4.0/core/mem.c ****       if ((!mem->used) &&
+ 753              		.loc 1 543 0
+ 754 0050 3B69     		ldr	r3, [r7, #16]
+ 755 0052 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 756 0054 002B     		cmp	r3, #0
+ 757 0056 40F09A80 		bne	.L45
+ 544:Libraries/lwip-1.4.0/core/mem.c ****           (mem->next - (ptr + SIZEOF_STRUCT_MEM)) >= size) {
+ 758              		.loc 1 544 0 discriminator 1
+ 759 005a 3B69     		ldr	r3, [r7, #16]
+ 760 005c 1B88     		ldrh	r3, [r3]
+ 761 005e 1A46     		mov	r2, r3
+ 762 0060 FB8A     		ldrh	r3, [r7, #22]
+ 763 0062 D31A     		subs	r3, r2, r3
+ 764 0064 A3F10802 		sub	r2, r3, #8
+ 765 0068 FB88     		ldrh	r3, [r7, #6]
+ 543:Libraries/lwip-1.4.0/core/mem.c ****           (mem->next - (ptr + SIZEOF_STRUCT_MEM)) >= size) {
+ 766              		.loc 1 543 0 discriminator 1
+ 767 006a 9A42     		cmp	r2, r3
+ 768 006c C0F08F80 		bcc	.L45
+ 545:Libraries/lwip-1.4.0/core/mem.c ****         /* mem is not used and at least perfect fit is possible:
+ 546:Libraries/lwip-1.4.0/core/mem.c ****          * mem->next - (ptr + SIZEOF_STRUCT_MEM) gives us the 'user data size' of mem */
+ 547:Libraries/lwip-1.4.0/core/mem.c **** 
+ 548:Libraries/lwip-1.4.0/core/mem.c ****         if (mem->next - (ptr + SIZEOF_STRUCT_MEM) >= (size + SIZEOF_STRUCT_MEM + MIN_SIZE_ALIGNED))
+ 769              		.loc 1 548 0
+ 770 0070 3B69     		ldr	r3, [r7, #16]
+ 771 0072 1B88     		ldrh	r3, [r3]
+ 772 0074 1A46     		mov	r2, r3
+ 773 0076 FB8A     		ldrh	r3, [r7, #22]
+ 774 0078 D31A     		subs	r3, r2, r3
+ 775 007a A3F10802 		sub	r2, r3, #8
+ 776 007e FB88     		ldrh	r3, [r7, #6]
+ 777 0080 1433     		adds	r3, r3, #20
+ 778 0082 9A42     		cmp	r2, r3
+ 779 0084 40D3     		bcc	.L46
+ 549:Libraries/lwip-1.4.0/core/mem.c ****           /* (in addition to the above, we test if another struct mem (SIZEOF_STRUCT_MEM) containin
+ 550:Libraries/lwip-1.4.0/core/mem.c ****            * at least MIN_SIZE_ALIGNED of data also fits in the 'user data space' of 'mem')
+ 551:Libraries/lwip-1.4.0/core/mem.c ****            * -> split large block, create empty remainder,
+ 552:Libraries/lwip-1.4.0/core/mem.c ****            * remainder must be large enough to contain MIN_SIZE_ALIGNED data: if
+ 553:Libraries/lwip-1.4.0/core/mem.c ****            * mem->next - (ptr + (2*SIZEOF_STRUCT_MEM)) == size,
+ 554:Libraries/lwip-1.4.0/core/mem.c ****            * struct mem would fit in but no data between mem2 and mem2->next
+ 555:Libraries/lwip-1.4.0/core/mem.c ****            * @todo we could leave out MIN_SIZE_ALIGNED. We would create an empty
+ 556:Libraries/lwip-1.4.0/core/mem.c ****            *       region that couldn't hold data, but when mem->next gets freed,
+ 557:Libraries/lwip-1.4.0/core/mem.c ****            *       the 2 regions would be combined, resulting in more free memory
+ 558:Libraries/lwip-1.4.0/core/mem.c ****            */
+ 559:Libraries/lwip-1.4.0/core/mem.c ****           ptr2 = ptr + SIZEOF_STRUCT_MEM + size;
+ 780              		.loc 1 559 0
+ 781 0086 FA8A     		ldrh	r2, [r7, #22]	@ movhi
+ 782 0088 FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 783 008a 1344     		add	r3, r3, r2
+ 784 008c 9BB2     		uxth	r3, r3
+ 785 008e 0833     		adds	r3, r3, #8
+ 786 0090 FB81     		strh	r3, [r7, #14]	@ movhi
+ 560:Libraries/lwip-1.4.0/core/mem.c ****           /* create mem2 struct */
+ 561:Libraries/lwip-1.4.0/core/mem.c ****           mem2 = (struct mem *)(void *)&ram[ptr2];
+ 787              		.loc 1 561 0
+ 788 0092 4D4B     		ldr	r3, .L55+4
+ 789 0094 1A68     		ldr	r2, [r3]
+ 790 0096 FB89     		ldrh	r3, [r7, #14]
+ 791 0098 1344     		add	r3, r3, r2
+ 792 009a BB60     		str	r3, [r7, #8]
+ 562:Libraries/lwip-1.4.0/core/mem.c ****           mem2->used = 0;
+ 793              		.loc 1 562 0
+ 794 009c BB68     		ldr	r3, [r7, #8]
+ 795 009e 0022     		movs	r2, #0
+ 796 00a0 1A71     		strb	r2, [r3, #4]
+ 563:Libraries/lwip-1.4.0/core/mem.c ****           mem2->next = mem->next;
+ 797              		.loc 1 563 0
+ 798 00a2 3B69     		ldr	r3, [r7, #16]
+ 799 00a4 1A88     		ldrh	r2, [r3]
+ 800 00a6 BB68     		ldr	r3, [r7, #8]
+ 801 00a8 1A80     		strh	r2, [r3]	@ movhi
+ 564:Libraries/lwip-1.4.0/core/mem.c ****           mem2->prev = ptr;
+ 802              		.loc 1 564 0
+ 803 00aa BB68     		ldr	r3, [r7, #8]
+ 804 00ac FA8A     		ldrh	r2, [r7, #22]	@ movhi
+ 805 00ae 5A80     		strh	r2, [r3, #2]	@ movhi
+ 565:Libraries/lwip-1.4.0/core/mem.c ****           /* and insert it between mem and mem->next */
+ 566:Libraries/lwip-1.4.0/core/mem.c ****           mem->next = ptr2;
+ 806              		.loc 1 566 0
+ 807 00b0 3B69     		ldr	r3, [r7, #16]
+ 808 00b2 FA89     		ldrh	r2, [r7, #14]	@ movhi
+ 809 00b4 1A80     		strh	r2, [r3]	@ movhi
+ 567:Libraries/lwip-1.4.0/core/mem.c ****           mem->used = 1;
+ 810              		.loc 1 567 0
+ 811 00b6 3B69     		ldr	r3, [r7, #16]
+ 812 00b8 0122     		movs	r2, #1
+ 813 00ba 1A71     		strb	r2, [r3, #4]
+ 568:Libraries/lwip-1.4.0/core/mem.c **** 
+ 569:Libraries/lwip-1.4.0/core/mem.c ****           if (mem2->next != MEM_SIZE_ALIGNED) {
+ 814              		.loc 1 569 0
+ 815 00bc BB68     		ldr	r3, [r7, #8]
+ 816 00be 1B88     		ldrh	r3, [r3]
+ 817 00c0 B3F5C86F 		cmp	r3, #1600
+ 818 00c4 06D0     		beq	.L47
+ 570:Libraries/lwip-1.4.0/core/mem.c ****             ((struct mem *)(void *)&ram[mem2->next])->prev = ptr2;
+ 819              		.loc 1 570 0
+ 820 00c6 404B     		ldr	r3, .L55+4
+ 821 00c8 1B68     		ldr	r3, [r3]
+ 822 00ca BA68     		ldr	r2, [r7, #8]
+ 823 00cc 1288     		ldrh	r2, [r2]
+ 824 00ce 1344     		add	r3, r3, r2
+ 825 00d0 FA89     		ldrh	r2, [r7, #14]	@ movhi
+ 826 00d2 5A80     		strh	r2, [r3, #2]	@ movhi
+ 827              	.L47:
+ 571:Libraries/lwip-1.4.0/core/mem.c ****           }
+ 572:Libraries/lwip-1.4.0/core/mem.c ****           MEM_STATS_INC_USED(used, (size + SIZEOF_STRUCT_MEM));
+ 828              		.loc 1 572 0
+ 829 00d4 3D4B     		ldr	r3, .L55+8
+ 830 00d6 B3F8AA20 		ldrh	r2, [r3, #170]
+ 831 00da FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 832 00dc 1344     		add	r3, r3, r2
+ 833 00de 9BB2     		uxth	r3, r3
+ 834 00e0 0833     		adds	r3, r3, #8
+ 835 00e2 9AB2     		uxth	r2, r3
+ 836 00e4 394B     		ldr	r3, .L55+8
+ 837 00e6 A3F8AA20 		strh	r2, [r3, #170]	@ movhi
+ 838 00ea 384B     		ldr	r3, .L55+8
+ 839 00ec B3F8AC20 		ldrh	r2, [r3, #172]
+ 840 00f0 364B     		ldr	r3, .L55+8
+ 841 00f2 B3F8AA30 		ldrh	r3, [r3, #170]
+ 842 00f6 9A42     		cmp	r2, r3
+ 843 00f8 28D2     		bcs	.L49
+ 844              		.loc 1 572 0 is_stmt 0 discriminator 1
+ 845 00fa 344B     		ldr	r3, .L55+8
+ 846 00fc B3F8AA20 		ldrh	r2, [r3, #170]
+ 847 0100 324B     		ldr	r3, .L55+8
+ 848 0102 A3F8AC20 		strh	r2, [r3, #172]	@ movhi
+ 849 0106 21E0     		b	.L49
+ 850              	.L46:
+ 573:Libraries/lwip-1.4.0/core/mem.c ****         } else {
+ 574:Libraries/lwip-1.4.0/core/mem.c ****           /* (a mem2 struct does no fit into the user data space of mem and mem->next will always
+ 575:Libraries/lwip-1.4.0/core/mem.c ****            * be used at this point: if not we have 2 unused structs in a row, plug_holes should hav
+ 576:Libraries/lwip-1.4.0/core/mem.c ****            * take care of this).
+ 577:Libraries/lwip-1.4.0/core/mem.c ****            * -> near fit or excact fit: do not split, no mem2 creation
+ 578:Libraries/lwip-1.4.0/core/mem.c ****            * also can't move mem->next directly behind mem, since mem->next
+ 579:Libraries/lwip-1.4.0/core/mem.c ****            * will always be used at this point!
+ 580:Libraries/lwip-1.4.0/core/mem.c ****            */
+ 581:Libraries/lwip-1.4.0/core/mem.c ****           mem->used = 1;
+ 851              		.loc 1 581 0 is_stmt 1
+ 852 0108 3B69     		ldr	r3, [r7, #16]
+ 853 010a 0122     		movs	r2, #1
+ 854 010c 1A71     		strb	r2, [r3, #4]
+ 582:Libraries/lwip-1.4.0/core/mem.c ****           MEM_STATS_INC_USED(used, mem->next - (mem_size_t)((u8_t *)mem - ram));
+ 855              		.loc 1 582 0
+ 856 010e 2F4B     		ldr	r3, .L55+8
+ 857 0110 B3F8AA20 		ldrh	r2, [r3, #170]
+ 858 0114 3B69     		ldr	r3, [r7, #16]
+ 859 0116 1988     		ldrh	r1, [r3]
+ 860 0118 3B69     		ldr	r3, [r7, #16]
+ 861 011a 2B48     		ldr	r0, .L55+4
+ 862 011c 0068     		ldr	r0, [r0]
+ 863 011e 1B1A     		subs	r3, r3, r0
+ 864 0120 9BB2     		uxth	r3, r3
+ 865 0122 CB1A     		subs	r3, r1, r3
+ 866 0124 9BB2     		uxth	r3, r3
+ 867 0126 1344     		add	r3, r3, r2
+ 868 0128 9AB2     		uxth	r2, r3
+ 869 012a 284B     		ldr	r3, .L55+8
+ 870 012c A3F8AA20 		strh	r2, [r3, #170]	@ movhi
+ 871 0130 264B     		ldr	r3, .L55+8
+ 872 0132 B3F8AC20 		ldrh	r2, [r3, #172]
+ 873 0136 254B     		ldr	r3, .L55+8
+ 874 0138 B3F8AA30 		ldrh	r3, [r3, #170]
+ 875 013c 9A42     		cmp	r2, r3
+ 876 013e 05D2     		bcs	.L49
+ 877              		.loc 1 582 0 is_stmt 0 discriminator 1
+ 878 0140 224B     		ldr	r3, .L55+8
+ 879 0142 B3F8AA20 		ldrh	r2, [r3, #170]
+ 880 0146 214B     		ldr	r3, .L55+8
+ 881 0148 A3F8AC20 		strh	r2, [r3, #172]	@ movhi
+ 882              	.L49:
+ 583:Libraries/lwip-1.4.0/core/mem.c ****         }
+ 584:Libraries/lwip-1.4.0/core/mem.c **** 
+ 585:Libraries/lwip-1.4.0/core/mem.c ****         if (mem == lfree) {
+ 883              		.loc 1 585 0 is_stmt 1
+ 884 014c 1D4B     		ldr	r3, .L55
+ 885 014e 1B68     		ldr	r3, [r3]
+ 886 0150 3A69     		ldr	r2, [r7, #16]
+ 887 0152 9A42     		cmp	r2, r3
+ 888 0154 18D1     		bne	.L50
+ 586:Libraries/lwip-1.4.0/core/mem.c ****           /* Find next free block after mem and update lowest free pointer */
+ 587:Libraries/lwip-1.4.0/core/mem.c ****           while (lfree->used && lfree != ram_end) {
+ 889              		.loc 1 587 0
+ 890 0156 07E0     		b	.L51
+ 891              	.L53:
+ 588:Libraries/lwip-1.4.0/core/mem.c ****             LWIP_MEM_ALLOC_UNPROTECT();
+ 589:Libraries/lwip-1.4.0/core/mem.c ****             /* prevent high interrupt latency... */
+ 590:Libraries/lwip-1.4.0/core/mem.c ****             LWIP_MEM_ALLOC_PROTECT();
+ 591:Libraries/lwip-1.4.0/core/mem.c ****             lfree = (struct mem *)(void *)&ram[lfree->next];
+ 892              		.loc 1 591 0
+ 893 0158 1B4B     		ldr	r3, .L55+4
+ 894 015a 1B68     		ldr	r3, [r3]
+ 895 015c 194A     		ldr	r2, .L55
+ 896 015e 1268     		ldr	r2, [r2]
+ 897 0160 1288     		ldrh	r2, [r2]
+ 898 0162 1344     		add	r3, r3, r2
+ 899 0164 174A     		ldr	r2, .L55
+ 900 0166 1360     		str	r3, [r2]
+ 901              	.L51:
+ 587:Libraries/lwip-1.4.0/core/mem.c ****             LWIP_MEM_ALLOC_UNPROTECT();
+ 902              		.loc 1 587 0
+ 903 0168 164B     		ldr	r3, .L55
+ 904 016a 1B68     		ldr	r3, [r3]
+ 905 016c 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 906 016e 002B     		cmp	r3, #0
+ 907 0170 05D0     		beq	.L52
+ 587:Libraries/lwip-1.4.0/core/mem.c ****             LWIP_MEM_ALLOC_UNPROTECT();
+ 908              		.loc 1 587 0 is_stmt 0 discriminator 1
+ 909 0172 144B     		ldr	r3, .L55
+ 910 0174 1A68     		ldr	r2, [r3]
+ 911 0176 164B     		ldr	r3, .L55+12
+ 912 0178 1B68     		ldr	r3, [r3]
+ 913 017a 9A42     		cmp	r2, r3
+ 914 017c ECD1     		bne	.L53
+ 915              	.L52:
+ 592:Libraries/lwip-1.4.0/core/mem.c ****           }
+ 593:Libraries/lwip-1.4.0/core/mem.c ****           LWIP_ASSERT("mem_malloc: !lfree->used", ((lfree == ram_end) || (!lfree->used)));
+ 916              		.loc 1 593 0 is_stmt 1
+ 917 017e 114B     		ldr	r3, .L55
+ 918 0180 1A68     		ldr	r2, [r3]
+ 919 0182 134B     		ldr	r3, .L55+12
+ 920 0184 1B68     		ldr	r3, [r3]
+ 921 0186 9A42     		cmp	r2, r3
+ 922              	.L50:
+ 594:Libraries/lwip-1.4.0/core/mem.c ****         }
+ 595:Libraries/lwip-1.4.0/core/mem.c ****         LWIP_MEM_ALLOC_UNPROTECT();
+ 596:Libraries/lwip-1.4.0/core/mem.c ****         sys_mutex_unlock(&mem_mutex);
+ 597:Libraries/lwip-1.4.0/core/mem.c ****         LWIP_ASSERT("mem_malloc: allocated memory not above ram_end.",
+ 598:Libraries/lwip-1.4.0/core/mem.c ****          (mem_ptr_t)mem + SIZEOF_STRUCT_MEM + size <= (mem_ptr_t)ram_end);
+ 599:Libraries/lwip-1.4.0/core/mem.c ****         LWIP_ASSERT("mem_malloc: allocated memory properly aligned.",
+ 600:Libraries/lwip-1.4.0/core/mem.c ****          ((mem_ptr_t)mem + SIZEOF_STRUCT_MEM) % MEM_ALIGNMENT == 0);
+ 601:Libraries/lwip-1.4.0/core/mem.c ****         LWIP_ASSERT("mem_malloc: sanity check alignment",
+ 602:Libraries/lwip-1.4.0/core/mem.c ****           (((mem_ptr_t)mem) & (MEM_ALIGNMENT-1)) == 0);
+ 603:Libraries/lwip-1.4.0/core/mem.c **** 
+ 604:Libraries/lwip-1.4.0/core/mem.c ****         return (u8_t *)mem + SIZEOF_STRUCT_MEM;
+ 923              		.loc 1 604 0
+ 924 0188 3B69     		ldr	r3, [r7, #16]
+ 925 018a 0833     		adds	r3, r3, #8
+ 926 018c 15E0     		b	.L41
+ 927              	.L45:
+ 530:Libraries/lwip-1.4.0/core/mem.c ****       mem = (struct mem *)(void *)&ram[ptr];
+ 928              		.loc 1 530 0
+ 929 018e 0E4B     		ldr	r3, .L55+4
+ 930 0190 1A68     		ldr	r2, [r3]
+ 931 0192 FB8A     		ldrh	r3, [r7, #22]
+ 932 0194 1344     		add	r3, r3, r2
+ 933 0196 1B88     		ldrh	r3, [r3]	@ movhi
+ 934 0198 FB82     		strh	r3, [r7, #22]	@ movhi
+ 935              	.L44:
+ 529:Libraries/lwip-1.4.0/core/mem.c ****          ptr = ((struct mem *)(void *)&ram[ptr])->next) {
+ 936              		.loc 1 529 0 discriminator 1
+ 937 019a FA8A     		ldrh	r2, [r7, #22]
+ 938 019c FB88     		ldrh	r3, [r7, #6]
+ 939 019e C3F5C863 		rsb	r3, r3, #1600
+ 940 01a2 9A42     		cmp	r2, r3
+ 941 01a4 FFF64FAF 		blt	.L54
+ 605:Libraries/lwip-1.4.0/core/mem.c ****       }
+ 606:Libraries/lwip-1.4.0/core/mem.c ****     }
+ 607:Libraries/lwip-1.4.0/core/mem.c **** #if LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+ 608:Libraries/lwip-1.4.0/core/mem.c ****     /* if we got interrupted by a mem_free, try again */
+ 609:Libraries/lwip-1.4.0/core/mem.c ****   } while(local_mem_free_count != 0);
+ 610:Libraries/lwip-1.4.0/core/mem.c **** #endif /* LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT */
+ 611:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_DEBUGF(MEM_DEBUG | LWIP_DBG_LEVEL_SERIOUS, ("mem_malloc: could not allocate %"S16_F" bytes\n
+ 612:Libraries/lwip-1.4.0/core/mem.c ****   MEM_STATS_INC(err);
+ 942              		.loc 1 612 0
+ 943 01a8 084B     		ldr	r3, .L55+8
+ 944 01aa B3F8AE30 		ldrh	r3, [r3, #174]
+ 945 01ae 0133     		adds	r3, r3, #1
+ 946 01b0 9AB2     		uxth	r2, r3
+ 947 01b2 064B     		ldr	r3, .L55+8
+ 948 01b4 A3F8AE20 		strh	r2, [r3, #174]	@ movhi
+ 613:Libraries/lwip-1.4.0/core/mem.c ****   LWIP_MEM_ALLOC_UNPROTECT();
+ 614:Libraries/lwip-1.4.0/core/mem.c ****   sys_mutex_unlock(&mem_mutex);
+ 615:Libraries/lwip-1.4.0/core/mem.c ****   return NULL;
+ 949              		.loc 1 615 0
+ 950 01b8 0023     		movs	r3, #0
+ 951              	.L41:
+ 616:Libraries/lwip-1.4.0/core/mem.c **** }
+ 952              		.loc 1 616 0
+ 953 01ba 1846     		mov	r0, r3
+ 954 01bc 1C37     		adds	r7, r7, #28
+ 955              		.cfi_def_cfa_offset 4
+ 956 01be BD46     		mov	sp, r7
+ 957              		.cfi_def_cfa_register 13
+ 958              		@ sp needed
+ 959 01c0 80BC     		pop	{r7}
+ 960              		.cfi_restore 7
+ 961              		.cfi_def_cfa_offset 0
+ 962 01c2 7047     		bx	lr
+ 963              	.L56:
+ 964              		.align	2
+ 965              	.L55:
+ 966 01c4 00000000 		.word	lfree
+ 967 01c8 00000000 		.word	ram
+ 968 01cc 00000000 		.word	lwip_stats
+ 969 01d0 00000000 		.word	ram_end
+ 970              		.cfi_endproc
+ 971              	.LFE21:
+ 973              		.section	.text.mem_calloc,"ax",%progbits
+ 974              		.align	2
+ 975              		.global	mem_calloc
+ 976              		.thumb
+ 977              		.thumb_func
+ 979              	mem_calloc:
+ 980              	.LFB22:
+ 617:Libraries/lwip-1.4.0/core/mem.c **** 
+ 618:Libraries/lwip-1.4.0/core/mem.c **** #endif /* MEM_USE_POOLS */
+ 619:Libraries/lwip-1.4.0/core/mem.c **** /**
+ 620:Libraries/lwip-1.4.0/core/mem.c ****  * Contiguously allocates enough space for count objects that are size bytes
+ 621:Libraries/lwip-1.4.0/core/mem.c ****  * of memory each and returns a pointer to the allocated memory.
+ 622:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 623:Libraries/lwip-1.4.0/core/mem.c ****  * The allocated memory is filled with bytes of value zero.
+ 624:Libraries/lwip-1.4.0/core/mem.c ****  *
+ 625:Libraries/lwip-1.4.0/core/mem.c ****  * @param count number of objects to allocate
+ 626:Libraries/lwip-1.4.0/core/mem.c ****  * @param size size of the objects to allocate
+ 627:Libraries/lwip-1.4.0/core/mem.c ****  * @return pointer to allocated memory / NULL pointer if there is an error
+ 628:Libraries/lwip-1.4.0/core/mem.c ****  */
+ 629:Libraries/lwip-1.4.0/core/mem.c **** void *mem_calloc(mem_size_t count, mem_size_t size)
+ 630:Libraries/lwip-1.4.0/core/mem.c **** {
+ 981              		.loc 1 630 0
+ 982              		.cfi_startproc
+ 983              		@ args = 0, pretend = 0, frame = 16
+ 984              		@ frame_needed = 1, uses_anonymous_args = 0
+ 985 0000 80B5     		push	{r7, lr}
+ 986              		.cfi_def_cfa_offset 8
+ 987              		.cfi_offset 7, -8
+ 988              		.cfi_offset 14, -4
+ 989 0002 84B0     		sub	sp, sp, #16
+ 990              		.cfi_def_cfa_offset 24
+ 991 0004 00AF     		add	r7, sp, #0
+ 992              		.cfi_def_cfa_register 7
+ 993 0006 0346     		mov	r3, r0
+ 994 0008 0A46     		mov	r2, r1
+ 995 000a FB80     		strh	r3, [r7, #6]	@ movhi
+ 996 000c 1346     		mov	r3, r2	@ movhi
+ 997 000e BB80     		strh	r3, [r7, #4]	@ movhi
+ 631:Libraries/lwip-1.4.0/core/mem.c ****   void *p;
+ 632:Libraries/lwip-1.4.0/core/mem.c **** 
+ 633:Libraries/lwip-1.4.0/core/mem.c ****   /* allocate 'count' objects of size 'size' */
+ 634:Libraries/lwip-1.4.0/core/mem.c ****   p = mem_malloc(count * size);
+ 998              		.loc 1 634 0
+ 999 0010 FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 1000 0012 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1001 0014 02FB03F3 		mul	r3, r2, r3
+ 1002 0018 9BB2     		uxth	r3, r3
+ 1003 001a 1846     		mov	r0, r3
+ 1004 001c FFF7FEFF 		bl	mem_malloc
+ 1005 0020 F860     		str	r0, [r7, #12]
+ 635:Libraries/lwip-1.4.0/core/mem.c ****   if (p) {
+ 1006              		.loc 1 635 0
+ 1007 0022 FB68     		ldr	r3, [r7, #12]
+ 1008 0024 002B     		cmp	r3, #0
+ 1009 0026 08D0     		beq	.L58
+ 636:Libraries/lwip-1.4.0/core/mem.c ****     /* zero the memory */
+ 637:Libraries/lwip-1.4.0/core/mem.c ****     memset(p, 0, count * size);
+ 1010              		.loc 1 637 0
+ 1011 0028 FB88     		ldrh	r3, [r7, #6]
+ 1012 002a BA88     		ldrh	r2, [r7, #4]
+ 1013 002c 02FB03F3 		mul	r3, r2, r3
+ 1014 0030 1A46     		mov	r2, r3
+ 1015 0032 0021     		movs	r1, #0
+ 1016 0034 F868     		ldr	r0, [r7, #12]
+ 1017 0036 FFF7FEFF 		bl	memset
+ 1018              	.L58:
+ 638:Libraries/lwip-1.4.0/core/mem.c ****   }
+ 639:Libraries/lwip-1.4.0/core/mem.c ****   return p;
+ 1019              		.loc 1 639 0
+ 1020 003a FB68     		ldr	r3, [r7, #12]
+ 640:Libraries/lwip-1.4.0/core/mem.c **** }
+ 1021              		.loc 1 640 0
+ 1022 003c 1846     		mov	r0, r3
+ 1023 003e 1037     		adds	r7, r7, #16
+ 1024              		.cfi_def_cfa_offset 8
+ 1025 0040 BD46     		mov	sp, r7
+ 1026              		.cfi_def_cfa_register 13
+ 1027              		@ sp needed
+ 1028 0042 80BD     		pop	{r7, pc}
+ 1029              		.cfi_endproc
+ 1030              	.LFE22:
+ 1032              		.text
+ 1033              	.Letext0:
+ 1034              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 1035              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 1036              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 1037              		.file 5 "./Libraries/lwip-1.4.0/include/lwip/mem.h"
+ 1038              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/sys.h"
+ 1039              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/stats.h"
+ 1040              		.file 8 "./Libraries/lwip-1.4.0/include/lwip/memp.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 mem.c
+                            *COM*:00000654 ram_heap
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:21     .bss.ram:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:24     .bss.ram:00000000 ram
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:27     .bss.ram_end:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:30     .bss.ram_end:00000000 ram_end
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:33     .bss.lfree:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:36     .bss.lfree:00000000 lfree
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:41     .bss.mem_mutex:00000000 mem_mutex
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:42     .bss.mem_mutex:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:44     .text.plug_holes:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:48     .text.plug_holes:00000000 plug_holes
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:176    .text.plug_holes:000000b0 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:183    .text.mem_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:188    .text.mem_init:00000000 mem_init
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:269    .text.mem_init:00000074 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:278    .text.mem_free:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:283    .text.mem_free:00000000 mem_free
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:383    .text.mem_free:0000008c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:391    .text.mem_trim:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:396    .text.mem_trim:00000000 mem_trim
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:678    .text.mem_trim:000001ac $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:686    .text.mem_malloc:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:691    .text.mem_malloc:00000000 mem_malloc
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:966    .text.mem_malloc:000001c4 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:974    .text.mem_calloc:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccdqABk7.s:979    .text.mem_calloc:00000000 mem_calloc
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+lwip_stats
+memset

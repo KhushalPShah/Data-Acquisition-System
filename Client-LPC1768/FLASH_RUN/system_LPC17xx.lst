@@ -1,0 +1,1002 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"system_LPC17xx.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	SystemCoreClock
+  20              		.section	.data.SystemCoreClock,"aw",%progbits
+  21              		.align	2
+  24              	SystemCoreClock:
+  25 0000 00E1F505 		.word	100000000
+  26              		.section	.text.SystemCoreClockUpdate,"ax",%progbits
+  27              		.align	2
+  28              		.global	SystemCoreClockUpdate
+  29              		.thumb
+  30              		.thumb_func
+  32              	SystemCoreClockUpdate:
+  33              	.LFB29:
+  34              		.file 1 "Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c"
+   1:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /**************************************************************************//**
+   2:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @file     system_LPC17xx.c
+   3:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @brief    CMSIS Cortex-M3 Device Peripheral Access Layer Source File
+   4:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *           for the NXP LPC17xx Device Series
+   5:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @version  V1.03
+   6:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @date     07. October 2009
+   7:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+   8:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @note
+   9:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * Copyright (C) 2009 ARM Limited. All rights reserved.
+  10:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+  11:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @par
+  12:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * ARM Limited (ARM) is supplying this software for use with Cortex-M
+  13:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * processor based microcontrollers.  This file can be freely distributed
+  14:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * within development tools that are supporting such ARM based processors.
+  15:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+  16:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @par
+  17:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+  18:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+  19:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+  20:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * ARM SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+  21:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+  22:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+  23:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  ******************************************************************************/
+  24:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+  25:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+  26:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #include <stdint.h>
+  27:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #include "LPC17xx.h"
+  28:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+  29:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*
+  30:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //-------- <<< Use Configuration Wizard in Context Menu >>> ------------------
+  31:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** */
+  32:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+  33:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*--------------------- Clock Configuration ----------------------------------
+  34:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  35:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** // <e> Clock Configuration
+  36:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> System Controls and Status Register (SCS)
+  37:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o1.4>    OSCRANGE: Main Oscillator Range Select
+  38:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=>  1 MHz to 20 MHz
+  39:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> 15 MHz to 24 MHz
+  40:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <e1.5>       OSCEN: Main Oscillator Enable
+  41:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     </e>
+  42:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+  43:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  44:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> Clock Source Select Register (CLKSRCSEL)
+  45:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o2.0..1>   CLKSRC: PLL Clock Source Selection
+  46:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Internal RC oscillator
+  47:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Main oscillator
+  48:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> RTC oscillator
+  49:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+  50:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  51:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <e3> PLL0 Configuration (Main PLL)
+  52:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <h> PLL0 Configuration Register (PLL0CFG)
+  53:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_cco0 = (2 * M * F_in) / N
+  54:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_in must be in the range of 32 kHz to 50 MHz
+  55:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_cco0 must be in the range of 275 MHz to 550 MHz
+  56:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //       <o4.0..14>  MSEL: PLL Multiplier Selection
+  57:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <6-32768><#-1>
+  58:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> M Value
+  59:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //       <o4.16..23> NSEL: PLL Divider Selection
+  60:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1-256><#-1>
+  61:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> N Value
+  62:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     </h>
+  63:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </e>
+  64:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  65:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <e5> PLL1 Configuration (USB PLL)
+  66:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <h> PLL1 Configuration Register (PLL1CFG)
+  67:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_usb = M * F_osc or F_usb = F_cco1 / (2 * P)
+  68:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_cco1 = F_osc * M * 2 * P
+  69:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> F_cco1 must be in the range of 156 MHz to 320 MHz
+  70:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //       <o6.0..4>   MSEL: PLL Multiplier Selection
+  71:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1-32><#-1>
+  72:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> M Value (for USB maximum value is 4)
+  73:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //       <o6.5..6>   PSEL: PLL Divider Selection
+  74:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> 1
+  75:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> 2
+  76:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> 4
+  77:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> 8
+  78:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> P Value
+  79:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     </h>
+  80:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </e>
+  81:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  82:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> CPU Clock Configuration Register (CCLKCFG)
+  83:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o7.0..7>  CCLKSEL: Divide Value for CPU Clock from PLL0
+  84:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3-256><#-1>
+  85:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+  86:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  87:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> USB Clock Configuration Register (USBCLKCFG)
+  88:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o8.0..3>   USBSEL: Divide Value for USB Clock from PLL0
+  89:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0-15>
+  90:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <i> Divide is USBSEL + 1
+  91:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+  92:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+  93:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> Peripheral Clock Selection Register 0 (PCLKSEL0)
+  94:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.0..1>    PCLK_WDT: Peripheral Clock Selection for WDT
+  95:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+  96:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+  97:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+  98:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+  99:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.2..3>    PCLK_TIMER0: Peripheral Clock Selection for TIMER0
+ 100:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 101:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 102:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 103:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 104:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.4..5>    PCLK_TIMER1: Peripheral Clock Selection for TIMER1
+ 105:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 106:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 107:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 108:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 109:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.6..7>    PCLK_UART0: Peripheral Clock Selection for UART0
+ 110:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 111:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 112:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 113:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 114:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.8..9>    PCLK_UART1: Peripheral Clock Selection for UART1
+ 115:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 116:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 117:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 118:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 119:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.12..13>  PCLK_PWM1: Peripheral Clock Selection for PWM1
+ 120:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 121:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 122:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 123:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 124:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.14..15>  PCLK_I2C0: Peripheral Clock Selection for I2C0
+ 125:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 126:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 127:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 128:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 129:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.16..17>  PCLK_SPI: Peripheral Clock Selection for SPI
+ 130:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 131:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 132:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 133:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 134:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.20..21>  PCLK_SSP1: Peripheral Clock Selection for SSP1
+ 135:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 136:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 137:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 138:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 139:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.22..23>  PCLK_DAC: Peripheral Clock Selection for DAC
+ 140:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 141:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 142:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 143:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 144:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.24..25>  PCLK_ADC: Peripheral Clock Selection for ADC
+ 145:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 146:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 147:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 148:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 149:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.26..27>  PCLK_CAN1: Peripheral Clock Selection for CAN1
+ 150:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 151:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 152:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 153:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 154:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.28..29>  PCLK_CAN2: Peripheral Clock Selection for CAN2
+ 155:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 156:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 157:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 158:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 159:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o9.30..31>  PCLK_ACF: Peripheral Clock Selection for ACF
+ 160:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 161:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 162:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 163:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 6
+ 164:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+ 165:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 166:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> Peripheral Clock Selection Register 1 (PCLKSEL1)
+ 167:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.0..1>   PCLK_QEI: Peripheral Clock Selection for the Quadrature Encoder Interface
+ 168:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 169:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 170:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 171:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 172:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.2..3>   PCLK_GPIO: Peripheral Clock Selection for GPIOs
+ 173:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 174:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 175:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 176:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 177:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.4..5>   PCLK_PCB: Peripheral Clock Selection for the Pin Connect Block
+ 178:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 179:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 180:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 181:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 182:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.6..7>   PCLK_I2C1: Peripheral Clock Selection for I2C1
+ 183:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 184:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 185:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 186:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 187:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.10..11> PCLK_SSP0: Peripheral Clock Selection for SSP0
+ 188:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 189:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 190:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 191:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 192:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.12..13> PCLK_TIMER2: Peripheral Clock Selection for TIMER2
+ 193:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 194:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 195:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 196:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 197:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.14..15> PCLK_TIMER3: Peripheral Clock Selection for TIMER3
+ 198:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 199:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 200:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 201:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 202:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.16..17> PCLK_UART2: Peripheral Clock Selection for UART2
+ 203:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 204:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 205:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 206:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 207:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.18..19> PCLK_UART3: Peripheral Clock Selection for UART3
+ 208:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 209:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 210:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 211:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 212:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.20..21> PCLK_I2C2: Peripheral Clock Selection for I2C2
+ 213:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 214:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 215:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 216:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 217:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.22..23> PCLK_I2S: Peripheral Clock Selection for I2S
+ 218:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 219:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 220:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 221:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 222:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.26..27> PCLK_RIT: Peripheral Clock Selection for the Repetitive Interrupt Timer
+ 223:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 224:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 225:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 226:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 227:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.28..29> PCLK_SYSCON: Peripheral Clock Selection for the System Control Block
+ 228:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 229:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 230:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 231:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 232:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o10.30..31> PCLK_MC: Peripheral Clock Selection for the Motor Control PWM
+ 233:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> Pclk = Cclk / 4
+ 234:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Pclk = Cclk
+ 235:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Pclk = Cclk / 2
+ 236:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> Pclk = Hclk / 8
+ 237:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+ 238:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 239:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> Power Control for Peripherals Register (PCONP)
+ 240:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.1>      PCTIM0: Timer/Counter 0 power/clock enable
+ 241:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.2>      PCTIM1: Timer/Counter 1 power/clock enable
+ 242:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.3>      PCUART0: UART 0 power/clock enable
+ 243:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.4>      PCUART1: UART 1 power/clock enable
+ 244:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.6>      PCPWM1: PWM 1 power/clock enable
+ 245:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.7>      PCI2C0: I2C interface 0 power/clock enable
+ 246:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.8>      PCSPI: SPI interface power/clock enable
+ 247:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.9>      PCRTC: RTC power/clock enable
+ 248:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.10>     PCSSP1: SSP interface 1 power/clock enable
+ 249:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.12>     PCAD: A/D converter power/clock enable
+ 250:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.13>     PCCAN1: CAN controller 1 power/clock enable
+ 251:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.14>     PCCAN2: CAN controller 2 power/clock enable
+ 252:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.15>     PCGPIO: GPIOs power/clock enable
+ 253:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.16>     PCRIT: Repetitive interrupt timer power/clock enable
+ 254:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.17>     PCMC: Motor control PWM power/clock enable
+ 255:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.18>     PCQEI: Quadrature encoder interface power/clock enable
+ 256:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.19>     PCI2C1: I2C interface 1 power/clock enable
+ 257:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.21>     PCSSP0: SSP interface 0 power/clock enable
+ 258:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.22>     PCTIM2: Timer 2 power/clock enable
+ 259:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.23>     PCTIM3: Timer 3 power/clock enable
+ 260:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.24>     PCUART2: UART 2 power/clock enable
+ 261:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.25>     PCUART3: UART 3 power/clock enable
+ 262:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.26>     PCI2C2: I2C interface 2 power/clock enable
+ 263:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.27>     PCI2S: I2S interface power/clock enable
+ 264:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.29>     PCGPDMA: GP DMA function power/clock enable
+ 265:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.30>     PCENET: Ethernet block power/clock enable
+ 266:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o11.31>     PCUSB: USB interface power/clock enable
+ 267:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+ 268:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 269:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <h> Clock Output Configuration Register (CLKOUTCFG)
+ 270:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o12.0..3>   CLKOUTSEL: Selects clock source for CLKOUT
+ 271:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <0=> CPU clock
+ 272:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1=> Main oscillator
+ 273:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <2=> Internal RC oscillator
+ 274:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <3=> USB clock
+ 275:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <4=> RTC oscillator
+ 276:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o12.4..7>   CLKOUTDIV: Selects clock divider for CLKOUT
+ 277:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //                     <1-16><#-1>
+ 278:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //     <o12.8>      CLKOUT_EN: CLKOUT enable control
+ 279:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   </h>
+ 280:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 281:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** // </e>
+ 282:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** */
+ 283:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CLOCK_SETUP           1
+ 284:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define SCS_Val               0x00000020
+ 285:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CLKSRCSEL_Val         0x00000001
+ 286:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PLL0_SETUP            1
+ 287:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PLL0CFG_Val           0x00050063
+ 288:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PLL1_SETUP            1
+ 289:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PLL1CFG_Val           0x00000023
+ 290:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CCLKCFG_Val           0x00000003
+ 291:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define USBCLKCFG_Val         0x00000000
+ 292:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PCLKSEL0_Val          0x00000000
+ 293:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PCLKSEL1_Val          0x00000000
+ 294:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define PCONP_Val             0x042887DE
+ 295:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CLKOUTCFG_Val         0x00000000
+ 296:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 297:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 298:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*--------------------- Flash Accelerator Configuration ----------------------
+ 299:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 300:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** // <e> Flash Accelerator Configuration
+ 301:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <o1.0..11>  Reserved
+ 302:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //   <o1.12..15> FLASHTIM: Flash Access Time
+ 303:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <0=> 1 CPU clock (for CPU clock up to 20 MHz)
+ 304:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <1=> 2 CPU clocks (for CPU clock up to 40 MHz)
+ 305:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <2=> 3 CPU clocks (for CPU clock up to 60 MHz)
+ 306:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <3=> 4 CPU clocks (for CPU clock up to 80 MHz)
+ 307:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <4=> 5 CPU clocks (for CPU clock up to 100 MHz)
+ 308:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //               <5=> 6 CPU clocks (for any CPU clock)
+ 309:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** // </e>
+ 310:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** */
+ 311:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define FLASH_SETUP           1
+ 312:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define FLASHCFG_Val          0x0000303A
+ 313:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 314:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*
+ 315:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //-------- <<< end of configuration section >>> ------------------------------
+ 316:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** */
+ 317:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 318:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 319:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   Check the register settings
+ 320:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 321:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CHECK_RANGE(val, min, max)                ((val < min) || (val > max))
+ 322:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define CHECK_RSVD(val, mask)                     (val & mask)
+ 323:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 324:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* Clock Configuration -------------------------------------------------------*/
+ 325:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((SCS_Val),       ~0x00000030))
+ 326:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "SCS: Invalid values of reserved bits!"
+ 327:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 328:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 329:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RANGE((CLKSRCSEL_Val), 0, 2))
+ 330:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "CLKSRCSEL: Value out of range!"
+ 331:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 332:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 333:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PLL0CFG_Val),   ~0x00FF7FFF))
+ 334:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "PLL0CFG: Invalid values of reserved bits!"
+ 335:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 336:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 337:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PLL1CFG_Val),   ~0x0000007F))
+ 338:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "PLL1CFG: Invalid values of reserved bits!"
+ 339:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 340:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 341:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if ((CCLKCFG_Val != 0) && (((CCLKCFG_Val - 1) % 2)))
+ 342:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "CCLKCFG: CCLKSEL field does not contain only odd values or 0!"
+ 343:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 344:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 345:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((USBCLKCFG_Val), ~0x0000000F))
+ 346:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "USBCLKCFG: Invalid values of reserved bits!"
+ 347:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 348:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 349:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCLKSEL0_Val),   0x000C0C00))
+ 350:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "PCLKSEL0: Invalid values of reserved bits!"
+ 351:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 352:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 353:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCLKSEL1_Val),   0x03000300))
+ 354:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "PCLKSEL1: Invalid values of reserved bits!"
+ 355:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 356:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 357:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((PCONP_Val),      0x10100821))
+ 358:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "PCONP: Invalid values of reserved bits!"
+ 359:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 360:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 361:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((CLKOUTCFG_Val), ~0x000001FF))
+ 362:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "CLKOUTCFG: Invalid values of reserved bits!"
+ 363:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 364:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 365:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* Flash Accelerator Configuration -------------------------------------------*/
+ 366:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CHECK_RSVD((FLASHCFG_Val), ~0x0000F07F))
+ 367:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****    #error "FLASHCFG: Invalid values of reserved bits!"
+ 368:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 369:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 370:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 371:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 372:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   DEFINES
+ 373:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 374:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 375:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 376:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   Define clocks
+ 377:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 378:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define XTAL        (12000000UL)        /* Oscillator frequency               */
+ 379:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define OSC_CLK     (      XTAL)        /* Main oscillator frequency          */
+ 380:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define RTC_CLK     (   32000UL)        /* RTC oscillator frequency           */
+ 381:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define IRC_OSC     ( 4000000UL)        /* Internal RC oscillator frequency   */
+ 382:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 383:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 384:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* F_cco0 = (2 * M * F_in) / N  */
+ 385:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define __M               (((PLL0CFG_Val      ) & 0x7FFF) + 1)
+ 386:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define __N               (((PLL0CFG_Val >> 16) & 0x00FF) + 1)
+ 387:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define __FCCO(__F_IN)    ((2 * __M * __F_IN) / __N)
+ 388:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #define __CCLK_DIV        (((CCLKCFG_Val      ) & 0x00FF) + 1)
+ 389:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 390:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* Determine core clock frequency according to settings */
+ 391:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  #if (PLL0_SETUP)
+ 392:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #if   ((CLKSRCSEL_Val & 0x03) == 1)
+ 393:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(OSC_CLK) / __CCLK_DIV)
+ 394:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #elif ((CLKSRCSEL_Val & 0x03) == 2)
+ 395:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(RTC_CLK) / __CCLK_DIV)
+ 396:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #else
+ 397:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (__FCCO(IRC_OSC) / __CCLK_DIV)
+ 398:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #endif
+ 399:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  #else
+ 400:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #if   ((CLKSRCSEL_Val & 0x03) == 1)
+ 401:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (OSC_CLK         / __CCLK_DIV)
+ 402:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #elif ((CLKSRCSEL_Val & 0x03) == 2)
+ 403:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (RTC_CLK         / __CCLK_DIV)
+ 404:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #else
+ 405:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         #define __CORE_CLK (IRC_OSC         / __CCLK_DIV)
+ 406:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     #endif
+ 407:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  #endif
+ 408:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 409:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 410:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 411:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   Clock Variable definitions
+ 412:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 413:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** uint32_t SystemCoreClock = __CORE_CLK;/*!< System Clock Frequency (Core Clock)*/
+ 414:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 415:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 416:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /*----------------------------------------------------------------------------
+ 417:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   Clock functions
+ 418:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *----------------------------------------------------------------------------*/
+ 419:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
+ 420:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** {
+  35              		.loc 1 420 0
+  36              		.cfi_startproc
+  37              		@ args = 0, pretend = 0, frame = 0
+  38              		@ frame_needed = 1, uses_anonymous_args = 0
+  39              		@ link register save eliminated.
+  40 0000 80B4     		push	{r7}
+  41              		.cfi_def_cfa_offset 4
+  42              		.cfi_offset 7, -4
+  43 0002 00AF     		add	r7, sp, #0
+  44              		.cfi_def_cfa_register 7
+ 421:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   /* Determine clock frequency according to clock register values             */
+ 422:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   if (((LPC_SC->PLL0STAT >> 24) & 3) == 3) { /* If PLL0 enabled and connected */
+  45              		.loc 1 422 0
+  46 0004 534B     		ldr	r3, .L14
+  47 0006 D3F88830 		ldr	r3, [r3, #136]
+  48 000a 1B0E     		lsrs	r3, r3, #24
+  49 000c 03F00303 		and	r3, r3, #3
+  50 0010 032B     		cmp	r3, #3
+  51 0012 66D1     		bne	.L2
+ 423:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+  52              		.loc 1 423 0
+  53 0014 4F4B     		ldr	r3, .L14
+  54 0016 D3F80C31 		ldr	r3, [r3, #268]
+  55 001a 03F00303 		and	r3, r3, #3
+  56 001e 032B     		cmp	r3, #3
+  57 0020 00F29480 		bhi	.L13
+  58 0024 01A2     		adr	r2, .L5
+  59 0026 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+  60 002a 00BF     		.p2align 2
+  61              	.L5:
+  62 002c 3D000000 		.word	.L4+1
+  63 0030 73000000 		.word	.L6+1
+  64 0034 A9000000 		.word	.L7+1
+  65 0038 3D000000 		.word	.L4+1
+  66              		.p2align 1
+  67              	.L4:
+ 424:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 0:                                /* Int. RC oscillator => PLL0    */
+ 425:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 3:                                /* Reserved, default to Int. RC  */
+ 426:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (IRC_OSC *
+ 427:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  68              		.loc 1 427 0
+  69 003c 454B     		ldr	r3, .L14
+  70 003e D3F88830 		ldr	r3, [r3, #136]
+  71 0042 C3F30E03 		ubfx	r3, r3, #0, #15
+ 426:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  72              		.loc 1 426 0
+  73 0046 0133     		adds	r3, r3, #1
+  74 0048 434A     		ldr	r2, .L14+4
+  75 004a 02FB03F2 		mul	r2, r2, r3
+ 428:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  76              		.loc 1 428 0
+  77 004e 414B     		ldr	r3, .L14
+  78 0050 D3F88830 		ldr	r3, [r3, #136]
+  79 0054 1B0C     		lsrs	r3, r3, #16
+  80 0056 DBB2     		uxtb	r3, r3
+  81 0058 0133     		adds	r3, r3, #1
+ 427:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  82              		.loc 1 427 0
+  83 005a B2FBF3F2 		udiv	r2, r2, r3
+ 429:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+  84              		.loc 1 429 0
+  85 005e 3D4B     		ldr	r3, .L14
+  86 0060 D3F80431 		ldr	r3, [r3, #260]
+  87 0064 DBB2     		uxtb	r3, r3
+  88 0066 0133     		adds	r3, r3, #1
+ 428:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+  89              		.loc 1 428 0
+  90 0068 B2FBF3F3 		udiv	r3, r2, r3
+ 426:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  91              		.loc 1 426 0
+  92 006c 3B4A     		ldr	r2, .L14+8
+  93 006e 1360     		str	r3, [r2]
+ 430:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+  94              		.loc 1 430 0
+  95 0070 6CE0     		b	.L8
+  96              	.L6:
+ 431:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 1:                                /* Main oscillator => PLL0       */
+ 432:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (OSC_CLK *
+ 433:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+  97              		.loc 1 433 0
+  98 0072 384B     		ldr	r3, .L14
+  99 0074 D3F88830 		ldr	r3, [r3, #136]
+ 100 0078 C3F30E03 		ubfx	r3, r3, #0, #15
+ 432:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 101              		.loc 1 432 0
+ 102 007c 0133     		adds	r3, r3, #1
+ 103 007e 384A     		ldr	r2, .L14+12
+ 104 0080 02FB03F2 		mul	r2, r2, r3
+ 434:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 105              		.loc 1 434 0
+ 106 0084 334B     		ldr	r3, .L14
+ 107 0086 D3F88830 		ldr	r3, [r3, #136]
+ 108 008a 1B0C     		lsrs	r3, r3, #16
+ 109 008c DBB2     		uxtb	r3, r3
+ 110 008e 0133     		adds	r3, r3, #1
+ 433:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 111              		.loc 1 433 0
+ 112 0090 B2FBF3F2 		udiv	r2, r2, r3
+ 435:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 113              		.loc 1 435 0
+ 114 0094 2F4B     		ldr	r3, .L14
+ 115 0096 D3F80431 		ldr	r3, [r3, #260]
+ 116 009a DBB2     		uxtb	r3, r3
+ 117 009c 0133     		adds	r3, r3, #1
+ 434:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 118              		.loc 1 434 0
+ 119 009e B2FBF3F3 		udiv	r3, r2, r3
+ 432:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 120              		.loc 1 432 0
+ 121 00a2 2E4A     		ldr	r2, .L14+8
+ 122 00a4 1360     		str	r3, [r2]
+ 436:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+ 123              		.loc 1 436 0
+ 124 00a6 51E0     		b	.L8
+ 125              	.L7:
+ 437:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 2:                                /* RTC oscillator => PLL0        */
+ 438:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = (RTC_CLK *
+ 439:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 126              		.loc 1 439 0
+ 127 00a8 2A4B     		ldr	r3, .L14
+ 128 00aa D3F88830 		ldr	r3, [r3, #136]
+ 129 00ae C3F30E03 		ubfx	r3, r3, #0, #15
+ 438:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 130              		.loc 1 438 0
+ 131 00b2 0133     		adds	r3, r3, #1
+ 132 00b4 4FF47A42 		mov	r2, #64000
+ 133 00b8 02FB03F2 		mul	r2, r2, r3
+ 440:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 134              		.loc 1 440 0
+ 135 00bc 254B     		ldr	r3, .L14
+ 136 00be D3F88830 		ldr	r3, [r3, #136]
+ 137 00c2 1B0C     		lsrs	r3, r3, #16
+ 138 00c4 DBB2     		uxtb	r3, r3
+ 139 00c6 0133     		adds	r3, r3, #1
+ 439:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 140              		.loc 1 439 0
+ 141 00c8 B2FBF3F2 		udiv	r2, r2, r3
+ 441:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((LPC_SC->CCLKCFG & 0xFF)+ 1));
+ 142              		.loc 1 441 0
+ 143 00cc 214B     		ldr	r3, .L14
+ 144 00ce D3F80431 		ldr	r3, [r3, #260]
+ 145 00d2 DBB2     		uxtb	r3, r3
+ 146 00d4 0133     		adds	r3, r3, #1
+ 440:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           (((LPC_SC->PLL0STAT >> 16) & 0xFF) + 1)    /
+ 147              		.loc 1 440 0
+ 148 00d6 B2FBF3F3 		udiv	r3, r2, r3
+ 438:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****                           ((2 * ((LPC_SC->PLL0STAT & 0x7FFF) + 1)))  /
+ 149              		.loc 1 438 0
+ 150 00da 204A     		ldr	r2, .L14+8
+ 151 00dc 1360     		str	r3, [r2]
+ 442:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+ 152              		.loc 1 442 0
+ 153 00de 00BF     		nop
+ 154 00e0 34E0     		b	.L8
+ 155              	.L2:
+ 443:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     }
+ 444:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   } else {
+ 445:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     switch (LPC_SC->CLKSRCSEL & 0x03) {
+ 156              		.loc 1 445 0
+ 157 00e2 1C4B     		ldr	r3, .L14
+ 158 00e4 D3F80C31 		ldr	r3, [r3, #268]
+ 159 00e8 03F00303 		and	r3, r3, #3
+ 160 00ec 032B     		cmp	r3, #3
+ 161 00ee 2DD8     		bhi	.L13
+ 162 00f0 01A2     		adr	r2, .L10
+ 163 00f2 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 164 00f6 00BF     		.p2align 2
+ 165              	.L10:
+ 166 00f8 09010000 		.word	.L9+1
+ 167 00fc 1F010000 		.word	.L11+1
+ 168 0100 35010000 		.word	.L12+1
+ 169 0104 09010000 		.word	.L9+1
+ 170              		.p2align 1
+ 171              	.L9:
+ 446:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 0:                                /* Int. RC oscillator => PLL0    */
+ 447:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 3:                                /* Reserved, default to Int. RC  */
+ 448:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = IRC_OSC / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 172              		.loc 1 448 0
+ 173 0108 124B     		ldr	r3, .L14
+ 174 010a D3F80431 		ldr	r3, [r3, #260]
+ 175 010e DBB2     		uxtb	r3, r3
+ 176 0110 0133     		adds	r3, r3, #1
+ 177 0112 144A     		ldr	r2, .L14+16
+ 178 0114 B2FBF3F3 		udiv	r3, r2, r3
+ 179 0118 104A     		ldr	r2, .L14+8
+ 180 011a 1360     		str	r3, [r2]
+ 449:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+ 181              		.loc 1 449 0
+ 182 011c 16E0     		b	.L8
+ 183              	.L11:
+ 450:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 1:                                /* Main oscillator => PLL0       */
+ 451:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = OSC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 184              		.loc 1 451 0
+ 185 011e 0D4B     		ldr	r3, .L14
+ 186 0120 D3F80431 		ldr	r3, [r3, #260]
+ 187 0124 DBB2     		uxtb	r3, r3
+ 188 0126 0133     		adds	r3, r3, #1
+ 189 0128 0F4A     		ldr	r2, .L14+20
+ 190 012a B2FBF3F3 		udiv	r3, r2, r3
+ 191 012e 0B4A     		ldr	r2, .L14+8
+ 192 0130 1360     		str	r3, [r2]
+ 452:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+ 193              		.loc 1 452 0
+ 194 0132 0BE0     		b	.L8
+ 195              	.L12:
+ 453:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****       case 2:                                /* RTC oscillator => PLL0        */
+ 454:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         SystemCoreClock = RTC_CLK / ((LPC_SC->CCLKCFG & 0xFF)+ 1);
+ 196              		.loc 1 454 0
+ 197 0134 074B     		ldr	r3, .L14
+ 198 0136 D3F80431 		ldr	r3, [r3, #260]
+ 199 013a DBB2     		uxtb	r3, r3
+ 200 013c 0133     		adds	r3, r3, #1
+ 201 013e 4FF4FA42 		mov	r2, #32000
+ 202 0142 B2FBF3F3 		udiv	r3, r2, r3
+ 203 0146 054A     		ldr	r2, .L14+8
+ 204 0148 1360     		str	r3, [r2]
+ 455:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****         break;
+ 205              		.loc 1 455 0
+ 206 014a 00BF     		nop
+ 207              	.L8:
+ 208              	.L13:
+ 456:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     }
+ 457:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   }
+ 458:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 459:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** }
+ 209              		.loc 1 459 0
+ 210 014c 00BF     		nop
+ 211 014e BD46     		mov	sp, r7
+ 212              		.cfi_def_cfa_register 13
+ 213              		@ sp needed
+ 214 0150 80BC     		pop	{r7}
+ 215              		.cfi_restore 7
+ 216              		.cfi_def_cfa_offset 0
+ 217 0152 7047     		bx	lr
+ 218              	.L15:
+ 219              		.align	2
+ 220              	.L14:
+ 221 0154 00C00F40 		.word	1074774016
+ 222 0158 00127A00 		.word	8000000
+ 223 015c 00000000 		.word	SystemCoreClock
+ 224 0160 00366E01 		.word	24000000
+ 225 0164 00093D00 		.word	4000000
+ 226 0168 001BB700 		.word	12000000
+ 227              		.cfi_endproc
+ 228              	.LFE29:
+ 230              		.section	.text.SystemInit,"ax",%progbits
+ 231              		.align	2
+ 232              		.global	SystemInit
+ 233              		.thumb
+ 234              		.thumb_func
+ 236              	SystemInit:
+ 237              	.LFB30:
+ 460:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* Exported types --------------------------------------------------------------*/
+ 461:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /* Exported constants --------------------------------------------------------*/
+ 462:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //extern unsigned long _sidata;		/* start address for the initialization values of the .data sectio
+ 463:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //extern unsigned long _sdata;		/* start address for the .data section. defined in linker script */
+ 464:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //extern unsigned long _edata;		/* end address for the .data section. defined in linker script */
+ 465:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 466:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //extern unsigned long _sbss;			/* start address for the .bss section. defined in linker script */
+ 467:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //extern unsigned long _ebss;			/* end address for the .bss section. defined in linker script */
+ 468:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 469:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //void _init(void)
+ 470:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //{
+ 471:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    unsigned long *pulSrc, *pulDest;
+ 472:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 473:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    //
+ 474:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    // Copy the data segment initializers from flash to SRAM in ROM mode
+ 475:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    //
+ 476:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //#if (__RAM_MODE__==0)
+ 477:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    pulSrc = &_sidata;
+ 478:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    for(pulDest = &_sdata; pulDest < &_edata; )
+ 479:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    {
+ 480:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //        *(pulDest++) = *(pulSrc++);
+ 481:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    }
+ 482:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //#endif
+ 483:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 484:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //
+ 485:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    //
+ 486:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    // Zero fill the bss segment.
+ 487:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    //
+ 488:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    for(pulDest = &_sbss; pulDest < &_ebss; )
+ 489:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    {
+ 490:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //        *(pulDest++) = 0;
+ 491:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //    }
+ 492:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** //}
+ 493:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 494:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** /**
+ 495:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * Initialize the system
+ 496:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+ 497:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @param  none
+ 498:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @return none
+ 499:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *
+ 500:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  * @brief  Setup the microcontroller system.
+ 501:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  *         Initialize the System.
+ 502:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****  */
+ 503:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** void SystemInit (void)
+ 504:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** {
+ 238              		.loc 1 504 0
+ 239              		.cfi_startproc
+ 240              		@ args = 0, pretend = 0, frame = 0
+ 241              		@ frame_needed = 1, uses_anonymous_args = 0
+ 242              		@ link register save eliminated.
+ 243 0000 80B4     		push	{r7}
+ 244              		.cfi_def_cfa_offset 4
+ 245              		.cfi_offset 7, -4
+ 246 0002 00AF     		add	r7, sp, #0
+ 247              		.cfi_def_cfa_register 7
+ 505:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 506:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (CLOCK_SETUP)                       /* Clock Setup                        */
+ 507:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->SCS       = SCS_Val;
+ 248              		.loc 1 507 0
+ 249 0004 494B     		ldr	r3, .L22
+ 250 0006 2022     		movs	r2, #32
+ 251 0008 C3F8A021 		str	r2, [r3, #416]
+ 508:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   if (SCS_Val & (1 << 5)) {             /* If Main Oscillator is enabled      */
+ 509:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****     while ((LPC_SC->SCS & (1<<6)) == 0);/* Wait for Oscillator to be ready    */
+ 252              		.loc 1 509 0
+ 253 000c 00BF     		nop
+ 254              	.L17:
+ 255              		.loc 1 509 0 is_stmt 0 discriminator 1
+ 256 000e 474B     		ldr	r3, .L22
+ 257 0010 D3F8A031 		ldr	r3, [r3, #416]
+ 258 0014 03F04003 		and	r3, r3, #64
+ 259 0018 002B     		cmp	r3, #0
+ 260 001a F8D0     		beq	.L17
+ 510:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   }
+ 511:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 512:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->CCLKCFG   = CCLKCFG_Val;      /* Setup Clock Divider                */
+ 261              		.loc 1 512 0 is_stmt 1
+ 262 001c 434B     		ldr	r3, .L22
+ 263 001e 0322     		movs	r2, #3
+ 264 0020 C3F80421 		str	r2, [r3, #260]
+ 513:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL0  = PCLKSEL0_Val;     /* Peripheral Clock Selection         */
+ 265              		.loc 1 513 0
+ 266 0024 414B     		ldr	r3, .L22
+ 267 0026 0022     		movs	r2, #0
+ 268 0028 C3F8A821 		str	r2, [r3, #424]
+ 514:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PCLKSEL1  = PCLKSEL1_Val;
+ 269              		.loc 1 514 0
+ 270 002c 3F4B     		ldr	r3, .L22
+ 271 002e 0022     		movs	r2, #0
+ 272 0030 C3F8AC21 		str	r2, [r3, #428]
+ 515:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 516:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (PLL0_SETUP)
+ 517:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKSRCSEL = CLKSRCSEL_Val;    /* Select Clock Source for PLL0       */
+ 273              		.loc 1 517 0
+ 274 0034 3D4B     		ldr	r3, .L22
+ 275 0036 0122     		movs	r2, #1
+ 276 0038 C3F80C21 		str	r2, [r3, #268]
+ 518:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 519:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CFG   = PLL0CFG_Val;      /* configure PLL0                     */
+ 277              		.loc 1 519 0
+ 278 003c 3B4B     		ldr	r3, .L22
+ 279 003e 3C4A     		ldr	r2, .L22+4
+ 280 0040 C3F88420 		str	r2, [r3, #132]
+ 520:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 281              		.loc 1 520 0
+ 282 0044 394B     		ldr	r3, .L22
+ 283 0046 AA22     		movs	r2, #170
+ 284 0048 C3F88C20 		str	r2, [r3, #140]
+ 521:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 285              		.loc 1 521 0
+ 286 004c 374B     		ldr	r3, .L22
+ 287 004e 5522     		movs	r2, #85
+ 288 0050 C3F88C20 		str	r2, [r3, #140]
+ 522:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 523:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x01;             /* PLL0 Enable                        */
+ 289              		.loc 1 523 0
+ 290 0054 354B     		ldr	r3, .L22
+ 291 0056 0122     		movs	r2, #1
+ 292 0058 C3F88020 		str	r2, [r3, #128]
+ 524:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 293              		.loc 1 524 0
+ 294 005c 334B     		ldr	r3, .L22
+ 295 005e AA22     		movs	r2, #170
+ 296 0060 C3F88C20 		str	r2, [r3, #140]
+ 525:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 297              		.loc 1 525 0
+ 298 0064 314B     		ldr	r3, .L22
+ 299 0066 5522     		movs	r2, #85
+ 300 0068 C3F88C20 		str	r2, [r3, #140]
+ 526:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL0STAT & (1<<26)));/* Wait for PLOCK0                    */
+ 301              		.loc 1 526 0
+ 302 006c 00BF     		nop
+ 303              	.L18:
+ 304              		.loc 1 526 0 is_stmt 0 discriminator 1
+ 305 006e 2F4B     		ldr	r3, .L22
+ 306 0070 D3F88830 		ldr	r3, [r3, #136]
+ 307 0074 03F08063 		and	r3, r3, #67108864
+ 308 0078 002B     		cmp	r3, #0
+ 309 007a F8D0     		beq	.L18
+ 527:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 528:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0CON   = 0x03;             /* PLL0 Enable & Connect              */
+ 310              		.loc 1 528 0 is_stmt 1
+ 311 007c 2B4B     		ldr	r3, .L22
+ 312 007e 0322     		movs	r2, #3
+ 313 0080 C3F88020 		str	r2, [r3, #128]
+ 529:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0xAA;
+ 314              		.loc 1 529 0
+ 315 0084 294B     		ldr	r3, .L22
+ 316 0086 AA22     		movs	r2, #170
+ 317 0088 C3F88C20 		str	r2, [r3, #140]
+ 530:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL0FEED  = 0x55;
+ 318              		.loc 1 530 0
+ 319 008c 274B     		ldr	r3, .L22
+ 320 008e 5522     		movs	r2, #85
+ 321 0090 C3F88C20 		str	r2, [r3, #140]
+ 531:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL0STAT & ((1<<25) | (1<<24))));/* Wait for PLLC0_STAT & PLLE0_STAT */
+ 322              		.loc 1 531 0
+ 323 0094 00BF     		nop
+ 324              	.L19:
+ 325              		.loc 1 531 0 is_stmt 0 discriminator 1
+ 326 0096 254B     		ldr	r3, .L22
+ 327 0098 D3F88830 		ldr	r3, [r3, #136]
+ 328 009c 03F04073 		and	r3, r3, #50331648
+ 329 00a0 002B     		cmp	r3, #0
+ 330 00a2 F8D0     		beq	.L19
+ 532:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 533:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 534:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (PLL1_SETUP)
+ 535:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CFG   = PLL1CFG_Val;
+ 331              		.loc 1 535 0 is_stmt 1
+ 332 00a4 214B     		ldr	r3, .L22
+ 333 00a6 2322     		movs	r2, #35
+ 334 00a8 C3F8A420 		str	r2, [r3, #164]
+ 536:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 335              		.loc 1 536 0
+ 336 00ac 1F4B     		ldr	r3, .L22
+ 337 00ae AA22     		movs	r2, #170
+ 338 00b0 C3F8AC20 		str	r2, [r3, #172]
+ 537:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 339              		.loc 1 537 0
+ 340 00b4 1D4B     		ldr	r3, .L22
+ 341 00b6 5522     		movs	r2, #85
+ 342 00b8 C3F8AC20 		str	r2, [r3, #172]
+ 538:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 539:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x01;             /* PLL1 Enable                        */
+ 343              		.loc 1 539 0
+ 344 00bc 1B4B     		ldr	r3, .L22
+ 345 00be 0122     		movs	r2, #1
+ 346 00c0 C3F8A020 		str	r2, [r3, #160]
+ 540:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 347              		.loc 1 540 0
+ 348 00c4 194B     		ldr	r3, .L22
+ 349 00c6 AA22     		movs	r2, #170
+ 350 00c8 C3F8AC20 		str	r2, [r3, #172]
+ 541:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 351              		.loc 1 541 0
+ 352 00cc 174B     		ldr	r3, .L22
+ 353 00ce 5522     		movs	r2, #85
+ 354 00d0 C3F8AC20 		str	r2, [r3, #172]
+ 542:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL1STAT & (1<<10)));/* Wait for PLOCK1                    */
+ 355              		.loc 1 542 0
+ 356 00d4 00BF     		nop
+ 357              	.L20:
+ 358              		.loc 1 542 0 is_stmt 0 discriminator 1
+ 359 00d6 154B     		ldr	r3, .L22
+ 360 00d8 D3F8A830 		ldr	r3, [r3, #168]
+ 361 00dc 03F48063 		and	r3, r3, #1024
+ 362 00e0 002B     		cmp	r3, #0
+ 363 00e2 F8D0     		beq	.L20
+ 543:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 544:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1CON   = 0x03;             /* PLL1 Enable & Connect              */
+ 364              		.loc 1 544 0 is_stmt 1
+ 365 00e4 114B     		ldr	r3, .L22
+ 366 00e6 0322     		movs	r2, #3
+ 367 00e8 C3F8A020 		str	r2, [r3, #160]
+ 545:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0xAA;
+ 368              		.loc 1 545 0
+ 369 00ec 0F4B     		ldr	r3, .L22
+ 370 00ee AA22     		movs	r2, #170
+ 371 00f0 C3F8AC20 		str	r2, [r3, #172]
+ 546:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PLL1FEED  = 0x55;
+ 372              		.loc 1 546 0
+ 373 00f4 0D4B     		ldr	r3, .L22
+ 374 00f6 5522     		movs	r2, #85
+ 375 00f8 C3F8AC20 		str	r2, [r3, #172]
+ 547:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   while (!(LPC_SC->PLL1STAT & ((1<< 9) | (1<< 8))));/* Wait for PLLC1_STAT & PLLE1_STAT */
+ 376              		.loc 1 547 0
+ 377 00fc 00BF     		nop
+ 378              	.L21:
+ 379              		.loc 1 547 0 is_stmt 0 discriminator 1
+ 380 00fe 0B4B     		ldr	r3, .L22
+ 381 0100 D3F8A830 		ldr	r3, [r3, #168]
+ 382 0104 03F44073 		and	r3, r3, #768
+ 383 0108 002B     		cmp	r3, #0
+ 384 010a F8D0     		beq	.L21
+ 548:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #else
+ 549:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->USBCLKCFG = USBCLKCFG_Val;    /* Setup USB Clock Divider            */
+ 550:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 551:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->PCONP     = PCONP_Val;        /* Power Control for Peripherals      */
+ 385              		.loc 1 551 0 is_stmt 1
+ 386 010c 074B     		ldr	r3, .L22
+ 387 010e 094A     		ldr	r2, .L22+8
+ 388 0110 C3F8C420 		str	r2, [r3, #196]
+ 552:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 553:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->CLKOUTCFG = CLKOUTCFG_Val;    /* Clock Output Configuration         */
+ 389              		.loc 1 553 0
+ 390 0114 054B     		ldr	r3, .L22
+ 391 0116 0022     		movs	r2, #0
+ 392 0118 C3F8C821 		str	r2, [r3, #456]
+ 554:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 555:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** 
+ 556:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #if (FLASH_SETUP == 1)                  /* Flash Accelerator Setup            */
+ 557:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c ****   LPC_SC->FLASHCFG  = FLASHCFG_Val;
+ 393              		.loc 1 557 0
+ 394 011c 034B     		ldr	r3, .L22
+ 395 011e 43F23A02 		movw	r2, #12346
+ 396 0122 1A60     		str	r2, [r3]
+ 558:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** #endif
+ 559:Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/system_LPC17xx.c **** }
+ 397              		.loc 1 559 0
+ 398 0124 00BF     		nop
+ 399 0126 BD46     		mov	sp, r7
+ 400              		.cfi_def_cfa_register 13
+ 401              		@ sp needed
+ 402 0128 80BC     		pop	{r7}
+ 403              		.cfi_restore 7
+ 404              		.cfi_def_cfa_offset 0
+ 405 012a 7047     		bx	lr
+ 406              	.L23:
+ 407              		.align	2
+ 408              	.L22:
+ 409 012c 00C00F40 		.word	1074774016
+ 410 0130 63000500 		.word	327779
+ 411 0134 DE872804 		.word	69765086
+ 412              		.cfi_endproc
+ 413              	.LFE30:
+ 415              		.text
+ 416              	.Letext0:
+ 417              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 418              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 419              		.file 4 "Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/LPC17xx.h"
+ 420              		.file 5 "./Libraries/NXP/Core/CM3/CoreSupport/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 system_LPC17xx.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:24     .data.SystemCoreClock:00000000 SystemCoreClock
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:21     .data.SystemCoreClock:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:27     .text.SystemCoreClockUpdate:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:32     .text.SystemCoreClockUpdate:00000000 SystemCoreClockUpdate
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:62     .text.SystemCoreClockUpdate:0000002c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:66     .text.SystemCoreClockUpdate:0000003c $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:166    .text.SystemCoreClockUpdate:000000f8 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:170    .text.SystemCoreClockUpdate:00000108 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:221    .text.SystemCoreClockUpdate:00000154 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:231    .text.SystemInit:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:236    .text.SystemInit:00000000 SystemInit
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccjFsxtz.s:409    .text.SystemInit:0000012c $d
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

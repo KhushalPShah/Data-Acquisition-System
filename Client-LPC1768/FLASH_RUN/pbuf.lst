@@ -1,0 +1,3399 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"pbuf.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.pbuf_alloc,"ax",%progbits
+  20              		.align	2
+  21              		.global	pbuf_alloc
+  22              		.thumb
+  23              		.thumb_func
+  25              	pbuf_alloc:
+  26              	.LFB17:
+  27              		.file 1 "Libraries/lwip-1.4.0/core/pbuf.c"
+   1:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+   2:Libraries/lwip-1.4.0/core/pbuf.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/pbuf.c ****  * Packet buffer management
+   4:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+   5:Libraries/lwip-1.4.0/core/pbuf.c ****  * Packets are built from the pbuf data structure. It supports dynamic
+   6:Libraries/lwip-1.4.0/core/pbuf.c ****  * memory allocation for packet contents or can reference externally
+   7:Libraries/lwip-1.4.0/core/pbuf.c ****  * managed packet contents both in RAM and ROM. Quick allocation for
+   8:Libraries/lwip-1.4.0/core/pbuf.c ****  * incoming packets is provided through pools with fixed sized pbufs.
+   9:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  10:Libraries/lwip-1.4.0/core/pbuf.c ****  * A packet may span over multiple pbufs, chained as a singly linked
+  11:Libraries/lwip-1.4.0/core/pbuf.c ****  * list. This is called a "pbuf chain".
+  12:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  13:Libraries/lwip-1.4.0/core/pbuf.c ****  * Multiple packets may be queued, also using this singly linked list.
+  14:Libraries/lwip-1.4.0/core/pbuf.c ****  * This is called a "packet queue".
+  15:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+  16:Libraries/lwip-1.4.0/core/pbuf.c ****  * So, a packet queue consists of one or more pbuf chains, each of
+  17:Libraries/lwip-1.4.0/core/pbuf.c ****  * which consist of one or more pbufs. CURRENTLY, PACKET QUEUES ARE
+  18:Libraries/lwip-1.4.0/core/pbuf.c ****  * NOT SUPPORTED!!! Use helper structs to queue multiple packets.
+  19:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+  20:Libraries/lwip-1.4.0/core/pbuf.c ****  * The differences between a pbuf chain and a packet queue are very
+  21:Libraries/lwip-1.4.0/core/pbuf.c ****  * precise but subtle. 
+  22:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  23:Libraries/lwip-1.4.0/core/pbuf.c ****  * The last pbuf of a packet has a ->tot_len field that equals the
+  24:Libraries/lwip-1.4.0/core/pbuf.c ****  * ->len field. It can be found by traversing the list. If the last
+  25:Libraries/lwip-1.4.0/core/pbuf.c ****  * pbuf of a packet has a ->next field other than NULL, more packets
+  26:Libraries/lwip-1.4.0/core/pbuf.c ****  * are on the queue.
+  27:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  28:Libraries/lwip-1.4.0/core/pbuf.c ****  * Therefore, looping through a pbuf of a single packet, has an
+  29:Libraries/lwip-1.4.0/core/pbuf.c ****  * loop end condition (tot_len == p->len), NOT (next == NULL).
+  30:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+  31:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  32:Libraries/lwip-1.4.0/core/pbuf.c **** /*
+  33:Libraries/lwip-1.4.0/core/pbuf.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+  34:Libraries/lwip-1.4.0/core/pbuf.c ****  * All rights reserved.
+  35:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  36:Libraries/lwip-1.4.0/core/pbuf.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  37:Libraries/lwip-1.4.0/core/pbuf.c ****  * are permitted provided that the following conditions are met:
+  38:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  39:Libraries/lwip-1.4.0/core/pbuf.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  40:Libraries/lwip-1.4.0/core/pbuf.c ****  *    this list of conditions and the following disclaimer.
+  41:Libraries/lwip-1.4.0/core/pbuf.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  42:Libraries/lwip-1.4.0/core/pbuf.c ****  *    this list of conditions and the following disclaimer in the documentation
+  43:Libraries/lwip-1.4.0/core/pbuf.c ****  *    and/or other materials provided with the distribution.
+  44:Libraries/lwip-1.4.0/core/pbuf.c ****  * 3. The name of the author may not be used to endorse or promote products
+  45:Libraries/lwip-1.4.0/core/pbuf.c ****  *    derived from this software without specific prior written permission.
+  46:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  47:Libraries/lwip-1.4.0/core/pbuf.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  48:Libraries/lwip-1.4.0/core/pbuf.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  49:Libraries/lwip-1.4.0/core/pbuf.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  50:Libraries/lwip-1.4.0/core/pbuf.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  51:Libraries/lwip-1.4.0/core/pbuf.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  52:Libraries/lwip-1.4.0/core/pbuf.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  53:Libraries/lwip-1.4.0/core/pbuf.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  54:Libraries/lwip-1.4.0/core/pbuf.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  55:Libraries/lwip-1.4.0/core/pbuf.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  56:Libraries/lwip-1.4.0/core/pbuf.c ****  * OF SUCH DAMAGE.
+  57:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  58:Libraries/lwip-1.4.0/core/pbuf.c ****  * This file is part of the lwIP TCP/IP stack.
+  59:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  60:Libraries/lwip-1.4.0/core/pbuf.c ****  * Author: Adam Dunkels <adam@sics.se>
+  61:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+  62:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+  63:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  64:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/opt.h"
+  65:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  66:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/stats.h"
+  67:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/def.h"
+  68:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/mem.h"
+  69:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/memp.h"
+  70:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/pbuf.h"
+  71:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/sys.h"
+  72:Libraries/lwip-1.4.0/core/pbuf.c **** #include "arch/perf.h"
+  73:Libraries/lwip-1.4.0/core/pbuf.c **** #if TCP_QUEUE_OOSEQ
+  74:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/tcp_impl.h"
+  75:Libraries/lwip-1.4.0/core/pbuf.c **** #endif
+  76:Libraries/lwip-1.4.0/core/pbuf.c **** #if LWIP_CHECKSUM_ON_COPY
+  77:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/inet_chksum.h"
+  78:Libraries/lwip-1.4.0/core/pbuf.c **** #endif
+  79:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  80:Libraries/lwip-1.4.0/core/pbuf.c **** #include <string.h>
+  81:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  82:Libraries/lwip-1.4.0/core/pbuf.c **** #define SIZEOF_STRUCT_PBUF        LWIP_MEM_ALIGN_SIZE(sizeof(struct pbuf))
+  83:Libraries/lwip-1.4.0/core/pbuf.c **** /* Since the pool is created in memp, PBUF_POOL_BUFSIZE will be automatically
+  84:Libraries/lwip-1.4.0/core/pbuf.c ****    aligned there. Therefore, PBUF_POOL_BUFSIZE_ALIGNED can be used here. */
+  85:Libraries/lwip-1.4.0/core/pbuf.c **** #define PBUF_POOL_BUFSIZE_ALIGNED LWIP_MEM_ALIGN_SIZE(PBUF_POOL_BUFSIZE)
+  86:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  87:Libraries/lwip-1.4.0/core/pbuf.c **** #if !LWIP_TCP || !TCP_QUEUE_OOSEQ || NO_SYS
+  88:Libraries/lwip-1.4.0/core/pbuf.c **** #define PBUF_POOL_IS_EMPTY()
+  89:Libraries/lwip-1.4.0/core/pbuf.c **** #else /* !LWIP_TCP || !TCP_QUEUE_OOSEQ || NO_SYS */
+  90:Libraries/lwip-1.4.0/core/pbuf.c **** /** Define this to 0 to prevent freeing ooseq pbufs when the PBUF_POOL is empty */
+  91:Libraries/lwip-1.4.0/core/pbuf.c **** #ifndef PBUF_POOL_FREE_OOSEQ
+  92:Libraries/lwip-1.4.0/core/pbuf.c **** #define PBUF_POOL_FREE_OOSEQ 1
+  93:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* PBUF_POOL_FREE_OOSEQ */
+  94:Libraries/lwip-1.4.0/core/pbuf.c **** 
+  95:Libraries/lwip-1.4.0/core/pbuf.c **** #if PBUF_POOL_FREE_OOSEQ
+  96:Libraries/lwip-1.4.0/core/pbuf.c **** #include "lwip/tcpip.h"
+  97:Libraries/lwip-1.4.0/core/pbuf.c **** #define PBUF_POOL_IS_EMPTY() pbuf_pool_is_empty()
+  98:Libraries/lwip-1.4.0/core/pbuf.c **** static u8_t pbuf_free_ooseq_queued;
+  99:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 100:Libraries/lwip-1.4.0/core/pbuf.c ****  * Attempt to reclaim some memory from queued out-of-sequence TCP segments
+ 101:Libraries/lwip-1.4.0/core/pbuf.c ****  * if we run out of pool pbufs. It's better to give priority to new packets
+ 102:Libraries/lwip-1.4.0/core/pbuf.c ****  * if we're running out.
+ 103:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 104:Libraries/lwip-1.4.0/core/pbuf.c ****  * This must be done in the correct thread context therefore this function
+ 105:Libraries/lwip-1.4.0/core/pbuf.c ****  * can only be used with NO_SYS=0 and through tcpip_callback.
+ 106:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 107:Libraries/lwip-1.4.0/core/pbuf.c **** static void
+ 108:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_free_ooseq(void* arg)
+ 109:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 110:Libraries/lwip-1.4.0/core/pbuf.c ****   struct tcp_pcb* pcb;
+ 111:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_DECL_PROTECT(old_level);
+ 112:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_UNUSED_ARG(arg);
+ 113:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 114:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_PROTECT(old_level);
+ 115:Libraries/lwip-1.4.0/core/pbuf.c ****   pbuf_free_ooseq_queued = 0;
+ 116:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_UNPROTECT(old_level);
+ 117:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 118:Libraries/lwip-1.4.0/core/pbuf.c ****   for (pcb = tcp_active_pcbs; NULL != pcb; pcb = pcb->next) {
+ 119:Libraries/lwip-1.4.0/core/pbuf.c ****     if (NULL != pcb->ooseq) {
+ 120:Libraries/lwip-1.4.0/core/pbuf.c ****       /** Free the ooseq pbufs of one PCB only */
+ 121:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_free_ooseq: freeing out-of-sequence pbufs\n")
+ 122:Libraries/lwip-1.4.0/core/pbuf.c ****       tcp_segs_free(pcb->ooseq);
+ 123:Libraries/lwip-1.4.0/core/pbuf.c ****       pcb->ooseq = NULL;
+ 124:Libraries/lwip-1.4.0/core/pbuf.c ****       return;
+ 125:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 126:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 127:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 128:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 129:Libraries/lwip-1.4.0/core/pbuf.c **** /** Queue a call to pbuf_free_ooseq if not already queued. */
+ 130:Libraries/lwip-1.4.0/core/pbuf.c **** static void
+ 131:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_pool_is_empty(void)
+ 132:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 133:Libraries/lwip-1.4.0/core/pbuf.c ****   u8_t queued;
+ 134:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_DECL_PROTECT(old_level);
+ 135:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 136:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_PROTECT(old_level);
+ 137:Libraries/lwip-1.4.0/core/pbuf.c ****   queued = pbuf_free_ooseq_queued;
+ 138:Libraries/lwip-1.4.0/core/pbuf.c ****   pbuf_free_ooseq_queued = 1;
+ 139:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_UNPROTECT(old_level);
+ 140:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 141:Libraries/lwip-1.4.0/core/pbuf.c ****   if(!queued) {
+ 142:Libraries/lwip-1.4.0/core/pbuf.c ****     /* queue a call to pbuf_free_ooseq if not already queued */
+ 143:Libraries/lwip-1.4.0/core/pbuf.c ****     if(tcpip_callback_with_block(pbuf_free_ooseq, NULL, 0) != ERR_OK) {
+ 144:Libraries/lwip-1.4.0/core/pbuf.c ****       SYS_ARCH_PROTECT(old_level);
+ 145:Libraries/lwip-1.4.0/core/pbuf.c ****       pbuf_free_ooseq_queued = 0;
+ 146:Libraries/lwip-1.4.0/core/pbuf.c ****       SYS_ARCH_UNPROTECT(old_level);
+ 147:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 148:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 149:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 150:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* PBUF_POOL_FREE_OOSEQ */
+ 151:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* !LWIP_TCP || !TCP_QUEUE_OOSEQ || NO_SYS */
+ 152:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 153:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 154:Libraries/lwip-1.4.0/core/pbuf.c ****  * Allocates a pbuf of the given type (possibly a chain for PBUF_POOL type).
+ 155:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 156:Libraries/lwip-1.4.0/core/pbuf.c ****  * The actual memory allocated for the pbuf is determined by the
+ 157:Libraries/lwip-1.4.0/core/pbuf.c ****  * layer at which the pbuf is allocated and the requested size
+ 158:Libraries/lwip-1.4.0/core/pbuf.c ****  * (from the size parameter).
+ 159:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 160:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param layer flag to define header size
+ 161:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param length size of the pbuf's payload
+ 162:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param type this parameter decides how and where the pbuf
+ 163:Libraries/lwip-1.4.0/core/pbuf.c ****  * should be allocated as follows:
+ 164:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 165:Libraries/lwip-1.4.0/core/pbuf.c ****  * - PBUF_RAM: buffer memory for pbuf is allocated as one large
+ 166:Libraries/lwip-1.4.0/core/pbuf.c ****  *             chunk. This includes protocol headers as well.
+ 167:Libraries/lwip-1.4.0/core/pbuf.c ****  * - PBUF_ROM: no buffer memory is allocated for the pbuf, even for
+ 168:Libraries/lwip-1.4.0/core/pbuf.c ****  *             protocol headers. Additional headers must be prepended
+ 169:Libraries/lwip-1.4.0/core/pbuf.c ****  *             by allocating another pbuf and chain in to the front of
+ 170:Libraries/lwip-1.4.0/core/pbuf.c ****  *             the ROM pbuf. It is assumed that the memory used is really
+ 171:Libraries/lwip-1.4.0/core/pbuf.c ****  *             similar to ROM in that it is immutable and will not be
+ 172:Libraries/lwip-1.4.0/core/pbuf.c ****  *             changed. Memory which is dynamic should generally not
+ 173:Libraries/lwip-1.4.0/core/pbuf.c ****  *             be attached to PBUF_ROM pbufs. Use PBUF_REF instead.
+ 174:Libraries/lwip-1.4.0/core/pbuf.c ****  * - PBUF_REF: no buffer memory is allocated for the pbuf, even for
+ 175:Libraries/lwip-1.4.0/core/pbuf.c ****  *             protocol headers. It is assumed that the pbuf is only
+ 176:Libraries/lwip-1.4.0/core/pbuf.c ****  *             being used in a single thread. If the pbuf gets queued,
+ 177:Libraries/lwip-1.4.0/core/pbuf.c ****  *             then pbuf_take should be called to copy the buffer.
+ 178:Libraries/lwip-1.4.0/core/pbuf.c ****  * - PBUF_POOL: the pbuf is allocated as a pbuf chain, with pbufs from
+ 179:Libraries/lwip-1.4.0/core/pbuf.c ****  *              the pbuf pool that is allocated during pbuf_init().
+ 180:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 181:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return the allocated pbuf. If multiple pbufs where allocated, this
+ 182:Libraries/lwip-1.4.0/core/pbuf.c ****  * is the first pbuf of a pbuf chain.
+ 183:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 184:Libraries/lwip-1.4.0/core/pbuf.c **** struct pbuf *
+ 185:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
+ 186:Libraries/lwip-1.4.0/core/pbuf.c **** {
+  28              		.loc 1 186 0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 32
+  31              		@ frame_needed = 1, uses_anonymous_args = 0
+  32 0000 80B5     		push	{r7, lr}
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 7, -8
+  35              		.cfi_offset 14, -4
+  36 0002 88B0     		sub	sp, sp, #32
+  37              		.cfi_def_cfa_offset 40
+  38 0004 00AF     		add	r7, sp, #0
+  39              		.cfi_def_cfa_register 7
+  40 0006 0346     		mov	r3, r0
+  41 0008 FB71     		strb	r3, [r7, #7]
+  42 000a 0B46     		mov	r3, r1	@ movhi
+  43 000c BB80     		strh	r3, [r7, #4]	@ movhi
+  44 000e 1346     		mov	r3, r2
+  45 0010 BB71     		strb	r3, [r7, #6]
+ 187:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *p, *q, *r;
+ 188:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t offset;
+ 189:Libraries/lwip-1.4.0/core/pbuf.c ****   s32_t rem_len; /* remaining length */
+ 190:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloc(length=%"U16_F")\n", length));
+ 191:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 192:Libraries/lwip-1.4.0/core/pbuf.c ****   /* determine header offset */
+ 193:Libraries/lwip-1.4.0/core/pbuf.c ****   offset = 0;
+  46              		.loc 1 193 0
+  47 0012 0023     		movs	r3, #0
+  48 0014 FB82     		strh	r3, [r7, #22]	@ movhi
+ 194:Libraries/lwip-1.4.0/core/pbuf.c ****   switch (layer) {
+  49              		.loc 1 194 0
+  50 0016 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+  51 0018 032B     		cmp	r3, #3
+  52 001a 15D8     		bhi	.L2
+  53 001c 01A2     		adr	r2, .L4
+  54 001e 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+  55 0022 00BF     		.p2align 2
+  56              	.L4:
+  57 0024 35000000 		.word	.L3+1
+  58 0028 3B000000 		.word	.L5+1
+  59 002c 41000000 		.word	.L6+1
+  60 0030 4D000000 		.word	.L22+1
+  61              		.p2align 1
+  62              	.L3:
+ 195:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_TRANSPORT:
+ 196:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for transport (often TCP) layer header */
+ 197:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_TRANSPORT_HLEN;
+  63              		.loc 1 197 0
+  64 0034 FB8A     		ldrh	r3, [r7, #22]	@ movhi
+  65 0036 1433     		adds	r3, r3, #20
+  66 0038 FB82     		strh	r3, [r7, #22]	@ movhi
+  67              	.L5:
+ 198:Libraries/lwip-1.4.0/core/pbuf.c ****     /* FALLTHROUGH */
+ 199:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_IP:
+ 200:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for IP layer header */
+ 201:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_IP_HLEN;
+  68              		.loc 1 201 0
+  69 003a FB8A     		ldrh	r3, [r7, #22]	@ movhi
+  70 003c 1433     		adds	r3, r3, #20
+  71 003e FB82     		strh	r3, [r7, #22]	@ movhi
+  72              	.L6:
+ 202:Libraries/lwip-1.4.0/core/pbuf.c ****     /* FALLTHROUGH */
+ 203:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_LINK:
+ 204:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for link layer header */
+ 205:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_LINK_HLEN;
+  73              		.loc 1 205 0
+  74 0040 FB8A     		ldrh	r3, [r7, #22]	@ movhi
+  75 0042 1033     		adds	r3, r3, #16
+  76 0044 FB82     		strh	r3, [r7, #22]	@ movhi
+ 206:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+  77              		.loc 1 206 0
+  78 0046 02E0     		b	.L8
+  79              	.L2:
+ 207:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_RAW:
+ 208:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 209:Libraries/lwip-1.4.0/core/pbuf.c ****   default:
+ 210:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_alloc: bad pbuf layer", 0);
+ 211:Libraries/lwip-1.4.0/core/pbuf.c ****     return NULL;
+  80              		.loc 1 211 0
+  81 0048 0023     		movs	r3, #0
+  82 004a CDE0     		b	.L9
+  83              	.L22:
+ 208:Libraries/lwip-1.4.0/core/pbuf.c ****   default:
+  84              		.loc 1 208 0
+  85 004c 00BF     		nop
+  86              	.L8:
+ 212:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 213:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 214:Libraries/lwip-1.4.0/core/pbuf.c ****   switch (type) {
+  87              		.loc 1 214 0
+  88 004e BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+  89 0050 032B     		cmp	r3, #3
+  90 0052 00F2C080 		bhi	.L10
+  91 0056 01A2     		adr	r2, .L12
+  92 0058 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+  93              		.p2align 2
+  94              	.L12:
+  95 005c 45010000 		.word	.L11+1
+  96 0060 A3010000 		.word	.L13+1
+  97 0064 A3010000 		.word	.L13+1
+  98 0068 6D000000 		.word	.L14+1
+  99              		.p2align 1
+ 100              	.L14:
+ 215:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_POOL:
+ 216:Libraries/lwip-1.4.0/core/pbuf.c ****     /* allocate head of pbuf chain into p */
+ 217:Libraries/lwip-1.4.0/core/pbuf.c ****     p = (struct pbuf *)memp_malloc(MEMP_PBUF_POOL);
+ 101              		.loc 1 217 0
+ 102 006c 0920     		movs	r0, #9
+ 103 006e FFF7FEFF 		bl	memp_malloc
+ 104 0072 F861     		str	r0, [r7, #28]
+ 218:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloc: allocated pbuf %p\n", (void *)p));
+ 219:Libraries/lwip-1.4.0/core/pbuf.c ****     if (p == NULL) {
+ 105              		.loc 1 219 0
+ 106 0074 FB69     		ldr	r3, [r7, #28]
+ 107 0076 002B     		cmp	r3, #0
+ 108 0078 01D1     		bne	.L15
+ 220:Libraries/lwip-1.4.0/core/pbuf.c ****       PBUF_POOL_IS_EMPTY();
+ 221:Libraries/lwip-1.4.0/core/pbuf.c ****       return NULL;
+ 109              		.loc 1 221 0
+ 110 007a 0023     		movs	r3, #0
+ 111 007c B4E0     		b	.L9
+ 112              	.L15:
+ 222:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 223:Libraries/lwip-1.4.0/core/pbuf.c ****     p->type = type;
+ 113              		.loc 1 223 0
+ 114 007e FB69     		ldr	r3, [r7, #28]
+ 115 0080 BA79     		ldrb	r2, [r7, #6]
+ 116 0082 1A73     		strb	r2, [r3, #12]
+ 224:Libraries/lwip-1.4.0/core/pbuf.c ****     p->next = NULL;
+ 117              		.loc 1 224 0
+ 118 0084 FB69     		ldr	r3, [r7, #28]
+ 119 0086 0022     		movs	r2, #0
+ 120 0088 1A60     		str	r2, [r3]
+ 225:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 226:Libraries/lwip-1.4.0/core/pbuf.c ****     /* make the payload pointer point 'offset' bytes into pbuf data memory */
+ 227:Libraries/lwip-1.4.0/core/pbuf.c ****     p->payload = LWIP_MEM_ALIGN((void *)((u8_t *)p + (SIZEOF_STRUCT_PBUF + offset)));
+ 121              		.loc 1 227 0
+ 122 008a FB8A     		ldrh	r3, [r7, #22]
+ 123 008c 1033     		adds	r3, r3, #16
+ 124 008e FA69     		ldr	r2, [r7, #28]
+ 125 0090 1344     		add	r3, r3, r2
+ 126 0092 0333     		adds	r3, r3, #3
+ 127 0094 23F00303 		bic	r3, r3, #3
+ 128 0098 1A46     		mov	r2, r3
+ 129 009a FB69     		ldr	r3, [r7, #28]
+ 130 009c 5A60     		str	r2, [r3, #4]
+ 228:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_alloc: pbuf p->payload properly aligned",
+ 229:Libraries/lwip-1.4.0/core/pbuf.c ****             ((mem_ptr_t)p->payload % MEM_ALIGNMENT) == 0);
+ 230:Libraries/lwip-1.4.0/core/pbuf.c ****     /* the total length of the pbuf chain is the requested size */
+ 231:Libraries/lwip-1.4.0/core/pbuf.c ****     p->tot_len = length;
+ 131              		.loc 1 231 0
+ 132 009e FB69     		ldr	r3, [r7, #28]
+ 133 00a0 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 134 00a2 1A81     		strh	r2, [r3, #8]	@ movhi
+ 232:Libraries/lwip-1.4.0/core/pbuf.c ****     /* set the length of the first pbuf in the chain */
+ 233:Libraries/lwip-1.4.0/core/pbuf.c ****     p->len = LWIP_MIN(length, PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE(offset));
+ 135              		.loc 1 233 0
+ 136 00a4 FB8A     		ldrh	r3, [r7, #22]
+ 137 00a6 0333     		adds	r3, r3, #3
+ 138 00a8 23F00303 		bic	r3, r3, #3
+ 139 00ac C3F14802 		rsb	r2, r3, #72
+ 140 00b0 BB88     		ldrh	r3, [r7, #4]
+ 141 00b2 9342     		cmp	r3, r2
+ 142 00b4 A8BF     		it	ge
+ 143 00b6 1346     		movge	r3, r2
+ 144 00b8 9AB2     		uxth	r2, r3
+ 145 00ba FB69     		ldr	r3, [r7, #28]
+ 146 00bc 5A81     		strh	r2, [r3, #10]	@ movhi
+ 234:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("check p->payload + p->len does not overflow pbuf",
+ 235:Libraries/lwip-1.4.0/core/pbuf.c ****                 ((u8_t*)p->payload + p->len <=
+ 236:Libraries/lwip-1.4.0/core/pbuf.c ****                  (u8_t*)p + SIZEOF_STRUCT_PBUF + PBUF_POOL_BUFSIZE_ALIGNED));
+ 237:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("PBUF_POOL_BUFSIZE must be bigger than MEM_ALIGNMENT",
+ 238:Libraries/lwip-1.4.0/core/pbuf.c ****       (PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE(offset)) > 0 );
+ 239:Libraries/lwip-1.4.0/core/pbuf.c ****     /* set reference count (needed here in case we fail) */
+ 240:Libraries/lwip-1.4.0/core/pbuf.c ****     p->ref = 1;
+ 147              		.loc 1 240 0
+ 148 00be FB69     		ldr	r3, [r7, #28]
+ 149 00c0 0122     		movs	r2, #1
+ 150 00c2 DA81     		strh	r2, [r3, #14]	@ movhi
+ 241:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 242:Libraries/lwip-1.4.0/core/pbuf.c ****     /* now allocate the tail of the pbuf chain */
+ 243:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 244:Libraries/lwip-1.4.0/core/pbuf.c ****     /* remember first pbuf for linkage in next iteration */
+ 245:Libraries/lwip-1.4.0/core/pbuf.c ****     r = p;
+ 151              		.loc 1 245 0
+ 152 00c4 FB69     		ldr	r3, [r7, #28]
+ 153 00c6 BB61     		str	r3, [r7, #24]
+ 246:Libraries/lwip-1.4.0/core/pbuf.c ****     /* remaining length to be allocated */
+ 247:Libraries/lwip-1.4.0/core/pbuf.c ****     rem_len = length - p->len;
+ 154              		.loc 1 247 0
+ 155 00c8 BB88     		ldrh	r3, [r7, #4]
+ 156 00ca FA69     		ldr	r2, [r7, #28]
+ 157 00cc 5289     		ldrh	r2, [r2, #10]
+ 158 00ce 9B1A     		subs	r3, r3, r2
+ 159 00d0 3B61     		str	r3, [r7, #16]
+ 248:Libraries/lwip-1.4.0/core/pbuf.c ****     /* any remaining pbufs to be allocated? */
+ 249:Libraries/lwip-1.4.0/core/pbuf.c ****     while (rem_len > 0) {
+ 160              		.loc 1 249 0
+ 161 00d2 33E0     		b	.L16
+ 162              	.L18:
+ 250:Libraries/lwip-1.4.0/core/pbuf.c ****       q = (struct pbuf *)memp_malloc(MEMP_PBUF_POOL);
+ 163              		.loc 1 250 0
+ 164 00d4 0920     		movs	r0, #9
+ 165 00d6 FFF7FEFF 		bl	memp_malloc
+ 166 00da F860     		str	r0, [r7, #12]
+ 251:Libraries/lwip-1.4.0/core/pbuf.c ****       if (q == NULL) {
+ 167              		.loc 1 251 0
+ 168 00dc FB68     		ldr	r3, [r7, #12]
+ 169 00de 002B     		cmp	r3, #0
+ 170 00e0 04D1     		bne	.L17
+ 252:Libraries/lwip-1.4.0/core/pbuf.c ****         PBUF_POOL_IS_EMPTY();
+ 253:Libraries/lwip-1.4.0/core/pbuf.c ****         /* free chain so far allocated */
+ 254:Libraries/lwip-1.4.0/core/pbuf.c ****         pbuf_free(p);
+ 171              		.loc 1 254 0
+ 172 00e2 F869     		ldr	r0, [r7, #28]
+ 173 00e4 FFF7FEFF 		bl	pbuf_free
+ 255:Libraries/lwip-1.4.0/core/pbuf.c ****         /* bail out unsuccesfully */
+ 256:Libraries/lwip-1.4.0/core/pbuf.c ****         return NULL;
+ 174              		.loc 1 256 0
+ 175 00e8 0023     		movs	r3, #0
+ 176 00ea 7DE0     		b	.L9
+ 177              	.L17:
+ 257:Libraries/lwip-1.4.0/core/pbuf.c ****       }
+ 258:Libraries/lwip-1.4.0/core/pbuf.c ****       q->type = type;
+ 178              		.loc 1 258 0
+ 179 00ec FB68     		ldr	r3, [r7, #12]
+ 180 00ee BA79     		ldrb	r2, [r7, #6]
+ 181 00f0 1A73     		strb	r2, [r3, #12]
+ 259:Libraries/lwip-1.4.0/core/pbuf.c ****       q->flags = 0;
+ 182              		.loc 1 259 0
+ 183 00f2 FB68     		ldr	r3, [r7, #12]
+ 184 00f4 0022     		movs	r2, #0
+ 185 00f6 5A73     		strb	r2, [r3, #13]
+ 260:Libraries/lwip-1.4.0/core/pbuf.c ****       q->next = NULL;
+ 186              		.loc 1 260 0
+ 187 00f8 FB68     		ldr	r3, [r7, #12]
+ 188 00fa 0022     		movs	r2, #0
+ 189 00fc 1A60     		str	r2, [r3]
+ 261:Libraries/lwip-1.4.0/core/pbuf.c ****       /* make previous pbuf point to this pbuf */
+ 262:Libraries/lwip-1.4.0/core/pbuf.c ****       r->next = q;
+ 190              		.loc 1 262 0
+ 191 00fe BB69     		ldr	r3, [r7, #24]
+ 192 0100 FA68     		ldr	r2, [r7, #12]
+ 193 0102 1A60     		str	r2, [r3]
+ 263:Libraries/lwip-1.4.0/core/pbuf.c ****       /* set total length of this pbuf and next in chain */
+ 264:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_ASSERT("rem_len < max_u16_t", rem_len < 0xffff);
+ 265:Libraries/lwip-1.4.0/core/pbuf.c ****       q->tot_len = (u16_t)rem_len;
+ 194              		.loc 1 265 0
+ 195 0104 3B69     		ldr	r3, [r7, #16]
+ 196 0106 9AB2     		uxth	r2, r3
+ 197 0108 FB68     		ldr	r3, [r7, #12]
+ 198 010a 1A81     		strh	r2, [r3, #8]	@ movhi
+ 266:Libraries/lwip-1.4.0/core/pbuf.c ****       /* this pbuf length is pool size, unless smaller sized tail */
+ 267:Libraries/lwip-1.4.0/core/pbuf.c ****       q->len = LWIP_MIN((u16_t)rem_len, PBUF_POOL_BUFSIZE_ALIGNED);
+ 199              		.loc 1 267 0
+ 200 010c 3B69     		ldr	r3, [r7, #16]
+ 201 010e 9BB2     		uxth	r3, r3
+ 202 0110 482B     		cmp	r3, #72
+ 203 0112 A8BF     		it	ge
+ 204 0114 4823     		movge	r3, #72
+ 205 0116 9AB2     		uxth	r2, r3
+ 206 0118 FB68     		ldr	r3, [r7, #12]
+ 207 011a 5A81     		strh	r2, [r3, #10]	@ movhi
+ 268:Libraries/lwip-1.4.0/core/pbuf.c ****       q->payload = (void *)((u8_t *)q + SIZEOF_STRUCT_PBUF);
+ 208              		.loc 1 268 0
+ 209 011c FB68     		ldr	r3, [r7, #12]
+ 210 011e 03F11002 		add	r2, r3, #16
+ 211 0122 FB68     		ldr	r3, [r7, #12]
+ 212 0124 5A60     		str	r2, [r3, #4]
+ 269:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_ASSERT("pbuf_alloc: pbuf q->payload properly aligned",
+ 270:Libraries/lwip-1.4.0/core/pbuf.c ****               ((mem_ptr_t)q->payload % MEM_ALIGNMENT) == 0);
+ 271:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_ASSERT("check p->payload + p->len does not overflow pbuf",
+ 272:Libraries/lwip-1.4.0/core/pbuf.c ****                   ((u8_t*)p->payload + p->len <=
+ 273:Libraries/lwip-1.4.0/core/pbuf.c ****                    (u8_t*)p + SIZEOF_STRUCT_PBUF + PBUF_POOL_BUFSIZE_ALIGNED));
+ 274:Libraries/lwip-1.4.0/core/pbuf.c ****       q->ref = 1;
+ 213              		.loc 1 274 0
+ 214 0126 FB68     		ldr	r3, [r7, #12]
+ 215 0128 0122     		movs	r2, #1
+ 216 012a DA81     		strh	r2, [r3, #14]	@ movhi
+ 275:Libraries/lwip-1.4.0/core/pbuf.c ****       /* calculate remaining length to be allocated */
+ 276:Libraries/lwip-1.4.0/core/pbuf.c ****       rem_len -= q->len;
+ 217              		.loc 1 276 0
+ 218 012c FB68     		ldr	r3, [r7, #12]
+ 219 012e 5B89     		ldrh	r3, [r3, #10]
+ 220 0130 1A46     		mov	r2, r3
+ 221 0132 3B69     		ldr	r3, [r7, #16]
+ 222 0134 9B1A     		subs	r3, r3, r2
+ 223 0136 3B61     		str	r3, [r7, #16]
+ 277:Libraries/lwip-1.4.0/core/pbuf.c ****       /* remember this pbuf for linkage in next iteration */
+ 278:Libraries/lwip-1.4.0/core/pbuf.c ****       r = q;
+ 224              		.loc 1 278 0
+ 225 0138 FB68     		ldr	r3, [r7, #12]
+ 226 013a BB61     		str	r3, [r7, #24]
+ 227              	.L16:
+ 249:Libraries/lwip-1.4.0/core/pbuf.c ****       q = (struct pbuf *)memp_malloc(MEMP_PBUF_POOL);
+ 228              		.loc 1 249 0
+ 229 013c 3B69     		ldr	r3, [r7, #16]
+ 230 013e 002B     		cmp	r3, #0
+ 231 0140 C8DC     		bgt	.L18
+ 279:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 280:Libraries/lwip-1.4.0/core/pbuf.c ****     /* end of chain */
+ 281:Libraries/lwip-1.4.0/core/pbuf.c ****     /*r->next = NULL;*/
+ 282:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 283:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 232              		.loc 1 283 0
+ 233 0142 4AE0     		b	.L19
+ 234              	.L11:
+ 284:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_RAM:
+ 285:Libraries/lwip-1.4.0/core/pbuf.c ****     /* If pbuf is to be allocated in RAM, allocate memory for it. */
+ 286:Libraries/lwip-1.4.0/core/pbuf.c ****     p = (struct pbuf*)mem_malloc(LWIP_MEM_ALIGN_SIZE(SIZEOF_STRUCT_PBUF + offset) + LWIP_MEM_ALIGN_
+ 235              		.loc 1 286 0
+ 236 0144 FB8A     		ldrh	r3, [r7, #22]	@ movhi
+ 237 0146 1333     		adds	r3, r3, #19
+ 238 0148 9BB2     		uxth	r3, r3
+ 239 014a 23F00303 		bic	r3, r3, #3
+ 240 014e 9AB2     		uxth	r2, r3
+ 241 0150 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 242 0152 0333     		adds	r3, r3, #3
+ 243 0154 9BB2     		uxth	r3, r3
+ 244 0156 23F00303 		bic	r3, r3, #3
+ 245 015a 9BB2     		uxth	r3, r3
+ 246 015c 1344     		add	r3, r3, r2
+ 247 015e 9BB2     		uxth	r3, r3
+ 248 0160 1846     		mov	r0, r3
+ 249 0162 FFF7FEFF 		bl	mem_malloc
+ 250 0166 F861     		str	r0, [r7, #28]
+ 287:Libraries/lwip-1.4.0/core/pbuf.c ****     if (p == NULL) {
+ 251              		.loc 1 287 0
+ 252 0168 FB69     		ldr	r3, [r7, #28]
+ 253 016a 002B     		cmp	r3, #0
+ 254 016c 01D1     		bne	.L20
+ 288:Libraries/lwip-1.4.0/core/pbuf.c ****       return NULL;
+ 255              		.loc 1 288 0
+ 256 016e 0023     		movs	r3, #0
+ 257 0170 3AE0     		b	.L9
+ 258              	.L20:
+ 289:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 290:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Set up internal structure of the pbuf. */
+ 291:Libraries/lwip-1.4.0/core/pbuf.c ****     p->payload = LWIP_MEM_ALIGN((void *)((u8_t *)p + SIZEOF_STRUCT_PBUF + offset));
+ 259              		.loc 1 291 0
+ 260 0172 FB8A     		ldrh	r3, [r7, #22]
+ 261 0174 1033     		adds	r3, r3, #16
+ 262 0176 FA69     		ldr	r2, [r7, #28]
+ 263 0178 1344     		add	r3, r3, r2
+ 264 017a 0333     		adds	r3, r3, #3
+ 265 017c 23F00303 		bic	r3, r3, #3
+ 266 0180 1A46     		mov	r2, r3
+ 267 0182 FB69     		ldr	r3, [r7, #28]
+ 268 0184 5A60     		str	r2, [r3, #4]
+ 292:Libraries/lwip-1.4.0/core/pbuf.c ****     p->len = p->tot_len = length;
+ 269              		.loc 1 292 0
+ 270 0186 FB69     		ldr	r3, [r7, #28]
+ 271 0188 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 272 018a 1A81     		strh	r2, [r3, #8]	@ movhi
+ 273 018c FB69     		ldr	r3, [r7, #28]
+ 274 018e 1A89     		ldrh	r2, [r3, #8]
+ 275 0190 FB69     		ldr	r3, [r7, #28]
+ 276 0192 5A81     		strh	r2, [r3, #10]	@ movhi
+ 293:Libraries/lwip-1.4.0/core/pbuf.c ****     p->next = NULL;
+ 277              		.loc 1 293 0
+ 278 0194 FB69     		ldr	r3, [r7, #28]
+ 279 0196 0022     		movs	r2, #0
+ 280 0198 1A60     		str	r2, [r3]
+ 294:Libraries/lwip-1.4.0/core/pbuf.c ****     p->type = type;
+ 281              		.loc 1 294 0
+ 282 019a FB69     		ldr	r3, [r7, #28]
+ 283 019c BA79     		ldrb	r2, [r7, #6]
+ 284 019e 1A73     		strb	r2, [r3, #12]
+ 295:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 296:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_alloc: pbuf->payload properly aligned",
+ 297:Libraries/lwip-1.4.0/core/pbuf.c ****            ((mem_ptr_t)p->payload % MEM_ALIGNMENT) == 0);
+ 298:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 285              		.loc 1 298 0
+ 286 01a0 1BE0     		b	.L19
+ 287              	.L13:
+ 299:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf references existing (non-volatile static constant) ROM payload? */
+ 300:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_ROM:
+ 301:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf references existing (externally allocated) RAM payload? */
+ 302:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_REF:
+ 303:Libraries/lwip-1.4.0/core/pbuf.c ****     /* only allocate memory for the pbuf structure */
+ 304:Libraries/lwip-1.4.0/core/pbuf.c ****     p = (struct pbuf *)memp_malloc(MEMP_PBUF);
+ 288              		.loc 1 304 0
+ 289 01a2 0820     		movs	r0, #8
+ 290 01a4 FFF7FEFF 		bl	memp_malloc
+ 291 01a8 F861     		str	r0, [r7, #28]
+ 305:Libraries/lwip-1.4.0/core/pbuf.c ****     if (p == NULL) {
+ 292              		.loc 1 305 0
+ 293 01aa FB69     		ldr	r3, [r7, #28]
+ 294 01ac 002B     		cmp	r3, #0
+ 295 01ae 01D1     		bne	.L21
+ 306:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_LEVEL_SERIOUS,
+ 307:Libraries/lwip-1.4.0/core/pbuf.c ****                   ("pbuf_alloc: Could not allocate MEMP_PBUF for PBUF_%s.\n",
+ 308:Libraries/lwip-1.4.0/core/pbuf.c ****                   (type == PBUF_ROM) ? "ROM" : "REF"));
+ 309:Libraries/lwip-1.4.0/core/pbuf.c ****       return NULL;
+ 296              		.loc 1 309 0
+ 297 01b0 0023     		movs	r3, #0
+ 298 01b2 19E0     		b	.L9
+ 299              	.L21:
+ 310:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 311:Libraries/lwip-1.4.0/core/pbuf.c ****     /* caller must set this field properly, afterwards */
+ 312:Libraries/lwip-1.4.0/core/pbuf.c ****     p->payload = NULL;
+ 300              		.loc 1 312 0
+ 301 01b4 FB69     		ldr	r3, [r7, #28]
+ 302 01b6 0022     		movs	r2, #0
+ 303 01b8 5A60     		str	r2, [r3, #4]
+ 313:Libraries/lwip-1.4.0/core/pbuf.c ****     p->len = p->tot_len = length;
+ 304              		.loc 1 313 0
+ 305 01ba FB69     		ldr	r3, [r7, #28]
+ 306 01bc BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 307 01be 1A81     		strh	r2, [r3, #8]	@ movhi
+ 308 01c0 FB69     		ldr	r3, [r7, #28]
+ 309 01c2 1A89     		ldrh	r2, [r3, #8]
+ 310 01c4 FB69     		ldr	r3, [r7, #28]
+ 311 01c6 5A81     		strh	r2, [r3, #10]	@ movhi
+ 314:Libraries/lwip-1.4.0/core/pbuf.c ****     p->next = NULL;
+ 312              		.loc 1 314 0
+ 313 01c8 FB69     		ldr	r3, [r7, #28]
+ 314 01ca 0022     		movs	r2, #0
+ 315 01cc 1A60     		str	r2, [r3]
+ 315:Libraries/lwip-1.4.0/core/pbuf.c ****     p->type = type;
+ 316              		.loc 1 315 0
+ 317 01ce FB69     		ldr	r3, [r7, #28]
+ 318 01d0 BA79     		ldrb	r2, [r7, #6]
+ 319 01d2 1A73     		strb	r2, [r3, #12]
+ 316:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 320              		.loc 1 316 0
+ 321 01d4 01E0     		b	.L19
+ 322              	.L10:
+ 317:Libraries/lwip-1.4.0/core/pbuf.c ****   default:
+ 318:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_alloc: erroneous type", 0);
+ 319:Libraries/lwip-1.4.0/core/pbuf.c ****     return NULL;
+ 323              		.loc 1 319 0
+ 324 01d6 0023     		movs	r3, #0
+ 325 01d8 06E0     		b	.L9
+ 326              	.L19:
+ 320:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 321:Libraries/lwip-1.4.0/core/pbuf.c ****   /* set reference count */
+ 322:Libraries/lwip-1.4.0/core/pbuf.c ****   p->ref = 1;
+ 327              		.loc 1 322 0
+ 328 01da FB69     		ldr	r3, [r7, #28]
+ 329 01dc 0122     		movs	r2, #1
+ 330 01de DA81     		strh	r2, [r3, #14]	@ movhi
+ 323:Libraries/lwip-1.4.0/core/pbuf.c ****   /* set flags */
+ 324:Libraries/lwip-1.4.0/core/pbuf.c ****   p->flags = 0;
+ 331              		.loc 1 324 0
+ 332 01e0 FB69     		ldr	r3, [r7, #28]
+ 333 01e2 0022     		movs	r2, #0
+ 334 01e4 5A73     		strb	r2, [r3, #13]
+ 325:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloc(length=%"U16_F") == %p\n", length, (void *)
+ 326:Libraries/lwip-1.4.0/core/pbuf.c ****   return p;
+ 335              		.loc 1 326 0
+ 336 01e6 FB69     		ldr	r3, [r7, #28]
+ 337              	.L9:
+ 327:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 338              		.loc 1 327 0
+ 339 01e8 1846     		mov	r0, r3
+ 340 01ea 2037     		adds	r7, r7, #32
+ 341              		.cfi_def_cfa_offset 8
+ 342 01ec BD46     		mov	sp, r7
+ 343              		.cfi_def_cfa_register 13
+ 344              		@ sp needed
+ 345 01ee 80BD     		pop	{r7, pc}
+ 346              		.cfi_endproc
+ 347              	.LFE17:
+ 349              		.section	.text.pbuf_alloced_custom,"ax",%progbits
+ 350              		.align	2
+ 351              		.global	pbuf_alloced_custom
+ 352              		.thumb
+ 353              		.thumb_func
+ 355              	pbuf_alloced_custom:
+ 356              	.LFB18:
+ 328:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 329:Libraries/lwip-1.4.0/core/pbuf.c **** #if LWIP_SUPPORT_CUSTOM_PBUF
+ 330:Libraries/lwip-1.4.0/core/pbuf.c **** /** Initialize a custom pbuf (already allocated).
+ 331:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 332:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param layer flag to define header size
+ 333:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param length size of the pbuf's payload
+ 334:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param type type of the pbuf (only used to treat the pbuf accordingly, as
+ 335:Libraries/lwip-1.4.0/core/pbuf.c ****  *        this function allocates no memory)
+ 336:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pointer to the custom pbuf to initialize (already allocated)
+ 337:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param payload_mem pointer to the buffer that is used for payload and headers,
+ 338:Libraries/lwip-1.4.0/core/pbuf.c ****  *        must be at least big enough to hold 'length' plus the header size,
+ 339:Libraries/lwip-1.4.0/core/pbuf.c ****  *        may be NULL if set later
+ 340:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param payload_mem_len the size of the 'payload_mem' buffer, must be at least
+ 341:Libraries/lwip-1.4.0/core/pbuf.c ****  *        big enough to hold 'length' plus the header size
+ 342:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 343:Libraries/lwip-1.4.0/core/pbuf.c **** struct pbuf*
+ 344:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_alloced_custom(pbuf_layer l, u16_t length, pbuf_type type, struct pbuf_custom *p,
+ 345:Libraries/lwip-1.4.0/core/pbuf.c ****                     void *payload_mem, u16_t payload_mem_len)
+ 346:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 357              		.loc 1 346 0
+ 358              		.cfi_startproc
+ 359              		@ args = 8, pretend = 0, frame = 16
+ 360              		@ frame_needed = 1, uses_anonymous_args = 0
+ 361              		@ link register save eliminated.
+ 362 0000 80B4     		push	{r7}
+ 363              		.cfi_def_cfa_offset 4
+ 364              		.cfi_offset 7, -4
+ 365 0002 85B0     		sub	sp, sp, #20
+ 366              		.cfi_def_cfa_offset 24
+ 367 0004 00AF     		add	r7, sp, #0
+ 368              		.cfi_def_cfa_register 7
+ 369 0006 3B60     		str	r3, [r7]
+ 370 0008 0346     		mov	r3, r0
+ 371 000a FB71     		strb	r3, [r7, #7]
+ 372 000c 0B46     		mov	r3, r1	@ movhi
+ 373 000e BB80     		strh	r3, [r7, #4]	@ movhi
+ 374 0010 1346     		mov	r3, r2
+ 375 0012 BB71     		strb	r3, [r7, #6]
+ 347:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t offset;
+ 348:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_alloced_custom(length=%"U16_F")\n", length));
+ 349:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 350:Libraries/lwip-1.4.0/core/pbuf.c ****   /* determine header offset */
+ 351:Libraries/lwip-1.4.0/core/pbuf.c ****   offset = 0;
+ 376              		.loc 1 351 0
+ 377 0014 0023     		movs	r3, #0
+ 378 0016 FB81     		strh	r3, [r7, #14]	@ movhi
+ 352:Libraries/lwip-1.4.0/core/pbuf.c ****   switch (l) {
+ 379              		.loc 1 352 0
+ 380 0018 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 381 001a 032B     		cmp	r3, #3
+ 382 001c 14D8     		bhi	.L24
+ 383 001e 01A2     		adr	r2, .L26
+ 384 0020 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 385              		.p2align 2
+ 386              	.L26:
+ 387 0024 35000000 		.word	.L25+1
+ 388 0028 3B000000 		.word	.L27+1
+ 389 002c 41000000 		.word	.L28+1
+ 390 0030 4D000000 		.word	.L35+1
+ 391              		.p2align 1
+ 392              	.L25:
+ 353:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_TRANSPORT:
+ 354:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for transport (often TCP) layer header */
+ 355:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_TRANSPORT_HLEN;
+ 393              		.loc 1 355 0
+ 394 0034 FB89     		ldrh	r3, [r7, #14]	@ movhi
+ 395 0036 1433     		adds	r3, r3, #20
+ 396 0038 FB81     		strh	r3, [r7, #14]	@ movhi
+ 397              	.L27:
+ 356:Libraries/lwip-1.4.0/core/pbuf.c ****     /* FALLTHROUGH */
+ 357:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_IP:
+ 358:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for IP layer header */
+ 359:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_IP_HLEN;
+ 398              		.loc 1 359 0
+ 399 003a FB89     		ldrh	r3, [r7, #14]	@ movhi
+ 400 003c 1433     		adds	r3, r3, #20
+ 401 003e FB81     		strh	r3, [r7, #14]	@ movhi
+ 402              	.L28:
+ 360:Libraries/lwip-1.4.0/core/pbuf.c ****     /* FALLTHROUGH */
+ 361:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_LINK:
+ 362:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add room for link layer header */
+ 363:Libraries/lwip-1.4.0/core/pbuf.c ****     offset += PBUF_LINK_HLEN;
+ 403              		.loc 1 363 0
+ 404 0040 FB89     		ldrh	r3, [r7, #14]	@ movhi
+ 405 0042 1033     		adds	r3, r3, #16
+ 406 0044 FB81     		strh	r3, [r7, #14]	@ movhi
+ 364:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 407              		.loc 1 364 0
+ 408 0046 02E0     		b	.L30
+ 409              	.L24:
+ 365:Libraries/lwip-1.4.0/core/pbuf.c ****   case PBUF_RAW:
+ 366:Libraries/lwip-1.4.0/core/pbuf.c ****     break;
+ 367:Libraries/lwip-1.4.0/core/pbuf.c ****   default:
+ 368:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_alloced_custom: bad pbuf layer", 0);
+ 369:Libraries/lwip-1.4.0/core/pbuf.c ****     return NULL;
+ 410              		.loc 1 369 0
+ 411 0048 0023     		movs	r3, #0
+ 412 004a 2FE0     		b	.L31
+ 413              	.L35:
+ 366:Libraries/lwip-1.4.0/core/pbuf.c ****   default:
+ 414              		.loc 1 366 0
+ 415 004c 00BF     		nop
+ 416              	.L30:
+ 370:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 371:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 372:Libraries/lwip-1.4.0/core/pbuf.c ****   if (LWIP_MEM_ALIGN_SIZE(offset) + length < payload_mem_len) {
+ 417              		.loc 1 372 0
+ 418 004e FB89     		ldrh	r3, [r7, #14]
+ 419 0050 0333     		adds	r3, r3, #3
+ 420 0052 23F00302 		bic	r2, r3, #3
+ 421 0056 BB88     		ldrh	r3, [r7, #4]
+ 422 0058 1A44     		add	r2, r2, r3
+ 423 005a BB8B     		ldrh	r3, [r7, #28]
+ 424 005c 9A42     		cmp	r2, r3
+ 425 005e 01DA     		bge	.L32
+ 373:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_LEVEL_WARNING, ("pbuf_alloced_custom(length=%"U16_F") buffer 
+ 374:Libraries/lwip-1.4.0/core/pbuf.c ****     return NULL;
+ 426              		.loc 1 374 0
+ 427 0060 0023     		movs	r3, #0
+ 428 0062 23E0     		b	.L31
+ 429              	.L32:
+ 375:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 376:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 377:Libraries/lwip-1.4.0/core/pbuf.c ****   p->pbuf.next = NULL;
+ 430              		.loc 1 377 0
+ 431 0064 3B68     		ldr	r3, [r7]
+ 432 0066 0022     		movs	r2, #0
+ 433 0068 1A60     		str	r2, [r3]
+ 378:Libraries/lwip-1.4.0/core/pbuf.c ****   if (payload_mem != NULL) {
+ 434              		.loc 1 378 0
+ 435 006a BB69     		ldr	r3, [r7, #24]
+ 436 006c 002B     		cmp	r3, #0
+ 437 006e 09D0     		beq	.L33
+ 379:Libraries/lwip-1.4.0/core/pbuf.c ****     p->pbuf.payload = LWIP_MEM_ALIGN((void *)((u8_t *)payload_mem + offset));
+ 438              		.loc 1 379 0
+ 439 0070 FB89     		ldrh	r3, [r7, #14]
+ 440 0072 BA69     		ldr	r2, [r7, #24]
+ 441 0074 1344     		add	r3, r3, r2
+ 442 0076 0333     		adds	r3, r3, #3
+ 443 0078 23F00303 		bic	r3, r3, #3
+ 444 007c 1A46     		mov	r2, r3
+ 445 007e 3B68     		ldr	r3, [r7]
+ 446 0080 5A60     		str	r2, [r3, #4]
+ 447 0082 02E0     		b	.L34
+ 448              	.L33:
+ 380:Libraries/lwip-1.4.0/core/pbuf.c ****   } else {
+ 381:Libraries/lwip-1.4.0/core/pbuf.c ****     p->pbuf.payload = NULL;
+ 449              		.loc 1 381 0
+ 450 0084 3B68     		ldr	r3, [r7]
+ 451 0086 0022     		movs	r2, #0
+ 452 0088 5A60     		str	r2, [r3, #4]
+ 453              	.L34:
+ 382:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 383:Libraries/lwip-1.4.0/core/pbuf.c ****   p->pbuf.flags = PBUF_FLAG_IS_CUSTOM;
+ 454              		.loc 1 383 0
+ 455 008a 3B68     		ldr	r3, [r7]
+ 456 008c 0222     		movs	r2, #2
+ 457 008e 5A73     		strb	r2, [r3, #13]
+ 384:Libraries/lwip-1.4.0/core/pbuf.c ****   p->pbuf.len = p->pbuf.tot_len = length;
+ 458              		.loc 1 384 0
+ 459 0090 3B68     		ldr	r3, [r7]
+ 460 0092 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 461 0094 1A81     		strh	r2, [r3, #8]	@ movhi
+ 462 0096 3B68     		ldr	r3, [r7]
+ 463 0098 1A89     		ldrh	r2, [r3, #8]
+ 464 009a 3B68     		ldr	r3, [r7]
+ 465 009c 5A81     		strh	r2, [r3, #10]	@ movhi
+ 385:Libraries/lwip-1.4.0/core/pbuf.c ****   p->pbuf.type = type;
+ 466              		.loc 1 385 0
+ 467 009e 3B68     		ldr	r3, [r7]
+ 468 00a0 BA79     		ldrb	r2, [r7, #6]
+ 469 00a2 1A73     		strb	r2, [r3, #12]
+ 386:Libraries/lwip-1.4.0/core/pbuf.c ****   p->pbuf.ref = 1;
+ 470              		.loc 1 386 0
+ 471 00a4 3B68     		ldr	r3, [r7]
+ 472 00a6 0122     		movs	r2, #1
+ 473 00a8 DA81     		strh	r2, [r3, #14]	@ movhi
+ 387:Libraries/lwip-1.4.0/core/pbuf.c ****   return &p->pbuf;
+ 474              		.loc 1 387 0
+ 475 00aa 3B68     		ldr	r3, [r7]
+ 476              	.L31:
+ 388:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 477              		.loc 1 388 0
+ 478 00ac 1846     		mov	r0, r3
+ 479 00ae 1437     		adds	r7, r7, #20
+ 480              		.cfi_def_cfa_offset 4
+ 481 00b0 BD46     		mov	sp, r7
+ 482              		.cfi_def_cfa_register 13
+ 483              		@ sp needed
+ 484 00b2 80BC     		pop	{r7}
+ 485              		.cfi_restore 7
+ 486              		.cfi_def_cfa_offset 0
+ 487 00b4 7047     		bx	lr
+ 488              		.cfi_endproc
+ 489              	.LFE18:
+ 491 00b6 00BF     		.section	.text.pbuf_realloc,"ax",%progbits
+ 492              		.align	2
+ 493              		.global	pbuf_realloc
+ 494              		.thumb
+ 495              		.thumb_func
+ 497              	pbuf_realloc:
+ 498              	.LFB19:
+ 389:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* LWIP_SUPPORT_CUSTOM_PBUF */
+ 390:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 391:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 392:Libraries/lwip-1.4.0/core/pbuf.c ****  * Shrink a pbuf chain to a desired length.
+ 393:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 394:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to shrink.
+ 395:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param new_len desired new length of pbuf chain
+ 396:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 397:Libraries/lwip-1.4.0/core/pbuf.c ****  * Depending on the desired length, the first few pbufs in a chain might
+ 398:Libraries/lwip-1.4.0/core/pbuf.c ****  * be skipped and left unchanged. The new last pbuf in the chain will be
+ 399:Libraries/lwip-1.4.0/core/pbuf.c ****  * resized, and any remaining pbufs will be freed.
+ 400:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 401:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note If the pbuf is ROM/REF, only the ->tot_len and ->len fields are adjusted.
+ 402:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note May not be called on a packet queue.
+ 403:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 404:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note Despite its name, pbuf_realloc cannot grow the size of a pbuf (chain).
+ 405:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 406:Libraries/lwip-1.4.0/core/pbuf.c **** void
+ 407:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_realloc(struct pbuf *p, u16_t new_len)
+ 408:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 499              		.loc 1 408 0
+ 500              		.cfi_startproc
+ 501              		@ args = 0, pretend = 0, frame = 24
+ 502              		@ frame_needed = 1, uses_anonymous_args = 0
+ 503 0000 80B5     		push	{r7, lr}
+ 504              		.cfi_def_cfa_offset 8
+ 505              		.cfi_offset 7, -8
+ 506              		.cfi_offset 14, -4
+ 507 0002 86B0     		sub	sp, sp, #24
+ 508              		.cfi_def_cfa_offset 32
+ 509 0004 00AF     		add	r7, sp, #0
+ 510              		.cfi_def_cfa_register 7
+ 511 0006 7860     		str	r0, [r7, #4]
+ 512 0008 0B46     		mov	r3, r1
+ 513 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+ 409:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *q;
+ 410:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t rem_len; /* remaining length */
+ 411:Libraries/lwip-1.4.0/core/pbuf.c ****   s32_t grow;
+ 412:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 413:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("pbuf_realloc: p != NULL", p != NULL);
+ 414:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("pbuf_realloc: sane p->type", p->type == PBUF_POOL ||
+ 514              		.loc 1 414 0
+ 515 000c 7B68     		ldr	r3, [r7, #4]
+ 516 000e 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 517 0010 032B     		cmp	r3, #3
+ 518 0012 06D0     		beq	.L37
+ 519              		.loc 1 414 0 is_stmt 0 discriminator 1
+ 520 0014 7B68     		ldr	r3, [r7, #4]
+ 521 0016 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 522 0018 012B     		cmp	r3, #1
+ 523 001a 02D0     		beq	.L37
+ 524              		.loc 1 414 0 discriminator 2
+ 525 001c 7B68     		ldr	r3, [r7, #4]
+ 526 001e 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 527 0020 002B     		cmp	r3, #0
+ 528              	.L37:
+ 415:Libraries/lwip-1.4.0/core/pbuf.c ****               p->type == PBUF_ROM ||
+ 416:Libraries/lwip-1.4.0/core/pbuf.c ****               p->type == PBUF_RAM ||
+ 417:Libraries/lwip-1.4.0/core/pbuf.c ****               p->type == PBUF_REF);
+ 418:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 419:Libraries/lwip-1.4.0/core/pbuf.c ****   /* desired length larger than current length? */
+ 420:Libraries/lwip-1.4.0/core/pbuf.c ****   if (new_len >= p->tot_len) {
+ 529              		.loc 1 420 0 is_stmt 1
+ 530 0022 7B68     		ldr	r3, [r7, #4]
+ 531 0024 1B89     		ldrh	r3, [r3, #8]
+ 532 0026 7A88     		ldrh	r2, [r7, #2]
+ 533 0028 9A42     		cmp	r2, r3
+ 534 002a 49D2     		bcs	.L44
+ 421:Libraries/lwip-1.4.0/core/pbuf.c ****     /* enlarging not yet supported */
+ 422:Libraries/lwip-1.4.0/core/pbuf.c ****     return;
+ 423:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 424:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 425:Libraries/lwip-1.4.0/core/pbuf.c ****   /* the pbuf chain grows by (new_len - p->tot_len) bytes
+ 426:Libraries/lwip-1.4.0/core/pbuf.c ****    * (which may be negative in case of shrinking) */
+ 427:Libraries/lwip-1.4.0/core/pbuf.c ****   grow = new_len - p->tot_len;
+ 535              		.loc 1 427 0
+ 536 002c 7B88     		ldrh	r3, [r7, #2]
+ 537 002e 7A68     		ldr	r2, [r7, #4]
+ 538 0030 1289     		ldrh	r2, [r2, #8]
+ 539 0032 9B1A     		subs	r3, r3, r2
+ 540 0034 FB60     		str	r3, [r7, #12]
+ 428:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 429:Libraries/lwip-1.4.0/core/pbuf.c ****   /* first, step over any pbufs that should remain in the chain */
+ 430:Libraries/lwip-1.4.0/core/pbuf.c ****   rem_len = new_len;
+ 541              		.loc 1 430 0
+ 542 0036 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 543 0038 7B82     		strh	r3, [r7, #18]	@ movhi
+ 431:Libraries/lwip-1.4.0/core/pbuf.c ****   q = p;
+ 544              		.loc 1 431 0
+ 545 003a 7B68     		ldr	r3, [r7, #4]
+ 546 003c 7B61     		str	r3, [r7, #20]
+ 432:Libraries/lwip-1.4.0/core/pbuf.c ****   /* should this pbuf be kept? */
+ 433:Libraries/lwip-1.4.0/core/pbuf.c ****   while (rem_len > q->len) {
+ 547              		.loc 1 433 0
+ 548 003e 0FE0     		b	.L40
+ 549              	.L41:
+ 434:Libraries/lwip-1.4.0/core/pbuf.c ****     /* decrease remaining length by pbuf length */
+ 435:Libraries/lwip-1.4.0/core/pbuf.c ****     rem_len -= q->len;
+ 550              		.loc 1 435 0
+ 551 0040 7B69     		ldr	r3, [r7, #20]
+ 552 0042 5B89     		ldrh	r3, [r3, #10]
+ 553 0044 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 554 0046 D31A     		subs	r3, r2, r3
+ 555 0048 7B82     		strh	r3, [r7, #18]	@ movhi
+ 436:Libraries/lwip-1.4.0/core/pbuf.c ****     /* decrease total length indicator */
+ 437:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("grow < max_u16_t", grow < 0xffff);
+ 438:Libraries/lwip-1.4.0/core/pbuf.c ****     q->tot_len += (u16_t)grow;
+ 556              		.loc 1 438 0
+ 557 004a 7B69     		ldr	r3, [r7, #20]
+ 558 004c 1A89     		ldrh	r2, [r3, #8]
+ 559 004e FB68     		ldr	r3, [r7, #12]
+ 560 0050 9BB2     		uxth	r3, r3
+ 561 0052 1344     		add	r3, r3, r2
+ 562 0054 9AB2     		uxth	r2, r3
+ 563 0056 7B69     		ldr	r3, [r7, #20]
+ 564 0058 1A81     		strh	r2, [r3, #8]	@ movhi
+ 439:Libraries/lwip-1.4.0/core/pbuf.c ****     /* proceed to next pbuf in chain */
+ 440:Libraries/lwip-1.4.0/core/pbuf.c ****     q = q->next;
+ 565              		.loc 1 440 0
+ 566 005a 7B69     		ldr	r3, [r7, #20]
+ 567 005c 1B68     		ldr	r3, [r3]
+ 568 005e 7B61     		str	r3, [r7, #20]
+ 569              	.L40:
+ 433:Libraries/lwip-1.4.0/core/pbuf.c ****     /* decrease remaining length by pbuf length */
+ 570              		.loc 1 433 0
+ 571 0060 7B69     		ldr	r3, [r7, #20]
+ 572 0062 5B89     		ldrh	r3, [r3, #10]
+ 573 0064 7A8A     		ldrh	r2, [r7, #18]
+ 574 0066 9A42     		cmp	r2, r3
+ 575 0068 EAD8     		bhi	.L41
+ 441:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_realloc: q != NULL", q != NULL);
+ 442:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 443:Libraries/lwip-1.4.0/core/pbuf.c ****   /* we have now reached the new last pbuf (in q) */
+ 444:Libraries/lwip-1.4.0/core/pbuf.c ****   /* rem_len == desired length for pbuf q */
+ 445:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 446:Libraries/lwip-1.4.0/core/pbuf.c ****   /* shrink allocated memory for PBUF_RAM */
+ 447:Libraries/lwip-1.4.0/core/pbuf.c ****   /* (other types merely adjust their length fields */
+ 448:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((q->type == PBUF_RAM) && (rem_len != q->len)) {
+ 576              		.loc 1 448 0
+ 577 006a 7B69     		ldr	r3, [r7, #20]
+ 578 006c 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 579 006e 002B     		cmp	r3, #0
+ 580 0070 12D1     		bne	.L42
+ 581              		.loc 1 448 0 is_stmt 0 discriminator 1
+ 582 0072 7B69     		ldr	r3, [r7, #20]
+ 583 0074 5B89     		ldrh	r3, [r3, #10]
+ 584 0076 7A8A     		ldrh	r2, [r7, #18]
+ 585 0078 9A42     		cmp	r2, r3
+ 586 007a 0DD0     		beq	.L42
+ 449:Libraries/lwip-1.4.0/core/pbuf.c ****     /* reallocate and adjust the length of the pbuf that will be split */
+ 450:Libraries/lwip-1.4.0/core/pbuf.c ****     q = (struct pbuf *)mem_trim(q, (u16_t)((u8_t *)q->payload - (u8_t *)q) + rem_len);
+ 587              		.loc 1 450 0 is_stmt 1
+ 588 007c 7B69     		ldr	r3, [r7, #20]
+ 589 007e 5B68     		ldr	r3, [r3, #4]
+ 590 0080 1A46     		mov	r2, r3
+ 591 0082 7B69     		ldr	r3, [r7, #20]
+ 592 0084 D31A     		subs	r3, r2, r3
+ 593 0086 9AB2     		uxth	r2, r3
+ 594 0088 7B8A     		ldrh	r3, [r7, #18]	@ movhi
+ 595 008a 1344     		add	r3, r3, r2
+ 596 008c 9BB2     		uxth	r3, r3
+ 597 008e 1946     		mov	r1, r3
+ 598 0090 7869     		ldr	r0, [r7, #20]
+ 599 0092 FFF7FEFF 		bl	mem_trim
+ 600 0096 7861     		str	r0, [r7, #20]
+ 601              	.L42:
+ 451:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("mem_trim returned q == NULL", q != NULL);
+ 452:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 453:Libraries/lwip-1.4.0/core/pbuf.c ****   /* adjust length fields for new last pbuf */
+ 454:Libraries/lwip-1.4.0/core/pbuf.c ****   q->len = rem_len;
+ 602              		.loc 1 454 0
+ 603 0098 7B69     		ldr	r3, [r7, #20]
+ 604 009a 7A8A     		ldrh	r2, [r7, #18]	@ movhi
+ 605 009c 5A81     		strh	r2, [r3, #10]	@ movhi
+ 455:Libraries/lwip-1.4.0/core/pbuf.c ****   q->tot_len = q->len;
+ 606              		.loc 1 455 0
+ 607 009e 7B69     		ldr	r3, [r7, #20]
+ 608 00a0 5A89     		ldrh	r2, [r3, #10]
+ 609 00a2 7B69     		ldr	r3, [r7, #20]
+ 610 00a4 1A81     		strh	r2, [r3, #8]	@ movhi
+ 456:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 457:Libraries/lwip-1.4.0/core/pbuf.c ****   /* any remaining pbufs in chain? */
+ 458:Libraries/lwip-1.4.0/core/pbuf.c ****   if (q->next != NULL) {
+ 611              		.loc 1 458 0
+ 612 00a6 7B69     		ldr	r3, [r7, #20]
+ 613 00a8 1B68     		ldr	r3, [r3]
+ 614 00aa 002B     		cmp	r3, #0
+ 615 00ac 04D0     		beq	.L43
+ 459:Libraries/lwip-1.4.0/core/pbuf.c ****     /* free remaining pbufs in chain */
+ 460:Libraries/lwip-1.4.0/core/pbuf.c ****     pbuf_free(q->next);
+ 616              		.loc 1 460 0
+ 617 00ae 7B69     		ldr	r3, [r7, #20]
+ 618 00b0 1B68     		ldr	r3, [r3]
+ 619 00b2 1846     		mov	r0, r3
+ 620 00b4 FFF7FEFF 		bl	pbuf_free
+ 621              	.L43:
+ 461:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 462:Libraries/lwip-1.4.0/core/pbuf.c ****   /* q is last packet in chain */
+ 463:Libraries/lwip-1.4.0/core/pbuf.c ****   q->next = NULL;
+ 622              		.loc 1 463 0
+ 623 00b8 7B69     		ldr	r3, [r7, #20]
+ 624 00ba 0022     		movs	r2, #0
+ 625 00bc 1A60     		str	r2, [r3]
+ 626 00be 00E0     		b	.L36
+ 627              	.L44:
+ 422:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 628              		.loc 1 422 0
+ 629 00c0 00BF     		nop
+ 630              	.L36:
+ 464:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 465:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 631              		.loc 1 465 0
+ 632 00c2 1837     		adds	r7, r7, #24
+ 633              		.cfi_def_cfa_offset 8
+ 634 00c4 BD46     		mov	sp, r7
+ 635              		.cfi_def_cfa_register 13
+ 636              		@ sp needed
+ 637 00c6 80BD     		pop	{r7, pc}
+ 638              		.cfi_endproc
+ 639              	.LFE19:
+ 641              		.section	.text.pbuf_header,"ax",%progbits
+ 642              		.align	2
+ 643              		.global	pbuf_header
+ 644              		.thumb
+ 645              		.thumb_func
+ 647              	pbuf_header:
+ 648              	.LFB20:
+ 466:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 467:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 468:Libraries/lwip-1.4.0/core/pbuf.c ****  * Adjusts the payload pointer to hide or reveal headers in the payload.
+ 469:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 470:Libraries/lwip-1.4.0/core/pbuf.c ****  * Adjusts the ->payload pointer so that space for a header
+ 471:Libraries/lwip-1.4.0/core/pbuf.c ****  * (dis)appears in the pbuf payload.
+ 472:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 473:Libraries/lwip-1.4.0/core/pbuf.c ****  * The ->payload, ->tot_len and ->len fields are adjusted.
+ 474:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 475:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to change the header size.
+ 476:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param header_size_increment Number of bytes to increment header size which
+ 477:Libraries/lwip-1.4.0/core/pbuf.c ****  * increases the size of the pbuf. New space is on the front.
+ 478:Libraries/lwip-1.4.0/core/pbuf.c ****  * (Using a negative value decreases the header size.)
+ 479:Libraries/lwip-1.4.0/core/pbuf.c ****  * If hdr_size_inc is 0, this function does nothing and returns succesful.
+ 480:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 481:Libraries/lwip-1.4.0/core/pbuf.c ****  * PBUF_ROM and PBUF_REF type buffers cannot have their sizes increased, so
+ 482:Libraries/lwip-1.4.0/core/pbuf.c ****  * the call will fail. A check is made that the increase in header size does
+ 483:Libraries/lwip-1.4.0/core/pbuf.c ****  * not move the payload pointer in front of the start of the buffer.
+ 484:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return non-zero on failure, zero on success.
+ 485:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 486:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 487:Libraries/lwip-1.4.0/core/pbuf.c **** u8_t
+ 488:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_header(struct pbuf *p, s16_t header_size_increment)
+ 489:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 649              		.loc 1 489 0
+ 650              		.cfi_startproc
+ 651              		@ args = 0, pretend = 0, frame = 16
+ 652              		@ frame_needed = 1, uses_anonymous_args = 0
+ 653              		@ link register save eliminated.
+ 654 0000 80B4     		push	{r7}
+ 655              		.cfi_def_cfa_offset 4
+ 656              		.cfi_offset 7, -4
+ 657 0002 85B0     		sub	sp, sp, #20
+ 658              		.cfi_def_cfa_offset 24
+ 659 0004 00AF     		add	r7, sp, #0
+ 660              		.cfi_def_cfa_register 7
+ 661 0006 7860     		str	r0, [r7, #4]
+ 662 0008 0B46     		mov	r3, r1
+ 663 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+ 490:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t type;
+ 491:Libraries/lwip-1.4.0/core/pbuf.c ****   void *payload;
+ 492:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t increment_magnitude;
+ 493:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 494:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("p != NULL", p != NULL);
+ 495:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((header_size_increment == 0) || (p == NULL)) {
+ 664              		.loc 1 495 0
+ 665 000c B7F90230 		ldrsh	r3, [r7, #2]
+ 666 0010 002B     		cmp	r3, #0
+ 667 0012 02D0     		beq	.L46
+ 668              		.loc 1 495 0 is_stmt 0 discriminator 1
+ 669 0014 7B68     		ldr	r3, [r7, #4]
+ 670 0016 002B     		cmp	r3, #0
+ 671 0018 01D1     		bne	.L47
+ 672              	.L46:
+ 496:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0;
+ 673              		.loc 1 496 0 is_stmt 1
+ 674 001a 0023     		movs	r3, #0
+ 675 001c 59E0     		b	.L48
+ 676              	.L47:
+ 497:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 498:Libraries/lwip-1.4.0/core/pbuf.c ****  
+ 499:Libraries/lwip-1.4.0/core/pbuf.c ****   if (header_size_increment < 0){
+ 677              		.loc 1 499 0
+ 678 001e B7F90230 		ldrsh	r3, [r7, #2]
+ 679 0022 002B     		cmp	r3, #0
+ 680 0024 09DA     		bge	.L49
+ 500:Libraries/lwip-1.4.0/core/pbuf.c ****     increment_magnitude = -header_size_increment;
+ 681              		.loc 1 500 0
+ 682 0026 7B88     		ldrh	r3, [r7, #2]
+ 683 0028 5B42     		negs	r3, r3
+ 684 002a FB81     		strh	r3, [r7, #14]	@ movhi
+ 501:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Check that we aren't going to move off the end of the pbuf */
+ 502:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ERROR("increment_magnitude <= p->len", (increment_magnitude <= p->len), return 1;);
+ 685              		.loc 1 502 0
+ 686 002c 7B68     		ldr	r3, [r7, #4]
+ 687 002e 5B89     		ldrh	r3, [r3, #10]
+ 688 0030 FA89     		ldrh	r2, [r7, #14]
+ 689 0032 9A42     		cmp	r2, r3
+ 690 0034 03D9     		bls	.L50
+ 691              		.loc 1 502 0 is_stmt 0 discriminator 1
+ 692 0036 0123     		movs	r3, #1
+ 693 0038 4BE0     		b	.L48
+ 694              	.L49:
+ 503:Libraries/lwip-1.4.0/core/pbuf.c ****   } else {
+ 504:Libraries/lwip-1.4.0/core/pbuf.c ****     increment_magnitude = header_size_increment;
+ 695              		.loc 1 504 0 is_stmt 1
+ 696 003a 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 697 003c FB81     		strh	r3, [r7, #14]	@ movhi
+ 698              	.L50:
+ 505:Libraries/lwip-1.4.0/core/pbuf.c **** #if 0
+ 506:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Can't assert these as some callers speculatively call
+ 507:Libraries/lwip-1.4.0/core/pbuf.c ****          pbuf_header() to see if it's OK.  Will return 1 below instead. */
+ 508:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Check that we've got the correct type of pbuf to work with */
+ 509:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("p->type == PBUF_RAM || p->type == PBUF_POOL", 
+ 510:Libraries/lwip-1.4.0/core/pbuf.c ****                 p->type == PBUF_RAM || p->type == PBUF_POOL);
+ 511:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Check that we aren't going to move off the beginning of the pbuf */
+ 512:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("p->payload - increment_magnitude >= p + SIZEOF_STRUCT_PBUF",
+ 513:Libraries/lwip-1.4.0/core/pbuf.c ****                 (u8_t *)p->payload - increment_magnitude >= (u8_t *)p + SIZEOF_STRUCT_PBUF);
+ 514:Libraries/lwip-1.4.0/core/pbuf.c **** #endif
+ 515:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 516:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 517:Libraries/lwip-1.4.0/core/pbuf.c ****   type = p->type;
+ 699              		.loc 1 517 0
+ 700 003e 7B68     		ldr	r3, [r7, #4]
+ 701 0040 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 702 0042 BB81     		strh	r3, [r7, #12]	@ movhi
+ 518:Libraries/lwip-1.4.0/core/pbuf.c ****   /* remember current payload pointer */
+ 519:Libraries/lwip-1.4.0/core/pbuf.c ****   payload = p->payload;
+ 703              		.loc 1 519 0
+ 704 0044 7B68     		ldr	r3, [r7, #4]
+ 705 0046 5B68     		ldr	r3, [r3, #4]
+ 706 0048 BB60     		str	r3, [r7, #8]
+ 520:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 521:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf types containing payloads? */
+ 522:Libraries/lwip-1.4.0/core/pbuf.c ****   if (type == PBUF_RAM || type == PBUF_POOL) {
+ 707              		.loc 1 522 0
+ 708 004a BB89     		ldrh	r3, [r7, #12]
+ 709 004c 002B     		cmp	r3, #0
+ 710 004e 02D0     		beq	.L51
+ 711              		.loc 1 522 0 is_stmt 0 discriminator 1
+ 712 0050 BB89     		ldrh	r3, [r7, #12]
+ 713 0052 032B     		cmp	r3, #3
+ 714 0054 12D1     		bne	.L52
+ 715              	.L51:
+ 523:Libraries/lwip-1.4.0/core/pbuf.c ****     /* set new payload pointer */
+ 524:Libraries/lwip-1.4.0/core/pbuf.c ****     p->payload = (u8_t *)p->payload - header_size_increment;
+ 716              		.loc 1 524 0 is_stmt 1
+ 717 0056 7B68     		ldr	r3, [r7, #4]
+ 718 0058 5A68     		ldr	r2, [r3, #4]
+ 719 005a B7F90230 		ldrsh	r3, [r7, #2]
+ 720 005e 5B42     		negs	r3, r3
+ 721 0060 1A44     		add	r2, r2, r3
+ 722 0062 7B68     		ldr	r3, [r7, #4]
+ 723 0064 5A60     		str	r2, [r3, #4]
+ 525:Libraries/lwip-1.4.0/core/pbuf.c ****     /* boundary check fails? */
+ 526:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((u8_t *)p->payload < (u8_t *)p + SIZEOF_STRUCT_PBUF) {
+ 724              		.loc 1 526 0
+ 725 0066 7B68     		ldr	r3, [r7, #4]
+ 726 0068 5A68     		ldr	r2, [r3, #4]
+ 727 006a 7B68     		ldr	r3, [r7, #4]
+ 728 006c 1033     		adds	r3, r3, #16
+ 729 006e 9A42     		cmp	r2, r3
+ 730 0070 20D2     		bcs	.L54
+ 527:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF( PBUF_DEBUG | LWIP_DBG_LEVEL_SERIOUS,
+ 528:Libraries/lwip-1.4.0/core/pbuf.c ****         ("pbuf_header: failed as %p < %p (not enough space for new header size)\n",
+ 529:Libraries/lwip-1.4.0/core/pbuf.c ****         (void *)p->payload, (void *)(p + 1)));
+ 530:Libraries/lwip-1.4.0/core/pbuf.c ****       /* restore old payload pointer */
+ 531:Libraries/lwip-1.4.0/core/pbuf.c ****       p->payload = payload;
+ 731              		.loc 1 531 0
+ 732 0072 7B68     		ldr	r3, [r7, #4]
+ 733 0074 BA68     		ldr	r2, [r7, #8]
+ 734 0076 5A60     		str	r2, [r3, #4]
+ 532:Libraries/lwip-1.4.0/core/pbuf.c ****       /* bail out unsuccesfully */
+ 533:Libraries/lwip-1.4.0/core/pbuf.c ****       return 1;
+ 735              		.loc 1 533 0
+ 736 0078 0123     		movs	r3, #1
+ 737 007a 2AE0     		b	.L48
+ 738              	.L52:
+ 534:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 535:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf types refering to external payloads? */
+ 536:Libraries/lwip-1.4.0/core/pbuf.c ****   } else if (type == PBUF_REF || type == PBUF_ROM) {
+ 739              		.loc 1 536 0
+ 740 007c BB89     		ldrh	r3, [r7, #12]
+ 741 007e 022B     		cmp	r3, #2
+ 742 0080 02D0     		beq	.L55
+ 743              		.loc 1 536 0 is_stmt 0 discriminator 1
+ 744 0082 BB89     		ldrh	r3, [r7, #12]
+ 745 0084 012B     		cmp	r3, #1
+ 746 0086 13D1     		bne	.L56
+ 747              	.L55:
+ 537:Libraries/lwip-1.4.0/core/pbuf.c ****     /* hide a header in the payload? */
+ 538:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((header_size_increment < 0) && (increment_magnitude <= p->len)) {
+ 748              		.loc 1 538 0 is_stmt 1
+ 749 0088 B7F90230 		ldrsh	r3, [r7, #2]
+ 750 008c 002B     		cmp	r3, #0
+ 751 008e 0DDA     		bge	.L57
+ 752              		.loc 1 538 0 is_stmt 0 discriminator 1
+ 753 0090 7B68     		ldr	r3, [r7, #4]
+ 754 0092 5B89     		ldrh	r3, [r3, #10]
+ 755 0094 FA89     		ldrh	r2, [r7, #14]
+ 756 0096 9A42     		cmp	r2, r3
+ 757 0098 08D8     		bhi	.L57
+ 539:Libraries/lwip-1.4.0/core/pbuf.c ****       /* increase payload pointer */
+ 540:Libraries/lwip-1.4.0/core/pbuf.c ****       p->payload = (u8_t *)p->payload - header_size_increment;
+ 758              		.loc 1 540 0 is_stmt 1
+ 759 009a 7B68     		ldr	r3, [r7, #4]
+ 760 009c 5A68     		ldr	r2, [r3, #4]
+ 761 009e B7F90230 		ldrsh	r3, [r7, #2]
+ 762 00a2 5B42     		negs	r3, r3
+ 763 00a4 1A44     		add	r2, r2, r3
+ 764 00a6 7B68     		ldr	r3, [r7, #4]
+ 765 00a8 5A60     		str	r2, [r3, #4]
+ 538:Libraries/lwip-1.4.0/core/pbuf.c ****       /* increase payload pointer */
+ 766              		.loc 1 538 0
+ 767 00aa 03E0     		b	.L54
+ 768              	.L57:
+ 541:Libraries/lwip-1.4.0/core/pbuf.c ****     } else {
+ 542:Libraries/lwip-1.4.0/core/pbuf.c ****       /* cannot expand payload to front (yet!)
+ 543:Libraries/lwip-1.4.0/core/pbuf.c ****        * bail out unsuccesfully */
+ 544:Libraries/lwip-1.4.0/core/pbuf.c ****       return 1;
+ 769              		.loc 1 544 0
+ 770 00ac 0123     		movs	r3, #1
+ 771 00ae 10E0     		b	.L48
+ 772              	.L56:
+ 545:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 546:Libraries/lwip-1.4.0/core/pbuf.c ****   } else {
+ 547:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Unknown type */
+ 548:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("bad pbuf type", 0);
+ 549:Libraries/lwip-1.4.0/core/pbuf.c ****     return 1;
+ 773              		.loc 1 549 0
+ 774 00b0 0123     		movs	r3, #1
+ 775 00b2 0EE0     		b	.L48
+ 776              	.L54:
+ 550:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 551:Libraries/lwip-1.4.0/core/pbuf.c ****   /* modify pbuf length fields */
+ 552:Libraries/lwip-1.4.0/core/pbuf.c ****   p->len += header_size_increment;
+ 777              		.loc 1 552 0
+ 778 00b4 7B68     		ldr	r3, [r7, #4]
+ 779 00b6 5A89     		ldrh	r2, [r3, #10]
+ 780 00b8 7B88     		ldrh	r3, [r7, #2]
+ 781 00ba 1344     		add	r3, r3, r2
+ 782 00bc 9AB2     		uxth	r2, r3
+ 783 00be 7B68     		ldr	r3, [r7, #4]
+ 784 00c0 5A81     		strh	r2, [r3, #10]	@ movhi
+ 553:Libraries/lwip-1.4.0/core/pbuf.c ****   p->tot_len += header_size_increment;
+ 785              		.loc 1 553 0
+ 786 00c2 7B68     		ldr	r3, [r7, #4]
+ 787 00c4 1A89     		ldrh	r2, [r3, #8]
+ 788 00c6 7B88     		ldrh	r3, [r7, #2]
+ 789 00c8 1344     		add	r3, r3, r2
+ 790 00ca 9AB2     		uxth	r2, r3
+ 791 00cc 7B68     		ldr	r3, [r7, #4]
+ 792 00ce 1A81     		strh	r2, [r3, #8]	@ movhi
+ 554:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 555:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_header: old %p new %p (%"S16_F")\n",
+ 556:Libraries/lwip-1.4.0/core/pbuf.c ****     (void *)payload, (void *)p->payload, header_size_increment));
+ 557:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 558:Libraries/lwip-1.4.0/core/pbuf.c ****   return 0;
+ 793              		.loc 1 558 0
+ 794 00d0 0023     		movs	r3, #0
+ 795              	.L48:
+ 559:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 796              		.loc 1 559 0
+ 797 00d2 1846     		mov	r0, r3
+ 798 00d4 1437     		adds	r7, r7, #20
+ 799              		.cfi_def_cfa_offset 4
+ 800 00d6 BD46     		mov	sp, r7
+ 801              		.cfi_def_cfa_register 13
+ 802              		@ sp needed
+ 803 00d8 80BC     		pop	{r7}
+ 804              		.cfi_restore 7
+ 805              		.cfi_def_cfa_offset 0
+ 806 00da 7047     		bx	lr
+ 807              		.cfi_endproc
+ 808              	.LFE20:
+ 810              		.section	.text.pbuf_free,"ax",%progbits
+ 811              		.align	2
+ 812              		.global	pbuf_free
+ 813              		.thumb
+ 814              		.thumb_func
+ 816              	pbuf_free:
+ 817              	.LFB21:
+ 560:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 561:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 562:Libraries/lwip-1.4.0/core/pbuf.c ****  * Dereference a pbuf chain or queue and deallocate any no-longer-used
+ 563:Libraries/lwip-1.4.0/core/pbuf.c ****  * pbufs at the head of this chain or queue.
+ 564:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 565:Libraries/lwip-1.4.0/core/pbuf.c ****  * Decrements the pbuf reference count. If it reaches zero, the pbuf is
+ 566:Libraries/lwip-1.4.0/core/pbuf.c ****  * deallocated.
+ 567:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 568:Libraries/lwip-1.4.0/core/pbuf.c ****  * For a pbuf chain, this is repeated for each pbuf in the chain,
+ 569:Libraries/lwip-1.4.0/core/pbuf.c ****  * up to the first pbuf which has a non-zero reference count after
+ 570:Libraries/lwip-1.4.0/core/pbuf.c ****  * decrementing. So, when all reference counts are one, the whole
+ 571:Libraries/lwip-1.4.0/core/pbuf.c ****  * chain is free'd.
+ 572:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 573:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p The pbuf (chain) to be dereferenced.
+ 574:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 575:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return the number of pbufs that were de-allocated
+ 576:Libraries/lwip-1.4.0/core/pbuf.c ****  * from the head of the chain.
+ 577:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 578:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note MUST NOT be called on a packet queue (Not verified to work yet).
+ 579:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note the reference counter of a pbuf equals the number of pointers
+ 580:Libraries/lwip-1.4.0/core/pbuf.c ****  * that refer to the pbuf (or into the pbuf).
+ 581:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 582:Libraries/lwip-1.4.0/core/pbuf.c ****  * @internal examples:
+ 583:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 584:Libraries/lwip-1.4.0/core/pbuf.c ****  * Assuming existing chains a->b->c with the following reference
+ 585:Libraries/lwip-1.4.0/core/pbuf.c ****  * counts, calling pbuf_free(a) results in:
+ 586:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+ 587:Libraries/lwip-1.4.0/core/pbuf.c ****  * 1->2->3 becomes ...1->3
+ 588:Libraries/lwip-1.4.0/core/pbuf.c ****  * 3->3->3 becomes 2->3->3
+ 589:Libraries/lwip-1.4.0/core/pbuf.c ****  * 1->1->2 becomes ......1
+ 590:Libraries/lwip-1.4.0/core/pbuf.c ****  * 2->1->1 becomes 1->1->1
+ 591:Libraries/lwip-1.4.0/core/pbuf.c ****  * 1->1->1 becomes .......
+ 592:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 593:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 594:Libraries/lwip-1.4.0/core/pbuf.c **** u8_t
+ 595:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_free(struct pbuf *p)
+ 596:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 818              		.loc 1 596 0
+ 819              		.cfi_startproc
+ 820              		@ args = 0, pretend = 0, frame = 24
+ 821              		@ frame_needed = 1, uses_anonymous_args = 0
+ 822 0000 80B5     		push	{r7, lr}
+ 823              		.cfi_def_cfa_offset 8
+ 824              		.cfi_offset 7, -8
+ 825              		.cfi_offset 14, -4
+ 826 0002 86B0     		sub	sp, sp, #24
+ 827              		.cfi_def_cfa_offset 32
+ 828 0004 00AF     		add	r7, sp, #0
+ 829              		.cfi_def_cfa_register 7
+ 830 0006 7860     		str	r0, [r7, #4]
+ 597:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t type;
+ 598:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *q;
+ 599:Libraries/lwip-1.4.0/core/pbuf.c ****   u8_t count;
+ 600:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 601:Libraries/lwip-1.4.0/core/pbuf.c ****   if (p == NULL) {
+ 831              		.loc 1 601 0
+ 832 0008 7B68     		ldr	r3, [r7, #4]
+ 833 000a 002B     		cmp	r3, #0
+ 834 000c 01D1     		bne	.L59
+ 602:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("p != NULL", p != NULL);
+ 603:Libraries/lwip-1.4.0/core/pbuf.c ****     /* if assertions are disabled, proceed with debug output */
+ 604:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_LEVEL_SERIOUS,
+ 605:Libraries/lwip-1.4.0/core/pbuf.c ****       ("pbuf_free(p == NULL) was called.\n"));
+ 606:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0;
+ 835              		.loc 1 606 0
+ 836 000e 0023     		movs	r3, #0
+ 837 0010 4EE0     		b	.L60
+ 838              	.L59:
+ 607:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 608:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_free(%p)\n", (void *)p));
+ 609:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 610:Libraries/lwip-1.4.0/core/pbuf.c ****   PERF_START;
+ 611:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 612:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("pbuf_free: sane type",
+ 839              		.loc 1 612 0
+ 840 0012 7B68     		ldr	r3, [r7, #4]
+ 841 0014 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 842 0016 002B     		cmp	r3, #0
+ 843 0018 06D0     		beq	.L61
+ 844              		.loc 1 612 0 is_stmt 0 discriminator 1
+ 845 001a 7B68     		ldr	r3, [r7, #4]
+ 846 001c 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 847 001e 012B     		cmp	r3, #1
+ 848 0020 02D0     		beq	.L61
+ 849              		.loc 1 612 0 discriminator 2
+ 850 0022 7B68     		ldr	r3, [r7, #4]
+ 851 0024 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 852 0026 022B     		cmp	r3, #2
+ 853              	.L61:
+ 613:Libraries/lwip-1.4.0/core/pbuf.c ****     p->type == PBUF_RAM || p->type == PBUF_ROM ||
+ 614:Libraries/lwip-1.4.0/core/pbuf.c ****     p->type == PBUF_REF || p->type == PBUF_POOL);
+ 615:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 616:Libraries/lwip-1.4.0/core/pbuf.c ****   count = 0;
+ 854              		.loc 1 616 0 is_stmt 1
+ 855 0028 0023     		movs	r3, #0
+ 856 002a FB75     		strb	r3, [r7, #23]
+ 617:Libraries/lwip-1.4.0/core/pbuf.c ****   /* de-allocate all consecutive pbufs from the head of the chain that
+ 618:Libraries/lwip-1.4.0/core/pbuf.c ****    * obtain a zero reference count after decrementing*/
+ 619:Libraries/lwip-1.4.0/core/pbuf.c ****   while (p != NULL) {
+ 857              		.loc 1 619 0
+ 858 002c 3CE0     		b	.L62
+ 859              	.L69:
+ 860              	.LBB2:
+ 620:Libraries/lwip-1.4.0/core/pbuf.c ****     u16_t ref;
+ 621:Libraries/lwip-1.4.0/core/pbuf.c ****     SYS_ARCH_DECL_PROTECT(old_level);
+ 622:Libraries/lwip-1.4.0/core/pbuf.c ****     /* Since decrementing ref cannot be guaranteed to be a single machine operation
+ 623:Libraries/lwip-1.4.0/core/pbuf.c ****      * we must protect it. We put the new ref into a local variable to prevent
+ 624:Libraries/lwip-1.4.0/core/pbuf.c ****      * further protection. */
+ 625:Libraries/lwip-1.4.0/core/pbuf.c ****     SYS_ARCH_PROTECT(old_level);
+ 626:Libraries/lwip-1.4.0/core/pbuf.c ****     /* all pbufs in a chain are referenced at least once */
+ 627:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_free: p->ref > 0", p->ref > 0);
+ 628:Libraries/lwip-1.4.0/core/pbuf.c ****     /* decrease reference count (number of pointers to pbuf) */
+ 629:Libraries/lwip-1.4.0/core/pbuf.c ****     ref = --(p->ref);
+ 861              		.loc 1 629 0
+ 862 002e 7B68     		ldr	r3, [r7, #4]
+ 863 0030 DB89     		ldrh	r3, [r3, #14]
+ 864 0032 013B     		subs	r3, r3, #1
+ 865 0034 9AB2     		uxth	r2, r3
+ 866 0036 7B68     		ldr	r3, [r7, #4]
+ 867 0038 DA81     		strh	r2, [r3, #14]	@ movhi
+ 868 003a 7B68     		ldr	r3, [r7, #4]
+ 869 003c DB89     		ldrh	r3, [r3, #14]	@ movhi
+ 870 003e BB82     		strh	r3, [r7, #20]	@ movhi
+ 630:Libraries/lwip-1.4.0/core/pbuf.c ****     SYS_ARCH_UNPROTECT(old_level);
+ 631:Libraries/lwip-1.4.0/core/pbuf.c ****     /* this pbuf is no longer referenced to? */
+ 632:Libraries/lwip-1.4.0/core/pbuf.c ****     if (ref == 0) {
+ 871              		.loc 1 632 0
+ 872 0040 BB8A     		ldrh	r3, [r7, #20]
+ 873 0042 002B     		cmp	r3, #0
+ 874 0044 2ED1     		bne	.L63
+ 633:Libraries/lwip-1.4.0/core/pbuf.c ****       /* remember next pbuf in chain for next iteration */
+ 634:Libraries/lwip-1.4.0/core/pbuf.c ****       q = p->next;
+ 875              		.loc 1 634 0
+ 876 0046 7B68     		ldr	r3, [r7, #4]
+ 877 0048 1B68     		ldr	r3, [r3]
+ 878 004a 3B61     		str	r3, [r7, #16]
+ 635:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF( PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_free: deallocating %p\n", (void *)p));
+ 636:Libraries/lwip-1.4.0/core/pbuf.c ****       type = p->type;
+ 879              		.loc 1 636 0
+ 880 004c 7B68     		ldr	r3, [r7, #4]
+ 881 004e 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 882 0050 FB81     		strh	r3, [r7, #14]	@ movhi
+ 637:Libraries/lwip-1.4.0/core/pbuf.c **** #if LWIP_SUPPORT_CUSTOM_PBUF
+ 638:Libraries/lwip-1.4.0/core/pbuf.c ****       /* is this a custom pbuf? */
+ 639:Libraries/lwip-1.4.0/core/pbuf.c ****       if ((p->flags & PBUF_FLAG_IS_CUSTOM) != 0) {
+ 883              		.loc 1 639 0
+ 884 0052 7B68     		ldr	r3, [r7, #4]
+ 885 0054 5B7B     		ldrb	r3, [r3, #13]	@ zero_extendqisi2
+ 886 0056 03F00203 		and	r3, r3, #2
+ 887 005a 002B     		cmp	r3, #0
+ 888 005c 06D0     		beq	.L64
+ 889              	.LBB3:
+ 640:Libraries/lwip-1.4.0/core/pbuf.c ****         struct pbuf_custom *pc = (struct pbuf_custom*)p;
+ 890              		.loc 1 640 0
+ 891 005e 7B68     		ldr	r3, [r7, #4]
+ 892 0060 BB60     		str	r3, [r7, #8]
+ 641:Libraries/lwip-1.4.0/core/pbuf.c ****         LWIP_ASSERT("pc->custom_free_function != NULL", pc->custom_free_function != NULL);
+ 642:Libraries/lwip-1.4.0/core/pbuf.c ****         pc->custom_free_function(p);
+ 893              		.loc 1 642 0
+ 894 0062 BB68     		ldr	r3, [r7, #8]
+ 895 0064 1B69     		ldr	r3, [r3, #16]
+ 896 0066 7868     		ldr	r0, [r7, #4]
+ 897 0068 9847     		blx	r3
+ 898              	.LBE3:
+ 899 006a 15E0     		b	.L65
+ 900              	.L64:
+ 643:Libraries/lwip-1.4.0/core/pbuf.c ****       } else
+ 644:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* LWIP_SUPPORT_CUSTOM_PBUF */
+ 645:Libraries/lwip-1.4.0/core/pbuf.c ****       {
+ 646:Libraries/lwip-1.4.0/core/pbuf.c ****         /* is this a pbuf from the pool? */
+ 647:Libraries/lwip-1.4.0/core/pbuf.c ****         if (type == PBUF_POOL) {
+ 901              		.loc 1 647 0
+ 902 006c FB89     		ldrh	r3, [r7, #14]
+ 903 006e 032B     		cmp	r3, #3
+ 904 0070 04D1     		bne	.L66
+ 648:Libraries/lwip-1.4.0/core/pbuf.c ****           memp_free(MEMP_PBUF_POOL, p);
+ 905              		.loc 1 648 0
+ 906 0072 7968     		ldr	r1, [r7, #4]
+ 907 0074 0920     		movs	r0, #9
+ 908 0076 FFF7FEFF 		bl	memp_free
+ 909 007a 0DE0     		b	.L65
+ 910              	.L66:
+ 649:Libraries/lwip-1.4.0/core/pbuf.c ****         /* is this a ROM or RAM referencing pbuf? */
+ 650:Libraries/lwip-1.4.0/core/pbuf.c ****         } else if (type == PBUF_ROM || type == PBUF_REF) {
+ 911              		.loc 1 650 0
+ 912 007c FB89     		ldrh	r3, [r7, #14]
+ 913 007e 012B     		cmp	r3, #1
+ 914 0080 02D0     		beq	.L67
+ 915              		.loc 1 650 0 is_stmt 0 discriminator 1
+ 916 0082 FB89     		ldrh	r3, [r7, #14]
+ 917 0084 022B     		cmp	r3, #2
+ 918 0086 04D1     		bne	.L68
+ 919              	.L67:
+ 651:Libraries/lwip-1.4.0/core/pbuf.c ****           memp_free(MEMP_PBUF, p);
+ 920              		.loc 1 651 0 is_stmt 1
+ 921 0088 7968     		ldr	r1, [r7, #4]
+ 922 008a 0820     		movs	r0, #8
+ 923 008c FFF7FEFF 		bl	memp_free
+ 924 0090 02E0     		b	.L65
+ 925              	.L68:
+ 652:Libraries/lwip-1.4.0/core/pbuf.c ****         /* type == PBUF_RAM */
+ 653:Libraries/lwip-1.4.0/core/pbuf.c ****         } else {
+ 654:Libraries/lwip-1.4.0/core/pbuf.c ****           mem_free(p);
+ 926              		.loc 1 654 0
+ 927 0092 7868     		ldr	r0, [r7, #4]
+ 928 0094 FFF7FEFF 		bl	mem_free
+ 929              	.L65:
+ 655:Libraries/lwip-1.4.0/core/pbuf.c ****         }
+ 656:Libraries/lwip-1.4.0/core/pbuf.c ****       }
+ 657:Libraries/lwip-1.4.0/core/pbuf.c ****       count++;
+ 930              		.loc 1 657 0
+ 931 0098 FB7D     		ldrb	r3, [r7, #23]	@ zero_extendqisi2
+ 932 009a 0133     		adds	r3, r3, #1
+ 933 009c FB75     		strb	r3, [r7, #23]
+ 658:Libraries/lwip-1.4.0/core/pbuf.c ****       /* proceed to next pbuf */
+ 659:Libraries/lwip-1.4.0/core/pbuf.c ****       p = q;
+ 934              		.loc 1 659 0
+ 935 009e 3B69     		ldr	r3, [r7, #16]
+ 936 00a0 7B60     		str	r3, [r7, #4]
+ 937 00a2 01E0     		b	.L62
+ 938              	.L63:
+ 660:Libraries/lwip-1.4.0/core/pbuf.c ****     /* p->ref > 0, this pbuf is still referenced to */
+ 661:Libraries/lwip-1.4.0/core/pbuf.c ****     /* (and so the remaining pbufs in chain as well) */
+ 662:Libraries/lwip-1.4.0/core/pbuf.c ****     } else {
+ 663:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF( PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_free: %p has ref %"U16_F", ending here.\n", 
+ 664:Libraries/lwip-1.4.0/core/pbuf.c ****       /* stop walking through the chain */
+ 665:Libraries/lwip-1.4.0/core/pbuf.c ****       p = NULL;
+ 939              		.loc 1 665 0
+ 940 00a4 0023     		movs	r3, #0
+ 941 00a6 7B60     		str	r3, [r7, #4]
+ 942              	.L62:
+ 943              	.LBE2:
+ 619:Libraries/lwip-1.4.0/core/pbuf.c ****     u16_t ref;
+ 944              		.loc 1 619 0
+ 945 00a8 7B68     		ldr	r3, [r7, #4]
+ 946 00aa 002B     		cmp	r3, #0
+ 947 00ac BFD1     		bne	.L69
+ 666:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 667:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 668:Libraries/lwip-1.4.0/core/pbuf.c ****   PERF_STOP("pbuf_free");
+ 669:Libraries/lwip-1.4.0/core/pbuf.c ****   /* return number of de-allocated pbufs */
+ 670:Libraries/lwip-1.4.0/core/pbuf.c ****   return count;
+ 948              		.loc 1 670 0
+ 949 00ae FB7D     		ldrb	r3, [r7, #23]	@ zero_extendqisi2
+ 950              	.L60:
+ 671:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 951              		.loc 1 671 0
+ 952 00b0 1846     		mov	r0, r3
+ 953 00b2 1837     		adds	r7, r7, #24
+ 954              		.cfi_def_cfa_offset 8
+ 955 00b4 BD46     		mov	sp, r7
+ 956              		.cfi_def_cfa_register 13
+ 957              		@ sp needed
+ 958 00b6 80BD     		pop	{r7, pc}
+ 959              		.cfi_endproc
+ 960              	.LFE21:
+ 962              		.section	.text.pbuf_clen,"ax",%progbits
+ 963              		.align	2
+ 964              		.global	pbuf_clen
+ 965              		.thumb
+ 966              		.thumb_func
+ 968              	pbuf_clen:
+ 969              	.LFB22:
+ 672:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 673:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 674:Libraries/lwip-1.4.0/core/pbuf.c ****  * Count number of pbufs in a chain
+ 675:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 676:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p first pbuf of chain
+ 677:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return the number of pbufs in a chain
+ 678:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 679:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 680:Libraries/lwip-1.4.0/core/pbuf.c **** u8_t
+ 681:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_clen(struct pbuf *p)
+ 682:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 970              		.loc 1 682 0
+ 971              		.cfi_startproc
+ 972              		@ args = 0, pretend = 0, frame = 16
+ 973              		@ frame_needed = 1, uses_anonymous_args = 0
+ 974              		@ link register save eliminated.
+ 975 0000 80B4     		push	{r7}
+ 976              		.cfi_def_cfa_offset 4
+ 977              		.cfi_offset 7, -4
+ 978 0002 85B0     		sub	sp, sp, #20
+ 979              		.cfi_def_cfa_offset 24
+ 980 0004 00AF     		add	r7, sp, #0
+ 981              		.cfi_def_cfa_register 7
+ 982 0006 7860     		str	r0, [r7, #4]
+ 683:Libraries/lwip-1.4.0/core/pbuf.c ****   u8_t len;
+ 684:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 685:Libraries/lwip-1.4.0/core/pbuf.c ****   len = 0;
+ 983              		.loc 1 685 0
+ 984 0008 0023     		movs	r3, #0
+ 985 000a FB73     		strb	r3, [r7, #15]
+ 686:Libraries/lwip-1.4.0/core/pbuf.c ****   while (p != NULL) {
+ 986              		.loc 1 686 0
+ 987 000c 05E0     		b	.L71
+ 988              	.L72:
+ 687:Libraries/lwip-1.4.0/core/pbuf.c ****     ++len;
+ 989              		.loc 1 687 0
+ 990 000e FB7B     		ldrb	r3, [r7, #15]
+ 991 0010 0133     		adds	r3, r3, #1
+ 992 0012 FB73     		strb	r3, [r7, #15]
+ 688:Libraries/lwip-1.4.0/core/pbuf.c ****     p = p->next;
+ 993              		.loc 1 688 0
+ 994 0014 7B68     		ldr	r3, [r7, #4]
+ 995 0016 1B68     		ldr	r3, [r3]
+ 996 0018 7B60     		str	r3, [r7, #4]
+ 997              	.L71:
+ 686:Libraries/lwip-1.4.0/core/pbuf.c ****   while (p != NULL) {
+ 998              		.loc 1 686 0
+ 999 001a 7B68     		ldr	r3, [r7, #4]
+ 1000 001c 002B     		cmp	r3, #0
+ 1001 001e F6D1     		bne	.L72
+ 689:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 690:Libraries/lwip-1.4.0/core/pbuf.c ****   return len;
+ 1002              		.loc 1 690 0
+ 1003 0020 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 691:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1004              		.loc 1 691 0
+ 1005 0022 1846     		mov	r0, r3
+ 1006 0024 1437     		adds	r7, r7, #20
+ 1007              		.cfi_def_cfa_offset 4
+ 1008 0026 BD46     		mov	sp, r7
+ 1009              		.cfi_def_cfa_register 13
+ 1010              		@ sp needed
+ 1011 0028 80BC     		pop	{r7}
+ 1012              		.cfi_restore 7
+ 1013              		.cfi_def_cfa_offset 0
+ 1014 002a 7047     		bx	lr
+ 1015              		.cfi_endproc
+ 1016              	.LFE22:
+ 1018              		.section	.text.pbuf_ref,"ax",%progbits
+ 1019              		.align	2
+ 1020              		.global	pbuf_ref
+ 1021              		.thumb
+ 1022              		.thumb_func
+ 1024              	pbuf_ref:
+ 1025              	.LFB23:
+ 692:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 693:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 694:Libraries/lwip-1.4.0/core/pbuf.c ****  * Increment the reference count of the pbuf.
+ 695:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 696:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to increase reference counter of
+ 697:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 698:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 699:Libraries/lwip-1.4.0/core/pbuf.c **** void
+ 700:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_ref(struct pbuf *p)
+ 701:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1026              		.loc 1 701 0
+ 1027              		.cfi_startproc
+ 1028              		@ args = 0, pretend = 0, frame = 8
+ 1029              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1030              		@ link register save eliminated.
+ 1031 0000 80B4     		push	{r7}
+ 1032              		.cfi_def_cfa_offset 4
+ 1033              		.cfi_offset 7, -4
+ 1034 0002 83B0     		sub	sp, sp, #12
+ 1035              		.cfi_def_cfa_offset 16
+ 1036 0004 00AF     		add	r7, sp, #0
+ 1037              		.cfi_def_cfa_register 7
+ 1038 0006 7860     		str	r0, [r7, #4]
+ 702:Libraries/lwip-1.4.0/core/pbuf.c ****   SYS_ARCH_DECL_PROTECT(old_level);
+ 703:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf given? */
+ 704:Libraries/lwip-1.4.0/core/pbuf.c ****   if (p != NULL) {
+ 1039              		.loc 1 704 0
+ 1040 0008 7B68     		ldr	r3, [r7, #4]
+ 1041 000a 002B     		cmp	r3, #0
+ 1042 000c 05D0     		beq	.L76
+ 705:Libraries/lwip-1.4.0/core/pbuf.c ****     SYS_ARCH_PROTECT(old_level);
+ 706:Libraries/lwip-1.4.0/core/pbuf.c ****     ++(p->ref);
+ 1043              		.loc 1 706 0
+ 1044 000e 7B68     		ldr	r3, [r7, #4]
+ 1045 0010 DB89     		ldrh	r3, [r3, #14]
+ 1046 0012 0133     		adds	r3, r3, #1
+ 1047 0014 9AB2     		uxth	r2, r3
+ 1048 0016 7B68     		ldr	r3, [r7, #4]
+ 1049 0018 DA81     		strh	r2, [r3, #14]	@ movhi
+ 1050              	.L76:
+ 707:Libraries/lwip-1.4.0/core/pbuf.c ****     SYS_ARCH_UNPROTECT(old_level);
+ 708:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 709:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1051              		.loc 1 709 0
+ 1052 001a 00BF     		nop
+ 1053 001c 0C37     		adds	r7, r7, #12
+ 1054              		.cfi_def_cfa_offset 4
+ 1055 001e BD46     		mov	sp, r7
+ 1056              		.cfi_def_cfa_register 13
+ 1057              		@ sp needed
+ 1058 0020 80BC     		pop	{r7}
+ 1059              		.cfi_restore 7
+ 1060              		.cfi_def_cfa_offset 0
+ 1061 0022 7047     		bx	lr
+ 1062              		.cfi_endproc
+ 1063              	.LFE23:
+ 1065              		.section	.text.pbuf_cat,"ax",%progbits
+ 1066              		.align	2
+ 1067              		.global	pbuf_cat
+ 1068              		.thumb
+ 1069              		.thumb_func
+ 1071              	pbuf_cat:
+ 1072              	.LFB24:
+ 710:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 711:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 712:Libraries/lwip-1.4.0/core/pbuf.c ****  * Concatenate two pbufs (each may be a pbuf chain) and take over
+ 713:Libraries/lwip-1.4.0/core/pbuf.c ****  * the caller's reference of the tail pbuf.
+ 714:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+ 715:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note The caller MAY NOT reference the tail pbuf afterwards.
+ 716:Libraries/lwip-1.4.0/core/pbuf.c ****  * Use pbuf_chain() for that purpose.
+ 717:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+ 718:Libraries/lwip-1.4.0/core/pbuf.c ****  * @see pbuf_chain()
+ 719:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 720:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 721:Libraries/lwip-1.4.0/core/pbuf.c **** void
+ 722:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_cat(struct pbuf *h, struct pbuf *t)
+ 723:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1073              		.loc 1 723 0
+ 1074              		.cfi_startproc
+ 1075              		@ args = 0, pretend = 0, frame = 16
+ 1076              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1077              		@ link register save eliminated.
+ 1078 0000 80B4     		push	{r7}
+ 1079              		.cfi_def_cfa_offset 4
+ 1080              		.cfi_offset 7, -4
+ 1081 0002 85B0     		sub	sp, sp, #20
+ 1082              		.cfi_def_cfa_offset 24
+ 1083 0004 00AF     		add	r7, sp, #0
+ 1084              		.cfi_def_cfa_register 7
+ 1085 0006 7860     		str	r0, [r7, #4]
+ 1086 0008 3960     		str	r1, [r7]
+ 724:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *p;
+ 725:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 726:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("(h != NULL) && (t != NULL) (programmer violates API)",
+ 1087              		.loc 1 726 0
+ 1088 000a 7B68     		ldr	r3, [r7, #4]
+ 1089 000c 002B     		cmp	r3, #0
+ 1090 000e 20D0     		beq	.L83
+ 1091              		.loc 1 726 0 is_stmt 0 discriminator 1
+ 1092 0010 3B68     		ldr	r3, [r7]
+ 1093 0012 002B     		cmp	r3, #0
+ 1094 0014 1DD0     		beq	.L83
+ 727:Libraries/lwip-1.4.0/core/pbuf.c ****              ((h != NULL) && (t != NULL)), return;);
+ 728:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 729:Libraries/lwip-1.4.0/core/pbuf.c ****   /* proceed to last pbuf of chain */
+ 730:Libraries/lwip-1.4.0/core/pbuf.c ****   for (p = h; p->next != NULL; p = p->next) {
+ 1095              		.loc 1 730 0 is_stmt 1
+ 1096 0016 7B68     		ldr	r3, [r7, #4]
+ 1097 0018 FB60     		str	r3, [r7, #12]
+ 1098 001a 0AE0     		b	.L81
+ 1099              	.L82:
+ 731:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add total length of second chain to all totals of first chain */
+ 732:Libraries/lwip-1.4.0/core/pbuf.c ****     p->tot_len += t->tot_len;
+ 1100              		.loc 1 732 0 discriminator 3
+ 1101 001c FB68     		ldr	r3, [r7, #12]
+ 1102 001e 1A89     		ldrh	r2, [r3, #8]
+ 1103 0020 3B68     		ldr	r3, [r7]
+ 1104 0022 1B89     		ldrh	r3, [r3, #8]
+ 1105 0024 1344     		add	r3, r3, r2
+ 1106 0026 9AB2     		uxth	r2, r3
+ 1107 0028 FB68     		ldr	r3, [r7, #12]
+ 1108 002a 1A81     		strh	r2, [r3, #8]	@ movhi
+ 730:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add total length of second chain to all totals of first chain */
+ 1109              		.loc 1 730 0 discriminator 3
+ 1110 002c FB68     		ldr	r3, [r7, #12]
+ 1111 002e 1B68     		ldr	r3, [r3]
+ 1112 0030 FB60     		str	r3, [r7, #12]
+ 1113              	.L81:
+ 730:Libraries/lwip-1.4.0/core/pbuf.c ****     /* add total length of second chain to all totals of first chain */
+ 1114              		.loc 1 730 0 is_stmt 0 discriminator 1
+ 1115 0032 FB68     		ldr	r3, [r7, #12]
+ 1116 0034 1B68     		ldr	r3, [r3]
+ 1117 0036 002B     		cmp	r3, #0
+ 1118 0038 F0D1     		bne	.L82
+ 733:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 734:Libraries/lwip-1.4.0/core/pbuf.c ****   /* { p is last pbuf of first h chain, p->next == NULL } */
+ 735:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("p->tot_len == p->len (of last pbuf in chain)", p->tot_len == p->len);
+ 736:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("p->next == NULL", p->next == NULL);
+ 737:Libraries/lwip-1.4.0/core/pbuf.c ****   /* add total length of second chain to last pbuf total of first chain */
+ 738:Libraries/lwip-1.4.0/core/pbuf.c ****   p->tot_len += t->tot_len;
+ 1119              		.loc 1 738 0 is_stmt 1
+ 1120 003a FB68     		ldr	r3, [r7, #12]
+ 1121 003c 1A89     		ldrh	r2, [r3, #8]
+ 1122 003e 3B68     		ldr	r3, [r7]
+ 1123 0040 1B89     		ldrh	r3, [r3, #8]
+ 1124 0042 1344     		add	r3, r3, r2
+ 1125 0044 9AB2     		uxth	r2, r3
+ 1126 0046 FB68     		ldr	r3, [r7, #12]
+ 1127 0048 1A81     		strh	r2, [r3, #8]	@ movhi
+ 739:Libraries/lwip-1.4.0/core/pbuf.c ****   /* chain last pbuf of head (p) with first of tail (t) */
+ 740:Libraries/lwip-1.4.0/core/pbuf.c ****   p->next = t;
+ 1128              		.loc 1 740 0
+ 1129 004a FB68     		ldr	r3, [r7, #12]
+ 1130 004c 3A68     		ldr	r2, [r7]
+ 1131 004e 1A60     		str	r2, [r3]
+ 1132 0050 00E0     		b	.L77
+ 1133              	.L83:
+ 726:Libraries/lwip-1.4.0/core/pbuf.c ****              ((h != NULL) && (t != NULL)), return;);
+ 1134              		.loc 1 726 0
+ 1135 0052 00BF     		nop
+ 1136              	.L77:
+ 741:Libraries/lwip-1.4.0/core/pbuf.c ****   /* p->next now references t, but the caller will drop its reference to t,
+ 742:Libraries/lwip-1.4.0/core/pbuf.c ****    * so netto there is no change to the reference count of t.
+ 743:Libraries/lwip-1.4.0/core/pbuf.c ****    */
+ 744:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1137              		.loc 1 744 0
+ 1138 0054 1437     		adds	r7, r7, #20
+ 1139              		.cfi_def_cfa_offset 4
+ 1140 0056 BD46     		mov	sp, r7
+ 1141              		.cfi_def_cfa_register 13
+ 1142              		@ sp needed
+ 1143 0058 80BC     		pop	{r7}
+ 1144              		.cfi_restore 7
+ 1145              		.cfi_def_cfa_offset 0
+ 1146 005a 7047     		bx	lr
+ 1147              		.cfi_endproc
+ 1148              	.LFE24:
+ 1150              		.section	.text.pbuf_chain,"ax",%progbits
+ 1151              		.align	2
+ 1152              		.global	pbuf_chain
+ 1153              		.thumb
+ 1154              		.thumb_func
+ 1156              	pbuf_chain:
+ 1157              	.LFB25:
+ 745:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 746:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 747:Libraries/lwip-1.4.0/core/pbuf.c ****  * Chain two pbufs (or pbuf chains) together.
+ 748:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+ 749:Libraries/lwip-1.4.0/core/pbuf.c ****  * The caller MUST call pbuf_free(t) once it has stopped
+ 750:Libraries/lwip-1.4.0/core/pbuf.c ****  * using it. Use pbuf_cat() instead if you no longer use t.
+ 751:Libraries/lwip-1.4.0/core/pbuf.c ****  * 
+ 752:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param h head pbuf (chain)
+ 753:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param t tail pbuf (chain)
+ 754:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note The pbufs MUST belong to the same packet.
+ 755:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note MAY NOT be called on a packet queue.
+ 756:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 757:Libraries/lwip-1.4.0/core/pbuf.c ****  * The ->tot_len fields of all pbufs of the head chain are adjusted.
+ 758:Libraries/lwip-1.4.0/core/pbuf.c ****  * The ->next field of the last pbuf of the head chain is adjusted.
+ 759:Libraries/lwip-1.4.0/core/pbuf.c ****  * The ->ref field of the first pbuf of the tail chain is adjusted.
+ 760:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 761:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 762:Libraries/lwip-1.4.0/core/pbuf.c **** void
+ 763:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_chain(struct pbuf *h, struct pbuf *t)
+ 764:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1158              		.loc 1 764 0
+ 1159              		.cfi_startproc
+ 1160              		@ args = 0, pretend = 0, frame = 8
+ 1161              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1162 0000 80B5     		push	{r7, lr}
+ 1163              		.cfi_def_cfa_offset 8
+ 1164              		.cfi_offset 7, -8
+ 1165              		.cfi_offset 14, -4
+ 1166 0002 82B0     		sub	sp, sp, #8
+ 1167              		.cfi_def_cfa_offset 16
+ 1168 0004 00AF     		add	r7, sp, #0
+ 1169              		.cfi_def_cfa_register 7
+ 1170 0006 7860     		str	r0, [r7, #4]
+ 1171 0008 3960     		str	r1, [r7]
+ 765:Libraries/lwip-1.4.0/core/pbuf.c ****   pbuf_cat(h, t);
+ 1172              		.loc 1 765 0
+ 1173 000a 3968     		ldr	r1, [r7]
+ 1174 000c 7868     		ldr	r0, [r7, #4]
+ 1175 000e FFF7FEFF 		bl	pbuf_cat
+ 766:Libraries/lwip-1.4.0/core/pbuf.c ****   /* t is now referenced by h */
+ 767:Libraries/lwip-1.4.0/core/pbuf.c ****   pbuf_ref(t);
+ 1176              		.loc 1 767 0
+ 1177 0012 3868     		ldr	r0, [r7]
+ 1178 0014 FFF7FEFF 		bl	pbuf_ref
+ 768:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_chain: %p references %p\n", (void *)h, (void *)t)
+ 769:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1179              		.loc 1 769 0
+ 1180 0018 00BF     		nop
+ 1181 001a 0837     		adds	r7, r7, #8
+ 1182              		.cfi_def_cfa_offset 8
+ 1183 001c BD46     		mov	sp, r7
+ 1184              		.cfi_def_cfa_register 13
+ 1185              		@ sp needed
+ 1186 001e 80BD     		pop	{r7, pc}
+ 1187              		.cfi_endproc
+ 1188              	.LFE25:
+ 1190              		.section	.text.pbuf_dechain,"ax",%progbits
+ 1191              		.align	2
+ 1192              		.global	pbuf_dechain
+ 1193              		.thumb
+ 1194              		.thumb_func
+ 1196              	pbuf_dechain:
+ 1197              	.LFB26:
+ 770:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 771:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 772:Libraries/lwip-1.4.0/core/pbuf.c ****  * Dechains the first pbuf from its succeeding pbufs in the chain.
+ 773:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 774:Libraries/lwip-1.4.0/core/pbuf.c ****  * Makes p->tot_len field equal to p->len.
+ 775:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to dechain
+ 776:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return remainder of the pbuf chain, or NULL if it was de-allocated.
+ 777:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note May not be called on a packet queue.
+ 778:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 779:Libraries/lwip-1.4.0/core/pbuf.c **** struct pbuf *
+ 780:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_dechain(struct pbuf *p)
+ 781:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1198              		.loc 1 781 0
+ 1199              		.cfi_startproc
+ 1200              		@ args = 0, pretend = 0, frame = 16
+ 1201              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1202 0000 80B5     		push	{r7, lr}
+ 1203              		.cfi_def_cfa_offset 8
+ 1204              		.cfi_offset 7, -8
+ 1205              		.cfi_offset 14, -4
+ 1206 0002 84B0     		sub	sp, sp, #16
+ 1207              		.cfi_def_cfa_offset 24
+ 1208 0004 00AF     		add	r7, sp, #0
+ 1209              		.cfi_def_cfa_register 7
+ 1210 0006 7860     		str	r0, [r7, #4]
+ 782:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *q;
+ 783:Libraries/lwip-1.4.0/core/pbuf.c ****   u8_t tail_gone = 1;
+ 1211              		.loc 1 783 0
+ 1212 0008 0123     		movs	r3, #1
+ 1213 000a FB73     		strb	r3, [r7, #15]
+ 784:Libraries/lwip-1.4.0/core/pbuf.c ****   /* tail */
+ 785:Libraries/lwip-1.4.0/core/pbuf.c ****   q = p->next;
+ 1214              		.loc 1 785 0
+ 1215 000c 7B68     		ldr	r3, [r7, #4]
+ 1216 000e 1B68     		ldr	r3, [r3]
+ 1217 0010 BB60     		str	r3, [r7, #8]
+ 786:Libraries/lwip-1.4.0/core/pbuf.c ****   /* pbuf has successor in chain? */
+ 787:Libraries/lwip-1.4.0/core/pbuf.c ****   if (q != NULL) {
+ 1218              		.loc 1 787 0
+ 1219 0012 BB68     		ldr	r3, [r7, #8]
+ 1220 0014 002B     		cmp	r3, #0
+ 1221 0016 13D0     		beq	.L86
+ 788:Libraries/lwip-1.4.0/core/pbuf.c ****     /* assert tot_len invariant: (p->tot_len == p->len + (p->next? p->next->tot_len: 0) */
+ 789:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("p->tot_len == p->len + q->tot_len", q->tot_len == p->tot_len - p->len);
+ 790:Libraries/lwip-1.4.0/core/pbuf.c ****     /* enforce invariant if assertion is disabled */
+ 791:Libraries/lwip-1.4.0/core/pbuf.c ****     q->tot_len = p->tot_len - p->len;
+ 1222              		.loc 1 791 0
+ 1223 0018 7B68     		ldr	r3, [r7, #4]
+ 1224 001a 1A89     		ldrh	r2, [r3, #8]
+ 1225 001c 7B68     		ldr	r3, [r7, #4]
+ 1226 001e 5B89     		ldrh	r3, [r3, #10]
+ 1227 0020 D31A     		subs	r3, r2, r3
+ 1228 0022 9AB2     		uxth	r2, r3
+ 1229 0024 BB68     		ldr	r3, [r7, #8]
+ 1230 0026 1A81     		strh	r2, [r3, #8]	@ movhi
+ 792:Libraries/lwip-1.4.0/core/pbuf.c ****     /* decouple pbuf from remainder */
+ 793:Libraries/lwip-1.4.0/core/pbuf.c ****     p->next = NULL;
+ 1231              		.loc 1 793 0
+ 1232 0028 7B68     		ldr	r3, [r7, #4]
+ 1233 002a 0022     		movs	r2, #0
+ 1234 002c 1A60     		str	r2, [r3]
+ 794:Libraries/lwip-1.4.0/core/pbuf.c ****     /* total length of pbuf p is its own length only */
+ 795:Libraries/lwip-1.4.0/core/pbuf.c ****     p->tot_len = p->len;
+ 1235              		.loc 1 795 0
+ 1236 002e 7B68     		ldr	r3, [r7, #4]
+ 1237 0030 5A89     		ldrh	r2, [r3, #10]
+ 1238 0032 7B68     		ldr	r3, [r7, #4]
+ 1239 0034 1A81     		strh	r2, [r3, #8]	@ movhi
+ 796:Libraries/lwip-1.4.0/core/pbuf.c ****     /* q is no longer referenced by p, free it */
+ 797:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_dechain: unreferencing %p\n", (void *)q));
+ 798:Libraries/lwip-1.4.0/core/pbuf.c ****     tail_gone = pbuf_free(q);
+ 1240              		.loc 1 798 0
+ 1241 0036 B868     		ldr	r0, [r7, #8]
+ 1242 0038 FFF7FEFF 		bl	pbuf_free
+ 1243 003c 0346     		mov	r3, r0
+ 1244 003e FB73     		strb	r3, [r7, #15]
+ 1245              	.L86:
+ 799:Libraries/lwip-1.4.0/core/pbuf.c ****     if (tail_gone > 0) {
+ 800:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE,
+ 801:Libraries/lwip-1.4.0/core/pbuf.c ****                   ("pbuf_dechain: deallocated %p (as it is no longer referenced)\n", (void *)q));
+ 802:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 803:Libraries/lwip-1.4.0/core/pbuf.c ****     /* return remaining tail or NULL if deallocated */
+ 804:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 805:Libraries/lwip-1.4.0/core/pbuf.c ****   /* assert tot_len invariant: (p->tot_len == p->len + (p->next? p->next->tot_len: 0) */
+ 806:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("p->tot_len == p->len", p->tot_len == p->len);
+ 807:Libraries/lwip-1.4.0/core/pbuf.c ****   return ((tail_gone > 0) ? NULL : q);
+ 1246              		.loc 1 807 0
+ 1247 0040 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 1248 0042 002B     		cmp	r3, #0
+ 1249 0044 01D1     		bne	.L87
+ 1250              		.loc 1 807 0 is_stmt 0 discriminator 1
+ 1251 0046 BB68     		ldr	r3, [r7, #8]
+ 1252 0048 00E0     		b	.L89
+ 1253              	.L87:
+ 1254              		.loc 1 807 0 discriminator 2
+ 1255 004a 0023     		movs	r3, #0
+ 1256              	.L89:
+ 808:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1257              		.loc 1 808 0 is_stmt 1 discriminator 5
+ 1258 004c 1846     		mov	r0, r3
+ 1259 004e 1037     		adds	r7, r7, #16
+ 1260              		.cfi_def_cfa_offset 8
+ 1261 0050 BD46     		mov	sp, r7
+ 1262              		.cfi_def_cfa_register 13
+ 1263              		@ sp needed
+ 1264 0052 80BD     		pop	{r7, pc}
+ 1265              		.cfi_endproc
+ 1266              	.LFE26:
+ 1268              		.section	.text.pbuf_copy,"ax",%progbits
+ 1269              		.align	2
+ 1270              		.global	pbuf_copy
+ 1271              		.thumb
+ 1272              		.thumb_func
+ 1274              	pbuf_copy:
+ 1275              	.LFB27:
+ 809:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 810:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 811:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 812:Libraries/lwip-1.4.0/core/pbuf.c ****  * Create PBUF_RAM copies of pbufs.
+ 813:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 814:Libraries/lwip-1.4.0/core/pbuf.c ****  * Used to queue packets on behalf of the lwIP stack, such as
+ 815:Libraries/lwip-1.4.0/core/pbuf.c ****  * ARP based queueing.
+ 816:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 817:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note You MUST explicitly use p = pbuf_take(p);
+ 818:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 819:Libraries/lwip-1.4.0/core/pbuf.c ****  * @note Only one packet is copied, no packet queue!
+ 820:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 821:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p_to pbuf destination of the copy
+ 822:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p_from pbuf source of the copy
+ 823:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 824:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return ERR_OK if pbuf was copied
+ 825:Libraries/lwip-1.4.0/core/pbuf.c ****  *         ERR_ARG if one of the pbufs is NULL or p_to is not big
+ 826:Libraries/lwip-1.4.0/core/pbuf.c ****  *                 enough to hold p_from
+ 827:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 828:Libraries/lwip-1.4.0/core/pbuf.c **** err_t
+ 829:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_copy(struct pbuf *p_to, struct pbuf *p_from)
+ 830:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1276              		.loc 1 830 0
+ 1277              		.cfi_startproc
+ 1278              		@ args = 0, pretend = 0, frame = 16
+ 1279              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1280 0000 80B5     		push	{r7, lr}
+ 1281              		.cfi_def_cfa_offset 8
+ 1282              		.cfi_offset 7, -8
+ 1283              		.cfi_offset 14, -4
+ 1284 0002 84B0     		sub	sp, sp, #16
+ 1285              		.cfi_def_cfa_offset 24
+ 1286 0004 00AF     		add	r7, sp, #0
+ 1287              		.cfi_def_cfa_register 7
+ 1288 0006 7860     		str	r0, [r7, #4]
+ 1289 0008 3960     		str	r1, [r7]
+ 831:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t offset_to=0, offset_from=0, len;
+ 1290              		.loc 1 831 0
+ 1291 000a 0023     		movs	r3, #0
+ 1292 000c FB81     		strh	r3, [r7, #14]	@ movhi
+ 1293 000e 0023     		movs	r3, #0
+ 1294 0010 BB81     		strh	r3, [r7, #12]	@ movhi
+ 832:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 833:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_copy(%p, %p)\n",
+ 834:Libraries/lwip-1.4.0/core/pbuf.c ****     (void*)p_to, (void*)p_from));
+ 835:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 836:Libraries/lwip-1.4.0/core/pbuf.c ****   /* is the target big enough to hold the source? */
+ 837:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("pbuf_copy: target not big enough to hold source", ((p_to != NULL) &&
+ 1295              		.loc 1 837 0
+ 1296 0012 7B68     		ldr	r3, [r7, #4]
+ 1297 0014 002B     		cmp	r3, #0
+ 1298 0016 08D0     		beq	.L91
+ 1299              		.loc 1 837 0 is_stmt 0 discriminator 2
+ 1300 0018 3B68     		ldr	r3, [r7]
+ 1301 001a 002B     		cmp	r3, #0
+ 1302 001c 05D0     		beq	.L91
+ 1303              		.loc 1 837 0 discriminator 4
+ 1304 001e 7B68     		ldr	r3, [r7, #4]
+ 1305 0020 1A89     		ldrh	r2, [r3, #8]
+ 1306 0022 3B68     		ldr	r3, [r7]
+ 1307 0024 1B89     		ldrh	r3, [r3, #8]
+ 1308 0026 9A42     		cmp	r2, r3
+ 1309 0028 02D2     		bcs	.L92
+ 1310              	.L91:
+ 1311              		.loc 1 837 0 discriminator 5
+ 1312 002a 6FF00D03 		mvn	r3, #13
+ 1313 002e 62E0     		b	.L93
+ 1314              	.L92:
+ 838:Libraries/lwip-1.4.0/core/pbuf.c ****              (p_from != NULL) && (p_to->tot_len >= p_from->tot_len)), return ERR_ARG;);
+ 839:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 840:Libraries/lwip-1.4.0/core/pbuf.c ****   /* iterate through pbuf chain */
+ 841:Libraries/lwip-1.4.0/core/pbuf.c ****   do
+ 842:Libraries/lwip-1.4.0/core/pbuf.c ****   {
+ 843:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("p_to != NULL", p_to != NULL);
+ 844:Libraries/lwip-1.4.0/core/pbuf.c ****     /* copy one part of the original chain */
+ 845:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((p_to->len - offset_to) >= (p_from->len - offset_from)) {
+ 1315              		.loc 1 845 0 is_stmt 1
+ 1316 0030 7B68     		ldr	r3, [r7, #4]
+ 1317 0032 5B89     		ldrh	r3, [r3, #10]
+ 1318 0034 1A46     		mov	r2, r3
+ 1319 0036 FB89     		ldrh	r3, [r7, #14]
+ 1320 0038 D21A     		subs	r2, r2, r3
+ 1321 003a 3B68     		ldr	r3, [r7]
+ 1322 003c 5B89     		ldrh	r3, [r3, #10]
+ 1323 003e 1946     		mov	r1, r3
+ 1324 0040 BB89     		ldrh	r3, [r7, #12]
+ 1325 0042 CB1A     		subs	r3, r1, r3
+ 1326 0044 9A42     		cmp	r2, r3
+ 1327 0046 05DB     		blt	.L94
+ 846:Libraries/lwip-1.4.0/core/pbuf.c ****       /* complete current p_from fits into current p_to */
+ 847:Libraries/lwip-1.4.0/core/pbuf.c ****       len = p_from->len - offset_from;
+ 1328              		.loc 1 847 0
+ 1329 0048 3B68     		ldr	r3, [r7]
+ 1330 004a 5A89     		ldrh	r2, [r3, #10]
+ 1331 004c BB89     		ldrh	r3, [r7, #12]	@ movhi
+ 1332 004e D31A     		subs	r3, r2, r3
+ 1333 0050 7B81     		strh	r3, [r7, #10]	@ movhi
+ 1334 0052 04E0     		b	.L95
+ 1335              	.L94:
+ 848:Libraries/lwip-1.4.0/core/pbuf.c ****     } else {
+ 849:Libraries/lwip-1.4.0/core/pbuf.c ****       /* current p_from does not fit into current p_to */
+ 850:Libraries/lwip-1.4.0/core/pbuf.c ****       len = p_to->len - offset_to;
+ 1336              		.loc 1 850 0
+ 1337 0054 7B68     		ldr	r3, [r7, #4]
+ 1338 0056 5A89     		ldrh	r2, [r3, #10]
+ 1339 0058 FB89     		ldrh	r3, [r7, #14]	@ movhi
+ 1340 005a D31A     		subs	r3, r2, r3
+ 1341 005c 7B81     		strh	r3, [r7, #10]	@ movhi
+ 1342              	.L95:
+ 851:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 852:Libraries/lwip-1.4.0/core/pbuf.c ****     MEMCPY((u8_t*)p_to->payload + offset_to, (u8_t*)p_from->payload + offset_from, len);
+ 1343              		.loc 1 852 0
+ 1344 005e 7B68     		ldr	r3, [r7, #4]
+ 1345 0060 5A68     		ldr	r2, [r3, #4]
+ 1346 0062 FB89     		ldrh	r3, [r7, #14]
+ 1347 0064 D018     		adds	r0, r2, r3
+ 1348 0066 3B68     		ldr	r3, [r7]
+ 1349 0068 5A68     		ldr	r2, [r3, #4]
+ 1350 006a BB89     		ldrh	r3, [r7, #12]
+ 1351 006c 1344     		add	r3, r3, r2
+ 1352 006e 7A89     		ldrh	r2, [r7, #10]
+ 1353 0070 1946     		mov	r1, r3
+ 1354 0072 FFF7FEFF 		bl	memcpy
+ 853:Libraries/lwip-1.4.0/core/pbuf.c ****     offset_to += len;
+ 1355              		.loc 1 853 0
+ 1356 0076 FA89     		ldrh	r2, [r7, #14]	@ movhi
+ 1357 0078 7B89     		ldrh	r3, [r7, #10]	@ movhi
+ 1358 007a 1344     		add	r3, r3, r2
+ 1359 007c FB81     		strh	r3, [r7, #14]	@ movhi
+ 854:Libraries/lwip-1.4.0/core/pbuf.c ****     offset_from += len;
+ 1360              		.loc 1 854 0
+ 1361 007e BA89     		ldrh	r2, [r7, #12]	@ movhi
+ 1362 0080 7B89     		ldrh	r3, [r7, #10]	@ movhi
+ 1363 0082 1344     		add	r3, r3, r2
+ 1364 0084 BB81     		strh	r3, [r7, #12]	@ movhi
+ 855:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("offset_to <= p_to->len", offset_to <= p_to->len);
+ 856:Libraries/lwip-1.4.0/core/pbuf.c ****     if (offset_to == p_to->len) {
+ 1365              		.loc 1 856 0
+ 1366 0086 7B68     		ldr	r3, [r7, #4]
+ 1367 0088 5B89     		ldrh	r3, [r3, #10]
+ 1368 008a FA89     		ldrh	r2, [r7, #14]
+ 1369 008c 9A42     		cmp	r2, r3
+ 1370 008e 04D1     		bne	.L96
+ 857:Libraries/lwip-1.4.0/core/pbuf.c ****       /* on to next p_to (if any) */
+ 858:Libraries/lwip-1.4.0/core/pbuf.c ****       offset_to = 0;
+ 1371              		.loc 1 858 0
+ 1372 0090 0023     		movs	r3, #0
+ 1373 0092 FB81     		strh	r3, [r7, #14]	@ movhi
+ 859:Libraries/lwip-1.4.0/core/pbuf.c ****       p_to = p_to->next;
+ 1374              		.loc 1 859 0
+ 1375 0094 7B68     		ldr	r3, [r7, #4]
+ 1376 0096 1B68     		ldr	r3, [r3]
+ 1377 0098 7B60     		str	r3, [r7, #4]
+ 1378              	.L96:
+ 860:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 861:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("offset_from <= p_from->len", offset_from <= p_from->len);
+ 862:Libraries/lwip-1.4.0/core/pbuf.c ****     if (offset_from >= p_from->len) {
+ 1379              		.loc 1 862 0
+ 1380 009a 3B68     		ldr	r3, [r7]
+ 1381 009c 5B89     		ldrh	r3, [r3, #10]
+ 1382 009e BA89     		ldrh	r2, [r7, #12]
+ 1383 00a0 9A42     		cmp	r2, r3
+ 1384 00a2 04D3     		bcc	.L97
+ 863:Libraries/lwip-1.4.0/core/pbuf.c ****       /* on to next p_from (if any) */
+ 864:Libraries/lwip-1.4.0/core/pbuf.c ****       offset_from = 0;
+ 1385              		.loc 1 864 0
+ 1386 00a4 0023     		movs	r3, #0
+ 1387 00a6 BB81     		strh	r3, [r7, #12]	@ movhi
+ 865:Libraries/lwip-1.4.0/core/pbuf.c ****       p_from = p_from->next;
+ 1388              		.loc 1 865 0
+ 1389 00a8 3B68     		ldr	r3, [r7]
+ 1390 00aa 1B68     		ldr	r3, [r3]
+ 1391 00ac 3B60     		str	r3, [r7]
+ 1392              	.L97:
+ 866:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 867:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 868:Libraries/lwip-1.4.0/core/pbuf.c ****     if((p_from != NULL) && (p_from->len == p_from->tot_len)) {
+ 1393              		.loc 1 868 0
+ 1394 00ae 3B68     		ldr	r3, [r7]
+ 1395 00b0 002B     		cmp	r3, #0
+ 1396 00b2 0CD0     		beq	.L98
+ 1397              		.loc 1 868 0 is_stmt 0 discriminator 1
+ 1398 00b4 3B68     		ldr	r3, [r7]
+ 1399 00b6 5A89     		ldrh	r2, [r3, #10]
+ 1400 00b8 3B68     		ldr	r3, [r7]
+ 1401 00ba 1B89     		ldrh	r3, [r3, #8]
+ 1402 00bc 9A42     		cmp	r2, r3
+ 1403 00be 06D1     		bne	.L98
+ 869:Libraries/lwip-1.4.0/core/pbuf.c ****       /* don't copy more than one packet! */
+ 870:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_ERROR("pbuf_copy() does not allow packet queues!\n",
+ 1404              		.loc 1 870 0 is_stmt 1
+ 1405 00c0 3B68     		ldr	r3, [r7]
+ 1406 00c2 1B68     		ldr	r3, [r3]
+ 1407 00c4 002B     		cmp	r3, #0
+ 1408 00c6 02D0     		beq	.L98
+ 1409              		.loc 1 870 0 is_stmt 0 discriminator 1
+ 1410 00c8 6FF00503 		mvn	r3, #5
+ 1411 00cc 13E0     		b	.L93
+ 1412              	.L98:
+ 871:Libraries/lwip-1.4.0/core/pbuf.c ****                  (p_from->next == NULL), return ERR_VAL;);
+ 872:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 873:Libraries/lwip-1.4.0/core/pbuf.c ****     if((p_to != NULL) && (p_to->len == p_to->tot_len)) {
+ 1413              		.loc 1 873 0 is_stmt 1
+ 1414 00ce 7B68     		ldr	r3, [r7, #4]
+ 1415 00d0 002B     		cmp	r3, #0
+ 1416 00d2 0CD0     		beq	.L99
+ 1417              		.loc 1 873 0 is_stmt 0 discriminator 1
+ 1418 00d4 7B68     		ldr	r3, [r7, #4]
+ 1419 00d6 5A89     		ldrh	r2, [r3, #10]
+ 1420 00d8 7B68     		ldr	r3, [r7, #4]
+ 1421 00da 1B89     		ldrh	r3, [r3, #8]
+ 1422 00dc 9A42     		cmp	r2, r3
+ 1423 00de 06D1     		bne	.L99
+ 874:Libraries/lwip-1.4.0/core/pbuf.c ****       /* don't copy more than one packet! */
+ 875:Libraries/lwip-1.4.0/core/pbuf.c ****       LWIP_ERROR("pbuf_copy() does not allow packet queues!\n",
+ 1424              		.loc 1 875 0 is_stmt 1
+ 1425 00e0 7B68     		ldr	r3, [r7, #4]
+ 1426 00e2 1B68     		ldr	r3, [r3]
+ 1427 00e4 002B     		cmp	r3, #0
+ 1428 00e6 02D0     		beq	.L99
+ 1429              		.loc 1 875 0 is_stmt 0 discriminator 1
+ 1430 00e8 6FF00503 		mvn	r3, #5
+ 1431 00ec 03E0     		b	.L93
+ 1432              	.L99:
+ 876:Libraries/lwip-1.4.0/core/pbuf.c ****                   (p_to->next == NULL), return ERR_VAL;);
+ 877:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 878:Libraries/lwip-1.4.0/core/pbuf.c ****   } while (p_from);
+ 1433              		.loc 1 878 0 is_stmt 1
+ 1434 00ee 3B68     		ldr	r3, [r7]
+ 1435 00f0 002B     		cmp	r3, #0
+ 1436 00f2 9DD1     		bne	.L92
+ 879:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_DEBUGF(PBUF_DEBUG | LWIP_DBG_TRACE, ("pbuf_copy: end of chain reached.\n"));
+ 880:Libraries/lwip-1.4.0/core/pbuf.c ****   return ERR_OK;
+ 1437              		.loc 1 880 0
+ 1438 00f4 0023     		movs	r3, #0
+ 1439              	.L93:
+ 881:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1440              		.loc 1 881 0
+ 1441 00f6 1846     		mov	r0, r3
+ 1442 00f8 1037     		adds	r7, r7, #16
+ 1443              		.cfi_def_cfa_offset 8
+ 1444 00fa BD46     		mov	sp, r7
+ 1445              		.cfi_def_cfa_register 13
+ 1446              		@ sp needed
+ 1447 00fc 80BD     		pop	{r7, pc}
+ 1448              		.cfi_endproc
+ 1449              	.LFE27:
+ 1451 00fe 00BF     		.section	.text.pbuf_copy_partial,"ax",%progbits
+ 1452              		.align	2
+ 1453              		.global	pbuf_copy_partial
+ 1454              		.thumb
+ 1455              		.thumb_func
+ 1457              	pbuf_copy_partial:
+ 1458              	.LFB28:
+ 882:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 883:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 884:Libraries/lwip-1.4.0/core/pbuf.c ****  * Copy (part of) the contents of a packet buffer
+ 885:Libraries/lwip-1.4.0/core/pbuf.c ****  * to an application supplied buffer.
+ 886:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 887:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param buf the pbuf from which to copy data
+ 888:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param dataptr the application supplied buffer
+ 889:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param len length of data to copy (dataptr must be big enough). No more 
+ 890:Libraries/lwip-1.4.0/core/pbuf.c ****  * than buf->tot_len will be copied, irrespective of len
+ 891:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param offset offset into the packet buffer from where to begin copying len bytes
+ 892:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return the number of bytes copied, or 0 on failure
+ 893:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 894:Libraries/lwip-1.4.0/core/pbuf.c **** u16_t
+ 895:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_copy_partial(struct pbuf *buf, void *dataptr, u16_t len, u16_t offset)
+ 896:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1459              		.loc 1 896 0
+ 1460              		.cfi_startproc
+ 1461              		@ args = 0, pretend = 0, frame = 32
+ 1462              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1463 0000 80B5     		push	{r7, lr}
+ 1464              		.cfi_def_cfa_offset 8
+ 1465              		.cfi_offset 7, -8
+ 1466              		.cfi_offset 14, -4
+ 1467 0002 88B0     		sub	sp, sp, #32
+ 1468              		.cfi_def_cfa_offset 40
+ 1469 0004 00AF     		add	r7, sp, #0
+ 1470              		.cfi_def_cfa_register 7
+ 1471 0006 F860     		str	r0, [r7, #12]
+ 1472 0008 B960     		str	r1, [r7, #8]
+ 1473 000a 1146     		mov	r1, r2
+ 1474 000c 1A46     		mov	r2, r3
+ 1475 000e 0B46     		mov	r3, r1	@ movhi
+ 1476 0010 FB80     		strh	r3, [r7, #6]	@ movhi
+ 1477 0012 1346     		mov	r3, r2	@ movhi
+ 1478 0014 BB80     		strh	r3, [r7, #4]	@ movhi
+ 897:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *p;
+ 898:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t left;
+ 899:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t buf_copy_len;
+ 900:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t copied_total = 0;
+ 1479              		.loc 1 900 0
+ 1480 0016 0023     		movs	r3, #0
+ 1481 0018 FB82     		strh	r3, [r7, #22]	@ movhi
+ 901:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 902:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("pbuf_copy_partial: invalid buf", (buf != NULL), return 0;);
+ 1482              		.loc 1 902 0
+ 1483 001a FB68     		ldr	r3, [r7, #12]
+ 1484 001c 002B     		cmp	r3, #0
+ 1485 001e 01D1     		bne	.L101
+ 1486              		.loc 1 902 0 is_stmt 0 discriminator 1
+ 1487 0020 0023     		movs	r3, #0
+ 1488 0022 4DE0     		b	.L102
+ 1489              	.L101:
+ 903:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("pbuf_copy_partial: invalid dataptr", (dataptr != NULL), return 0;);
+ 1490              		.loc 1 903 0 is_stmt 1
+ 1491 0024 BB68     		ldr	r3, [r7, #8]
+ 1492 0026 002B     		cmp	r3, #0
+ 1493 0028 01D1     		bne	.L103
+ 1494              		.loc 1 903 0 is_stmt 0 discriminator 1
+ 1495 002a 0023     		movs	r3, #0
+ 1496 002c 48E0     		b	.L102
+ 1497              	.L103:
+ 904:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 905:Libraries/lwip-1.4.0/core/pbuf.c ****   left = 0;
+ 1498              		.loc 1 905 0 is_stmt 1
+ 1499 002e 0023     		movs	r3, #0
+ 1500 0030 7B83     		strh	r3, [r7, #26]	@ movhi
+ 906:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 907:Libraries/lwip-1.4.0/core/pbuf.c ****   if((buf == NULL) || (dataptr == NULL)) {
+ 1501              		.loc 1 907 0
+ 1502 0032 FB68     		ldr	r3, [r7, #12]
+ 1503 0034 002B     		cmp	r3, #0
+ 1504 0036 02D0     		beq	.L104
+ 1505              		.loc 1 907 0 is_stmt 0 discriminator 1
+ 1506 0038 BB68     		ldr	r3, [r7, #8]
+ 1507 003a 002B     		cmp	r3, #0
+ 1508 003c 01D1     		bne	.L105
+ 1509              	.L104:
+ 908:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0;
+ 1510              		.loc 1 908 0 is_stmt 1
+ 1511 003e 0023     		movs	r3, #0
+ 1512 0040 3EE0     		b	.L102
+ 1513              	.L105:
+ 909:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 910:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 911:Libraries/lwip-1.4.0/core/pbuf.c ****   /* Note some systems use byte copy if dataptr or one of the pbuf payload pointers are unaligned. 
+ 912:Libraries/lwip-1.4.0/core/pbuf.c ****   for(p = buf; len != 0 && p != NULL; p = p->next) {
+ 1514              		.loc 1 912 0
+ 1515 0042 FB68     		ldr	r3, [r7, #12]
+ 1516 0044 FB61     		str	r3, [r7, #28]
+ 1517 0046 34E0     		b	.L106
+ 1518              	.L111:
+ 913:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((offset != 0) && (offset >= p->len)) {
+ 1519              		.loc 1 913 0
+ 1520 0048 BB88     		ldrh	r3, [r7, #4]
+ 1521 004a 002B     		cmp	r3, #0
+ 1522 004c 0AD0     		beq	.L107
+ 1523              		.loc 1 913 0 is_stmt 0 discriminator 1
+ 1524 004e FB69     		ldr	r3, [r7, #28]
+ 1525 0050 5B89     		ldrh	r3, [r3, #10]
+ 1526 0052 BA88     		ldrh	r2, [r7, #4]
+ 1527 0054 9A42     		cmp	r2, r3
+ 1528 0056 05D3     		bcc	.L107
+ 914:Libraries/lwip-1.4.0/core/pbuf.c ****       /* don't copy from this buffer -> on to the next */
+ 915:Libraries/lwip-1.4.0/core/pbuf.c ****       offset -= p->len;
+ 1529              		.loc 1 915 0 is_stmt 1
+ 1530 0058 FB69     		ldr	r3, [r7, #28]
+ 1531 005a 5B89     		ldrh	r3, [r3, #10]
+ 1532 005c BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1533 005e D31A     		subs	r3, r2, r3
+ 1534 0060 BB80     		strh	r3, [r7, #4]	@ movhi
+ 1535 0062 23E0     		b	.L108
+ 1536              	.L107:
+ 916:Libraries/lwip-1.4.0/core/pbuf.c ****     } else {
+ 917:Libraries/lwip-1.4.0/core/pbuf.c ****       /* copy from this buffer. maybe only partially. */
+ 918:Libraries/lwip-1.4.0/core/pbuf.c ****       buf_copy_len = p->len - offset;
+ 1537              		.loc 1 918 0
+ 1538 0064 FB69     		ldr	r3, [r7, #28]
+ 1539 0066 5A89     		ldrh	r2, [r3, #10]
+ 1540 0068 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 1541 006a D31A     		subs	r3, r2, r3
+ 1542 006c 3B83     		strh	r3, [r7, #24]	@ movhi
+ 919:Libraries/lwip-1.4.0/core/pbuf.c ****       if (buf_copy_len > len)
+ 1543              		.loc 1 919 0
+ 1544 006e 3A8B     		ldrh	r2, [r7, #24]
+ 1545 0070 FB88     		ldrh	r3, [r7, #6]
+ 1546 0072 9A42     		cmp	r2, r3
+ 1547 0074 01D9     		bls	.L109
+ 920:Libraries/lwip-1.4.0/core/pbuf.c ****           buf_copy_len = len;
+ 1548              		.loc 1 920 0
+ 1549 0076 FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 1550 0078 3B83     		strh	r3, [r7, #24]	@ movhi
+ 1551              	.L109:
+ 921:Libraries/lwip-1.4.0/core/pbuf.c ****       /* copy the necessary parts of the buffer */
+ 922:Libraries/lwip-1.4.0/core/pbuf.c ****       MEMCPY(&((char*)dataptr)[left], &((char*)p->payload)[offset], buf_copy_len);
+ 1552              		.loc 1 922 0
+ 1553 007a 7B8B     		ldrh	r3, [r7, #26]
+ 1554 007c BA68     		ldr	r2, [r7, #8]
+ 1555 007e D018     		adds	r0, r2, r3
+ 1556 0080 FB69     		ldr	r3, [r7, #28]
+ 1557 0082 5A68     		ldr	r2, [r3, #4]
+ 1558 0084 BB88     		ldrh	r3, [r7, #4]
+ 1559 0086 1344     		add	r3, r3, r2
+ 1560 0088 3A8B     		ldrh	r2, [r7, #24]
+ 1561 008a 1946     		mov	r1, r3
+ 1562 008c FFF7FEFF 		bl	memcpy
+ 923:Libraries/lwip-1.4.0/core/pbuf.c ****       copied_total += buf_copy_len;
+ 1563              		.loc 1 923 0
+ 1564 0090 FA8A     		ldrh	r2, [r7, #22]	@ movhi
+ 1565 0092 3B8B     		ldrh	r3, [r7, #24]	@ movhi
+ 1566 0094 1344     		add	r3, r3, r2
+ 1567 0096 FB82     		strh	r3, [r7, #22]	@ movhi
+ 924:Libraries/lwip-1.4.0/core/pbuf.c ****       left += buf_copy_len;
+ 1568              		.loc 1 924 0
+ 1569 0098 7A8B     		ldrh	r2, [r7, #26]	@ movhi
+ 1570 009a 3B8B     		ldrh	r3, [r7, #24]	@ movhi
+ 1571 009c 1344     		add	r3, r3, r2
+ 1572 009e 7B83     		strh	r3, [r7, #26]	@ movhi
+ 925:Libraries/lwip-1.4.0/core/pbuf.c ****       len -= buf_copy_len;
+ 1573              		.loc 1 925 0
+ 1574 00a0 FA88     		ldrh	r2, [r7, #6]	@ movhi
+ 1575 00a2 3B8B     		ldrh	r3, [r7, #24]	@ movhi
+ 1576 00a4 D31A     		subs	r3, r2, r3
+ 1577 00a6 FB80     		strh	r3, [r7, #6]	@ movhi
+ 926:Libraries/lwip-1.4.0/core/pbuf.c ****       offset = 0;
+ 1578              		.loc 1 926 0
+ 1579 00a8 0023     		movs	r3, #0
+ 1580 00aa BB80     		strh	r3, [r7, #4]	@ movhi
+ 1581              	.L108:
+ 912:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((offset != 0) && (offset >= p->len)) {
+ 1582              		.loc 1 912 0 discriminator 2
+ 1583 00ac FB69     		ldr	r3, [r7, #28]
+ 1584 00ae 1B68     		ldr	r3, [r3]
+ 1585 00b0 FB61     		str	r3, [r7, #28]
+ 1586              	.L106:
+ 912:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((offset != 0) && (offset >= p->len)) {
+ 1587              		.loc 1 912 0 is_stmt 0 discriminator 1
+ 1588 00b2 FB88     		ldrh	r3, [r7, #6]
+ 1589 00b4 002B     		cmp	r3, #0
+ 1590 00b6 02D0     		beq	.L110
+ 912:Libraries/lwip-1.4.0/core/pbuf.c ****     if ((offset != 0) && (offset >= p->len)) {
+ 1591              		.loc 1 912 0 discriminator 3
+ 1592 00b8 FB69     		ldr	r3, [r7, #28]
+ 1593 00ba 002B     		cmp	r3, #0
+ 1594 00bc C4D1     		bne	.L111
+ 1595              	.L110:
+ 927:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 928:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 929:Libraries/lwip-1.4.0/core/pbuf.c ****   return copied_total;
+ 1596              		.loc 1 929 0 is_stmt 1
+ 1597 00be FB8A     		ldrh	r3, [r7, #22]
+ 1598              	.L102:
+ 930:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1599              		.loc 1 930 0
+ 1600 00c0 1846     		mov	r0, r3
+ 1601 00c2 2037     		adds	r7, r7, #32
+ 1602              		.cfi_def_cfa_offset 8
+ 1603 00c4 BD46     		mov	sp, r7
+ 1604              		.cfi_def_cfa_register 13
+ 1605              		@ sp needed
+ 1606 00c6 80BD     		pop	{r7, pc}
+ 1607              		.cfi_endproc
+ 1608              	.LFE28:
+ 1610              		.section	.text.pbuf_take,"ax",%progbits
+ 1611              		.align	2
+ 1612              		.global	pbuf_take
+ 1613              		.thumb
+ 1614              		.thumb_func
+ 1616              	pbuf_take:
+ 1617              	.LFB29:
+ 931:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 932:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 933:Libraries/lwip-1.4.0/core/pbuf.c ****  * Copy application supplied data into a pbuf.
+ 934:Libraries/lwip-1.4.0/core/pbuf.c ****  * This function can only be used to copy the equivalent of buf->tot_len data.
+ 935:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 936:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param buf pbuf to fill with data
+ 937:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param dataptr application supplied data buffer
+ 938:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param len length of the application supplied data buffer
+ 939:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 940:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return ERR_OK if successful, ERR_MEM if the pbuf is not big enough
+ 941:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 942:Libraries/lwip-1.4.0/core/pbuf.c **** err_t
+ 943:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_take(struct pbuf *buf, const void *dataptr, u16_t len)
+ 944:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1618              		.loc 1 944 0
+ 1619              		.cfi_startproc
+ 1620              		@ args = 0, pretend = 0, frame = 32
+ 1621              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1622 0000 80B5     		push	{r7, lr}
+ 1623              		.cfi_def_cfa_offset 8
+ 1624              		.cfi_offset 7, -8
+ 1625              		.cfi_offset 14, -4
+ 1626 0002 88B0     		sub	sp, sp, #32
+ 1627              		.cfi_def_cfa_offset 40
+ 1628 0004 00AF     		add	r7, sp, #0
+ 1629              		.cfi_def_cfa_register 7
+ 1630 0006 F860     		str	r0, [r7, #12]
+ 1631 0008 B960     		str	r1, [r7, #8]
+ 1632 000a 1346     		mov	r3, r2
+ 1633 000c FB80     		strh	r3, [r7, #6]	@ movhi
+ 945:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *p;
+ 946:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t buf_copy_len;
+ 947:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t total_copy_len = len;
+ 1634              		.loc 1 947 0
+ 1635 000e FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 1636 0010 3B83     		strh	r3, [r7, #24]	@ movhi
+ 948:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t copied_total = 0;
+ 1637              		.loc 1 948 0
+ 1638 0012 0023     		movs	r3, #0
+ 1639 0014 FB82     		strh	r3, [r7, #22]	@ movhi
+ 949:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 950:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("pbuf_take: invalid buf", (buf != NULL), return 0;);
+ 1640              		.loc 1 950 0
+ 1641 0016 FB68     		ldr	r3, [r7, #12]
+ 1642 0018 002B     		cmp	r3, #0
+ 1643 001a 01D1     		bne	.L113
+ 1644              		.loc 1 950 0 is_stmt 0 discriminator 1
+ 1645 001c 0023     		movs	r3, #0
+ 1646 001e 37E0     		b	.L114
+ 1647              	.L113:
+ 951:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ERROR("pbuf_take: invalid dataptr", (dataptr != NULL), return 0;);
+ 1648              		.loc 1 951 0 is_stmt 1
+ 1649 0020 BB68     		ldr	r3, [r7, #8]
+ 1650 0022 002B     		cmp	r3, #0
+ 1651 0024 01D1     		bne	.L115
+ 1652              		.loc 1 951 0 is_stmt 0 discriminator 1
+ 1653 0026 0023     		movs	r3, #0
+ 1654 0028 32E0     		b	.L114
+ 1655              	.L115:
+ 952:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 953:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((buf == NULL) || (dataptr == NULL) || (buf->tot_len < len)) {
+ 1656              		.loc 1 953 0 is_stmt 1
+ 1657 002a FB68     		ldr	r3, [r7, #12]
+ 1658 002c 002B     		cmp	r3, #0
+ 1659 002e 07D0     		beq	.L116
+ 1660              		.loc 1 953 0 is_stmt 0 discriminator 1
+ 1661 0030 BB68     		ldr	r3, [r7, #8]
+ 1662 0032 002B     		cmp	r3, #0
+ 1663 0034 04D0     		beq	.L116
+ 1664              		.loc 1 953 0 discriminator 2
+ 1665 0036 FB68     		ldr	r3, [r7, #12]
+ 1666 0038 1B89     		ldrh	r3, [r3, #8]
+ 1667 003a FA88     		ldrh	r2, [r7, #6]
+ 1668 003c 9A42     		cmp	r2, r3
+ 1669 003e 02D9     		bls	.L117
+ 1670              	.L116:
+ 954:Libraries/lwip-1.4.0/core/pbuf.c ****     return ERR_ARG;
+ 1671              		.loc 1 954 0 is_stmt 1
+ 1672 0040 6FF00D03 		mvn	r3, #13
+ 1673 0044 24E0     		b	.L114
+ 1674              	.L117:
+ 955:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 956:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 957:Libraries/lwip-1.4.0/core/pbuf.c ****   /* Note some systems use byte copy if dataptr or one of the pbuf payload pointers are unaligned. 
+ 958:Libraries/lwip-1.4.0/core/pbuf.c ****   for(p = buf; total_copy_len != 0; p = p->next) {
+ 1675              		.loc 1 958 0
+ 1676 0046 FB68     		ldr	r3, [r7, #12]
+ 1677 0048 FB61     		str	r3, [r7, #28]
+ 1678 004a 1DE0     		b	.L118
+ 1679              	.L120:
+ 959:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_take: invalid pbuf", p != NULL);
+ 960:Libraries/lwip-1.4.0/core/pbuf.c ****     buf_copy_len = total_copy_len;
+ 1680              		.loc 1 960 0
+ 1681 004c 3B8B     		ldrh	r3, [r7, #24]	@ movhi
+ 1682 004e 7B83     		strh	r3, [r7, #26]	@ movhi
+ 961:Libraries/lwip-1.4.0/core/pbuf.c ****     if (buf_copy_len > p->len) {
+ 1683              		.loc 1 961 0
+ 1684 0050 FB69     		ldr	r3, [r7, #28]
+ 1685 0052 5B89     		ldrh	r3, [r3, #10]
+ 1686 0054 7A8B     		ldrh	r2, [r7, #26]
+ 1687 0056 9A42     		cmp	r2, r3
+ 1688 0058 02D9     		bls	.L119
+ 962:Libraries/lwip-1.4.0/core/pbuf.c ****       /* this pbuf cannot hold all remaining data */
+ 963:Libraries/lwip-1.4.0/core/pbuf.c ****       buf_copy_len = p->len;
+ 1689              		.loc 1 963 0
+ 1690 005a FB69     		ldr	r3, [r7, #28]
+ 1691 005c 5B89     		ldrh	r3, [r3, #10]	@ movhi
+ 1692 005e 7B83     		strh	r3, [r7, #26]	@ movhi
+ 1693              	.L119:
+ 964:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+ 965:Libraries/lwip-1.4.0/core/pbuf.c ****     /* copy the necessary parts of the buffer */
+ 966:Libraries/lwip-1.4.0/core/pbuf.c ****     MEMCPY(p->payload, &((char*)dataptr)[copied_total], buf_copy_len);
+ 1694              		.loc 1 966 0 discriminator 2
+ 1695 0060 FB69     		ldr	r3, [r7, #28]
+ 1696 0062 5868     		ldr	r0, [r3, #4]
+ 1697 0064 FB8A     		ldrh	r3, [r7, #22]
+ 1698 0066 BA68     		ldr	r2, [r7, #8]
+ 1699 0068 1344     		add	r3, r3, r2
+ 1700 006a 7A8B     		ldrh	r2, [r7, #26]
+ 1701 006c 1946     		mov	r1, r3
+ 1702 006e FFF7FEFF 		bl	memcpy
+ 967:Libraries/lwip-1.4.0/core/pbuf.c ****     total_copy_len -= buf_copy_len;
+ 1703              		.loc 1 967 0 discriminator 2
+ 1704 0072 3A8B     		ldrh	r2, [r7, #24]	@ movhi
+ 1705 0074 7B8B     		ldrh	r3, [r7, #26]	@ movhi
+ 1706 0076 D31A     		subs	r3, r2, r3
+ 1707 0078 3B83     		strh	r3, [r7, #24]	@ movhi
+ 968:Libraries/lwip-1.4.0/core/pbuf.c ****     copied_total += buf_copy_len;
+ 1708              		.loc 1 968 0 discriminator 2
+ 1709 007a FA8A     		ldrh	r2, [r7, #22]	@ movhi
+ 1710 007c 7B8B     		ldrh	r3, [r7, #26]	@ movhi
+ 1711 007e 1344     		add	r3, r3, r2
+ 1712 0080 FB82     		strh	r3, [r7, #22]	@ movhi
+ 958:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_take: invalid pbuf", p != NULL);
+ 1713              		.loc 1 958 0 discriminator 2
+ 1714 0082 FB69     		ldr	r3, [r7, #28]
+ 1715 0084 1B68     		ldr	r3, [r3]
+ 1716 0086 FB61     		str	r3, [r7, #28]
+ 1717              	.L118:
+ 958:Libraries/lwip-1.4.0/core/pbuf.c ****     LWIP_ASSERT("pbuf_take: invalid pbuf", p != NULL);
+ 1718              		.loc 1 958 0 is_stmt 0 discriminator 1
+ 1719 0088 3B8B     		ldrh	r3, [r7, #24]
+ 1720 008a 002B     		cmp	r3, #0
+ 1721 008c DED1     		bne	.L120
+ 969:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 970:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("did not copy all data", total_copy_len == 0 && copied_total == len);
+ 971:Libraries/lwip-1.4.0/core/pbuf.c ****   return ERR_OK;
+ 1722              		.loc 1 971 0 is_stmt 1
+ 1723 008e 0023     		movs	r3, #0
+ 1724              	.L114:
+ 972:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1725              		.loc 1 972 0
+ 1726 0090 1846     		mov	r0, r3
+ 1727 0092 2037     		adds	r7, r7, #32
+ 1728              		.cfi_def_cfa_offset 8
+ 1729 0094 BD46     		mov	sp, r7
+ 1730              		.cfi_def_cfa_register 13
+ 1731              		@ sp needed
+ 1732 0096 80BD     		pop	{r7, pc}
+ 1733              		.cfi_endproc
+ 1734              	.LFE29:
+ 1736              		.section	.text.pbuf_coalesce,"ax",%progbits
+ 1737              		.align	2
+ 1738              		.global	pbuf_coalesce
+ 1739              		.thumb
+ 1740              		.thumb_func
+ 1742              	pbuf_coalesce:
+ 1743              	.LFB30:
+ 973:Libraries/lwip-1.4.0/core/pbuf.c **** 
+ 974:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+ 975:Libraries/lwip-1.4.0/core/pbuf.c ****  * Creates a single pbuf out of a queue of pbufs.
+ 976:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 977:Libraries/lwip-1.4.0/core/pbuf.c ****  * @remark: Either the source pbuf 'p' is freed by this function or the original
+ 978:Libraries/lwip-1.4.0/core/pbuf.c ****  *          pbuf 'p' is returned, therefore the caller has to check the result!
+ 979:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 980:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p the source pbuf
+ 981:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param layer pbuf_layer of the new pbuf
+ 982:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+ 983:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return a new, single pbuf (p->next is NULL)
+ 984:Libraries/lwip-1.4.0/core/pbuf.c ****  *         or the old pbuf if allocation fails
+ 985:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+ 986:Libraries/lwip-1.4.0/core/pbuf.c **** struct pbuf*
+ 987:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_coalesce(struct pbuf *p, pbuf_layer layer)
+ 988:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1744              		.loc 1 988 0
+ 1745              		.cfi_startproc
+ 1746              		@ args = 0, pretend = 0, frame = 16
+ 1747              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1748 0000 80B5     		push	{r7, lr}
+ 1749              		.cfi_def_cfa_offset 8
+ 1750              		.cfi_offset 7, -8
+ 1751              		.cfi_offset 14, -4
+ 1752 0002 84B0     		sub	sp, sp, #16
+ 1753              		.cfi_def_cfa_offset 24
+ 1754 0004 00AF     		add	r7, sp, #0
+ 1755              		.cfi_def_cfa_register 7
+ 1756 0006 7860     		str	r0, [r7, #4]
+ 1757 0008 0B46     		mov	r3, r1
+ 1758 000a FB70     		strb	r3, [r7, #3]
+ 989:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf *q;
+ 990:Libraries/lwip-1.4.0/core/pbuf.c ****   err_t err;
+ 991:Libraries/lwip-1.4.0/core/pbuf.c ****   if (p->next == NULL) {
+ 1759              		.loc 1 991 0
+ 1760 000c 7B68     		ldr	r3, [r7, #4]
+ 1761 000e 1B68     		ldr	r3, [r3]
+ 1762 0010 002B     		cmp	r3, #0
+ 1763 0012 01D1     		bne	.L122
+ 992:Libraries/lwip-1.4.0/core/pbuf.c ****     return p;
+ 1764              		.loc 1 992 0
+ 1765 0014 7B68     		ldr	r3, [r7, #4]
+ 1766 0016 15E0     		b	.L123
+ 1767              	.L122:
+ 993:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 994:Libraries/lwip-1.4.0/core/pbuf.c ****   q = pbuf_alloc(layer, p->tot_len, PBUF_RAM);
+ 1768              		.loc 1 994 0
+ 1769 0018 7B68     		ldr	r3, [r7, #4]
+ 1770 001a 1989     		ldrh	r1, [r3, #8]
+ 1771 001c FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 1772 001e 0022     		movs	r2, #0
+ 1773 0020 1846     		mov	r0, r3
+ 1774 0022 FFF7FEFF 		bl	pbuf_alloc
+ 1775 0026 F860     		str	r0, [r7, #12]
+ 995:Libraries/lwip-1.4.0/core/pbuf.c ****   if (q == NULL) {
+ 1776              		.loc 1 995 0
+ 1777 0028 FB68     		ldr	r3, [r7, #12]
+ 1778 002a 002B     		cmp	r3, #0
+ 1779 002c 01D1     		bne	.L124
+ 996:Libraries/lwip-1.4.0/core/pbuf.c ****     /* @todo: what do we do now? */
+ 997:Libraries/lwip-1.4.0/core/pbuf.c ****     return p;
+ 1780              		.loc 1 997 0
+ 1781 002e 7B68     		ldr	r3, [r7, #4]
+ 1782 0030 08E0     		b	.L123
+ 1783              	.L124:
+ 998:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+ 999:Libraries/lwip-1.4.0/core/pbuf.c ****   err = pbuf_copy(q, p);
+ 1784              		.loc 1 999 0
+ 1785 0032 7968     		ldr	r1, [r7, #4]
+ 1786 0034 F868     		ldr	r0, [r7, #12]
+ 1787 0036 FFF7FEFF 		bl	pbuf_copy
+ 1788 003a B860     		str	r0, [r7, #8]
+1000:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("pbuf_copy failed", err == ERR_OK);
+1001:Libraries/lwip-1.4.0/core/pbuf.c ****   pbuf_free(p);
+ 1789              		.loc 1 1001 0
+ 1790 003c 7868     		ldr	r0, [r7, #4]
+ 1791 003e FFF7FEFF 		bl	pbuf_free
+1002:Libraries/lwip-1.4.0/core/pbuf.c ****   return q;
+ 1792              		.loc 1 1002 0
+ 1793 0042 FB68     		ldr	r3, [r7, #12]
+ 1794              	.L123:
+1003:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1795              		.loc 1 1003 0
+ 1796 0044 1846     		mov	r0, r3
+ 1797 0046 1037     		adds	r7, r7, #16
+ 1798              		.cfi_def_cfa_offset 8
+ 1799 0048 BD46     		mov	sp, r7
+ 1800              		.cfi_def_cfa_register 13
+ 1801              		@ sp needed
+ 1802 004a 80BD     		pop	{r7, pc}
+ 1803              		.cfi_endproc
+ 1804              	.LFE30:
+ 1806              		.section	.text.pbuf_get_at,"ax",%progbits
+ 1807              		.align	2
+ 1808              		.global	pbuf_get_at
+ 1809              		.thumb
+ 1810              		.thumb_func
+ 1812              	pbuf_get_at:
+ 1813              	.LFB31:
+1004:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1005:Libraries/lwip-1.4.0/core/pbuf.c **** #if LWIP_CHECKSUM_ON_COPY
+1006:Libraries/lwip-1.4.0/core/pbuf.c **** /**
+1007:Libraries/lwip-1.4.0/core/pbuf.c ****  * Copies data into a single pbuf (*not* into a pbuf queue!) and updates
+1008:Libraries/lwip-1.4.0/core/pbuf.c ****  * the checksum while copying
+1009:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+1010:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p the pbuf to copy data into
+1011:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param start_offset offset of p->payload where to copy the data to
+1012:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param dataptr data to copy into the pbuf
+1013:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param len length of data to copy into the pbuf
+1014:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param chksum pointer to the checksum which is updated
+1015:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return ERR_OK if successful, another error if the data does not fit
+1016:Libraries/lwip-1.4.0/core/pbuf.c ****  *         within the (first) pbuf (no pbuf queues!)
+1017:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+1018:Libraries/lwip-1.4.0/core/pbuf.c **** err_t
+1019:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_fill_chksum(struct pbuf *p, u16_t start_offset, const void *dataptr,
+1020:Libraries/lwip-1.4.0/core/pbuf.c ****                  u16_t len, u16_t *chksum)
+1021:Libraries/lwip-1.4.0/core/pbuf.c **** {
+1022:Libraries/lwip-1.4.0/core/pbuf.c ****   u32_t acc;
+1023:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t copy_chksum;
+1024:Libraries/lwip-1.4.0/core/pbuf.c ****   char *dst_ptr;
+1025:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("p != NULL", p != NULL);
+1026:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("dataptr != NULL", dataptr != NULL);
+1027:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("chksum != NULL", chksum != NULL);
+1028:Libraries/lwip-1.4.0/core/pbuf.c ****   LWIP_ASSERT("len != 0", len != 0);
+1029:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1030:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((start_offset >= p->len) || (start_offset + len > p->len)) {
+1031:Libraries/lwip-1.4.0/core/pbuf.c ****     return ERR_ARG;
+1032:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1033:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1034:Libraries/lwip-1.4.0/core/pbuf.c ****   dst_ptr = ((char*)p->payload) + start_offset;
+1035:Libraries/lwip-1.4.0/core/pbuf.c ****   copy_chksum = LWIP_CHKSUM_COPY(dst_ptr, dataptr, len);
+1036:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((start_offset & 1) != 0) {
+1037:Libraries/lwip-1.4.0/core/pbuf.c ****     copy_chksum = SWAP_BYTES_IN_WORD(copy_chksum);
+1038:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1039:Libraries/lwip-1.4.0/core/pbuf.c ****   acc = *chksum;
+1040:Libraries/lwip-1.4.0/core/pbuf.c ****   acc += copy_chksum;
+1041:Libraries/lwip-1.4.0/core/pbuf.c ****   *chksum = FOLD_U32T(acc);
+1042:Libraries/lwip-1.4.0/core/pbuf.c ****   return ERR_OK;
+1043:Libraries/lwip-1.4.0/core/pbuf.c **** }
+1044:Libraries/lwip-1.4.0/core/pbuf.c **** #endif /* LWIP_CHECKSUM_ON_COPY */
+1045:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1046:Libraries/lwip-1.4.0/core/pbuf.c ****  /** Get one byte from the specified position in a pbuf
+1047:Libraries/lwip-1.4.0/core/pbuf.c ****  * WARNING: returns zero for offset >= p->tot_len
+1048:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+1049:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to parse
+1050:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param offset offset into p of the byte to return
+1051:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return byte at an offset into p OR ZERO IF 'offset' >= p->tot_len
+1052:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+1053:Libraries/lwip-1.4.0/core/pbuf.c **** u8_t
+1054:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_get_at(struct pbuf* p, u16_t offset)
+1055:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1814              		.loc 1 1055 0
+ 1815              		.cfi_startproc
+ 1816              		@ args = 0, pretend = 0, frame = 16
+ 1817              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1818              		@ link register save eliminated.
+ 1819 0000 80B4     		push	{r7}
+ 1820              		.cfi_def_cfa_offset 4
+ 1821              		.cfi_offset 7, -4
+ 1822 0002 85B0     		sub	sp, sp, #20
+ 1823              		.cfi_def_cfa_offset 24
+ 1824 0004 00AF     		add	r7, sp, #0
+ 1825              		.cfi_def_cfa_register 7
+ 1826 0006 7860     		str	r0, [r7, #4]
+ 1827 0008 0B46     		mov	r3, r1
+ 1828 000a 7B80     		strh	r3, [r7, #2]	@ movhi
+1056:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t copy_from = offset;
+ 1829              		.loc 1 1056 0
+ 1830 000c 7B88     		ldrh	r3, [r7, #2]	@ movhi
+ 1831 000e FB81     		strh	r3, [r7, #14]	@ movhi
+1057:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf* q = p;
+ 1832              		.loc 1 1057 0
+ 1833 0010 7B68     		ldr	r3, [r7, #4]
+ 1834 0012 BB60     		str	r3, [r7, #8]
+1058:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1059:Libraries/lwip-1.4.0/core/pbuf.c ****   /* get the correct pbuf */
+1060:Libraries/lwip-1.4.0/core/pbuf.c ****   while ((q != NULL) && (q->len <= copy_from)) {
+ 1835              		.loc 1 1060 0
+ 1836 0014 07E0     		b	.L126
+ 1837              	.L128:
+1061:Libraries/lwip-1.4.0/core/pbuf.c ****     copy_from -= q->len;
+ 1838              		.loc 1 1061 0
+ 1839 0016 BB68     		ldr	r3, [r7, #8]
+ 1840 0018 5B89     		ldrh	r3, [r3, #10]
+ 1841 001a FA89     		ldrh	r2, [r7, #14]	@ movhi
+ 1842 001c D31A     		subs	r3, r2, r3
+ 1843 001e FB81     		strh	r3, [r7, #14]	@ movhi
+1062:Libraries/lwip-1.4.0/core/pbuf.c ****     q = q->next;
+ 1844              		.loc 1 1062 0
+ 1845 0020 BB68     		ldr	r3, [r7, #8]
+ 1846 0022 1B68     		ldr	r3, [r3]
+ 1847 0024 BB60     		str	r3, [r7, #8]
+ 1848              	.L126:
+1060:Libraries/lwip-1.4.0/core/pbuf.c ****     copy_from -= q->len;
+ 1849              		.loc 1 1060 0
+ 1850 0026 BB68     		ldr	r3, [r7, #8]
+ 1851 0028 002B     		cmp	r3, #0
+ 1852 002a 04D0     		beq	.L127
+1060:Libraries/lwip-1.4.0/core/pbuf.c ****     copy_from -= q->len;
+ 1853              		.loc 1 1060 0 is_stmt 0 discriminator 1
+ 1854 002c BB68     		ldr	r3, [r7, #8]
+ 1855 002e 5B89     		ldrh	r3, [r3, #10]
+ 1856 0030 FA89     		ldrh	r2, [r7, #14]
+ 1857 0032 9A42     		cmp	r2, r3
+ 1858 0034 EFD2     		bcs	.L128
+ 1859              	.L127:
+1063:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1064:Libraries/lwip-1.4.0/core/pbuf.c ****   /* return requested data if pbuf is OK */
+1065:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((q != NULL) && (q->len > copy_from)) {
+ 1860              		.loc 1 1065 0 is_stmt 1
+ 1861 0036 BB68     		ldr	r3, [r7, #8]
+ 1862 0038 002B     		cmp	r3, #0
+ 1863 003a 0AD0     		beq	.L129
+ 1864              		.loc 1 1065 0 is_stmt 0 discriminator 1
+ 1865 003c BB68     		ldr	r3, [r7, #8]
+ 1866 003e 5B89     		ldrh	r3, [r3, #10]
+ 1867 0040 FA89     		ldrh	r2, [r7, #14]
+ 1868 0042 9A42     		cmp	r2, r3
+ 1869 0044 05D2     		bcs	.L129
+1066:Libraries/lwip-1.4.0/core/pbuf.c ****     return ((u8_t*)q->payload)[copy_from];
+ 1870              		.loc 1 1066 0 is_stmt 1
+ 1871 0046 BB68     		ldr	r3, [r7, #8]
+ 1872 0048 5A68     		ldr	r2, [r3, #4]
+ 1873 004a FB89     		ldrh	r3, [r7, #14]
+ 1874 004c 1344     		add	r3, r3, r2
+ 1875 004e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1876 0050 00E0     		b	.L130
+ 1877              	.L129:
+1067:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1068:Libraries/lwip-1.4.0/core/pbuf.c ****   return 0;
+ 1878              		.loc 1 1068 0
+ 1879 0052 0023     		movs	r3, #0
+ 1880              	.L130:
+1069:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 1881              		.loc 1 1069 0
+ 1882 0054 1846     		mov	r0, r3
+ 1883 0056 1437     		adds	r7, r7, #20
+ 1884              		.cfi_def_cfa_offset 4
+ 1885 0058 BD46     		mov	sp, r7
+ 1886              		.cfi_def_cfa_register 13
+ 1887              		@ sp needed
+ 1888 005a 80BC     		pop	{r7}
+ 1889              		.cfi_restore 7
+ 1890              		.cfi_def_cfa_offset 0
+ 1891 005c 7047     		bx	lr
+ 1892              		.cfi_endproc
+ 1893              	.LFE31:
+ 1895 005e 00BF     		.section	.text.pbuf_memcmp,"ax",%progbits
+ 1896              		.align	2
+ 1897              		.global	pbuf_memcmp
+ 1898              		.thumb
+ 1899              		.thumb_func
+ 1901              	pbuf_memcmp:
+ 1902              	.LFB32:
+1070:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1071:Libraries/lwip-1.4.0/core/pbuf.c **** /** Compare pbuf contents at specified offset with memory s2, both of length n
+1072:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+1073:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to compare
+1074:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param offset offset into p at wich to start comparing
+1075:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param s2 buffer to compare
+1076:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param n length of buffer to compare
+1077:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return zero if equal, nonzero otherwise
+1078:Libraries/lwip-1.4.0/core/pbuf.c ****  *         (0xffff if p is too short, diffoffset+1 otherwise)
+1079:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+1080:Libraries/lwip-1.4.0/core/pbuf.c **** u16_t
+1081:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_memcmp(struct pbuf* p, u16_t offset, const void* s2, u16_t n)
+1082:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 1903              		.loc 1 1082 0
+ 1904              		.cfi_startproc
+ 1905              		@ args = 0, pretend = 0, frame = 32
+ 1906              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1907 0000 80B5     		push	{r7, lr}
+ 1908              		.cfi_def_cfa_offset 8
+ 1909              		.cfi_offset 7, -8
+ 1910              		.cfi_offset 14, -4
+ 1911 0002 88B0     		sub	sp, sp, #32
+ 1912              		.cfi_def_cfa_offset 40
+ 1913 0004 00AF     		add	r7, sp, #0
+ 1914              		.cfi_def_cfa_register 7
+ 1915 0006 F860     		str	r0, [r7, #12]
+ 1916 0008 7A60     		str	r2, [r7, #4]
+ 1917 000a 1A46     		mov	r2, r3
+ 1918 000c 0B46     		mov	r3, r1	@ movhi
+ 1919 000e 7B81     		strh	r3, [r7, #10]	@ movhi
+ 1920 0010 1346     		mov	r3, r2	@ movhi
+ 1921 0012 3B81     		strh	r3, [r7, #8]	@ movhi
+1083:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t start = offset;
+ 1922              		.loc 1 1083 0
+ 1923 0014 7B89     		ldrh	r3, [r7, #10]	@ movhi
+ 1924 0016 FB83     		strh	r3, [r7, #30]	@ movhi
+1084:Libraries/lwip-1.4.0/core/pbuf.c ****   struct pbuf* q = p;
+ 1925              		.loc 1 1084 0
+ 1926 0018 FB68     		ldr	r3, [r7, #12]
+ 1927 001a BB61     		str	r3, [r7, #24]
+1085:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1086:Libraries/lwip-1.4.0/core/pbuf.c ****   /* get the correct pbuf */
+1087:Libraries/lwip-1.4.0/core/pbuf.c ****   while ((q != NULL) && (q->len <= start)) {
+ 1928              		.loc 1 1087 0
+ 1929 001c 07E0     		b	.L132
+ 1930              	.L134:
+1088:Libraries/lwip-1.4.0/core/pbuf.c ****     start -= q->len;
+ 1931              		.loc 1 1088 0
+ 1932 001e BB69     		ldr	r3, [r7, #24]
+ 1933 0020 5B89     		ldrh	r3, [r3, #10]
+ 1934 0022 FA8B     		ldrh	r2, [r7, #30]	@ movhi
+ 1935 0024 D31A     		subs	r3, r2, r3
+ 1936 0026 FB83     		strh	r3, [r7, #30]	@ movhi
+1089:Libraries/lwip-1.4.0/core/pbuf.c ****     q = q->next;
+ 1937              		.loc 1 1089 0
+ 1938 0028 BB69     		ldr	r3, [r7, #24]
+ 1939 002a 1B68     		ldr	r3, [r3]
+ 1940 002c BB61     		str	r3, [r7, #24]
+ 1941              	.L132:
+1087:Libraries/lwip-1.4.0/core/pbuf.c ****     start -= q->len;
+ 1942              		.loc 1 1087 0
+ 1943 002e BB69     		ldr	r3, [r7, #24]
+ 1944 0030 002B     		cmp	r3, #0
+ 1945 0032 04D0     		beq	.L133
+1087:Libraries/lwip-1.4.0/core/pbuf.c ****     start -= q->len;
+ 1946              		.loc 1 1087 0 is_stmt 0 discriminator 1
+ 1947 0034 BB69     		ldr	r3, [r7, #24]
+ 1948 0036 5B89     		ldrh	r3, [r3, #10]
+ 1949 0038 FA8B     		ldrh	r2, [r7, #30]
+ 1950 003a 9A42     		cmp	r2, r3
+ 1951 003c EFD2     		bcs	.L134
+ 1952              	.L133:
+1090:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1091:Libraries/lwip-1.4.0/core/pbuf.c ****   /* return requested data if pbuf is OK */
+1092:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((q != NULL) && (q->len > start)) {
+ 1953              		.loc 1 1092 0 is_stmt 1
+ 1954 003e BB69     		ldr	r3, [r7, #24]
+ 1955 0040 002B     		cmp	r3, #0
+ 1956 0042 27D0     		beq	.L135
+ 1957              		.loc 1 1092 0 is_stmt 0 discriminator 1
+ 1958 0044 BB69     		ldr	r3, [r7, #24]
+ 1959 0046 5B89     		ldrh	r3, [r3, #10]
+ 1960 0048 FA8B     		ldrh	r2, [r7, #30]
+ 1961 004a 9A42     		cmp	r2, r3
+ 1962 004c 22D2     		bcs	.L135
+ 1963              	.LBB4:
+1093:Libraries/lwip-1.4.0/core/pbuf.c ****     u16_t i;
+1094:Libraries/lwip-1.4.0/core/pbuf.c ****     for(i = 0; i < n; i++) {
+ 1964              		.loc 1 1094 0 is_stmt 1
+ 1965 004e 0023     		movs	r3, #0
+ 1966 0050 FB82     		strh	r3, [r7, #22]	@ movhi
+ 1967 0052 19E0     		b	.L136
+ 1968              	.L139:
+ 1969              	.LBB5:
+1095:Libraries/lwip-1.4.0/core/pbuf.c ****       u8_t a = pbuf_get_at(q, start + i);
+ 1970              		.loc 1 1095 0
+ 1971 0054 FA8B     		ldrh	r2, [r7, #30]	@ movhi
+ 1972 0056 FB8A     		ldrh	r3, [r7, #22]	@ movhi
+ 1973 0058 1344     		add	r3, r3, r2
+ 1974 005a 9BB2     		uxth	r3, r3
+ 1975 005c 1946     		mov	r1, r3
+ 1976 005e B869     		ldr	r0, [r7, #24]
+ 1977 0060 FFF7FEFF 		bl	pbuf_get_at
+ 1978 0064 0346     		mov	r3, r0
+ 1979 0066 7B75     		strb	r3, [r7, #21]
+1096:Libraries/lwip-1.4.0/core/pbuf.c ****       u8_t b = ((u8_t*)s2)[i];
+ 1980              		.loc 1 1096 0
+ 1981 0068 FB8A     		ldrh	r3, [r7, #22]
+ 1982 006a 7A68     		ldr	r2, [r7, #4]
+ 1983 006c 1344     		add	r3, r3, r2
+ 1984 006e 1B78     		ldrb	r3, [r3]
+ 1985 0070 3B75     		strb	r3, [r7, #20]
+1097:Libraries/lwip-1.4.0/core/pbuf.c ****       if (a != b) {
+ 1986              		.loc 1 1097 0
+ 1987 0072 7A7D     		ldrb	r2, [r7, #21]	@ zero_extendqisi2
+ 1988 0074 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 1989 0076 9A42     		cmp	r2, r3
+ 1990 0078 03D0     		beq	.L137
+1098:Libraries/lwip-1.4.0/core/pbuf.c ****         return i+1;
+ 1991              		.loc 1 1098 0
+ 1992 007a FB8A     		ldrh	r3, [r7, #22]	@ movhi
+ 1993 007c 0133     		adds	r3, r3, #1
+ 1994 007e 9BB2     		uxth	r3, r3
+ 1995 0080 0AE0     		b	.L138
+ 1996              	.L137:
+ 1997              	.LBE5:
+1094:Libraries/lwip-1.4.0/core/pbuf.c ****       u8_t a = pbuf_get_at(q, start + i);
+ 1998              		.loc 1 1094 0 discriminator 2
+ 1999 0082 FB8A     		ldrh	r3, [r7, #22]
+ 2000 0084 0133     		adds	r3, r3, #1
+ 2001 0086 FB82     		strh	r3, [r7, #22]	@ movhi
+ 2002              	.L136:
+1094:Libraries/lwip-1.4.0/core/pbuf.c ****       u8_t a = pbuf_get_at(q, start + i);
+ 2003              		.loc 1 1094 0 is_stmt 0 discriminator 1
+ 2004 0088 FA8A     		ldrh	r2, [r7, #22]
+ 2005 008a 3B89     		ldrh	r3, [r7, #8]
+ 2006 008c 9A42     		cmp	r2, r3
+ 2007 008e E1D3     		bcc	.L139
+1099:Libraries/lwip-1.4.0/core/pbuf.c ****       }
+1100:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+1101:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0;
+ 2008              		.loc 1 1101 0 is_stmt 1
+ 2009 0090 0023     		movs	r3, #0
+ 2010 0092 01E0     		b	.L138
+ 2011              	.L135:
+ 2012              	.LBE4:
+1102:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1103:Libraries/lwip-1.4.0/core/pbuf.c ****   return 0xffff;
+ 2013              		.loc 1 1103 0
+ 2014 0094 4FF6FF73 		movw	r3, #65535
+ 2015              	.L138:
+1104:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 2016              		.loc 1 1104 0
+ 2017 0098 1846     		mov	r0, r3
+ 2018 009a 2037     		adds	r7, r7, #32
+ 2019              		.cfi_def_cfa_offset 8
+ 2020 009c BD46     		mov	sp, r7
+ 2021              		.cfi_def_cfa_register 13
+ 2022              		@ sp needed
+ 2023 009e 80BD     		pop	{r7, pc}
+ 2024              		.cfi_endproc
+ 2025              	.LFE32:
+ 2027              		.section	.text.pbuf_memfind,"ax",%progbits
+ 2028              		.align	2
+ 2029              		.global	pbuf_memfind
+ 2030              		.thumb
+ 2031              		.thumb_func
+ 2033              	pbuf_memfind:
+ 2034              	.LFB33:
+1105:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1106:Libraries/lwip-1.4.0/core/pbuf.c **** /** Find occurrence of mem (with length mem_len) in pbuf p, starting at offset
+1107:Libraries/lwip-1.4.0/core/pbuf.c ****  * start_offset.
+1108:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+1109:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to search, maximum length is 0xFFFE since 0xFFFF is used as
+1110:Libraries/lwip-1.4.0/core/pbuf.c ****  *        return value 'not found'
+1111:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param mem search for the contents of this buffer
+1112:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param mem_len length of 'mem'
+1113:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param start_offset offset into p at which to start searching
+1114:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return 0xFFFF if substr was not found in p or the index where it was found
+1115:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+1116:Libraries/lwip-1.4.0/core/pbuf.c **** u16_t
+1117:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_memfind(struct pbuf* p, const void* mem, u16_t mem_len, u16_t start_offset)
+1118:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 2035              		.loc 1 1118 0
+ 2036              		.cfi_startproc
+ 2037              		@ args = 0, pretend = 0, frame = 24
+ 2038              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2039 0000 80B5     		push	{r7, lr}
+ 2040              		.cfi_def_cfa_offset 8
+ 2041              		.cfi_offset 7, -8
+ 2042              		.cfi_offset 14, -4
+ 2043 0002 86B0     		sub	sp, sp, #24
+ 2044              		.cfi_def_cfa_offset 32
+ 2045 0004 00AF     		add	r7, sp, #0
+ 2046              		.cfi_def_cfa_register 7
+ 2047 0006 F860     		str	r0, [r7, #12]
+ 2048 0008 B960     		str	r1, [r7, #8]
+ 2049 000a 1146     		mov	r1, r2
+ 2050 000c 1A46     		mov	r2, r3
+ 2051 000e 0B46     		mov	r3, r1	@ movhi
+ 2052 0010 FB80     		strh	r3, [r7, #6]	@ movhi
+ 2053 0012 1346     		mov	r3, r2	@ movhi
+ 2054 0014 BB80     		strh	r3, [r7, #4]	@ movhi
+1119:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t i;
+1120:Libraries/lwip-1.4.0/core/pbuf.c ****   u16_t max = p->tot_len - mem_len;
+ 2055              		.loc 1 1120 0
+ 2056 0016 FB68     		ldr	r3, [r7, #12]
+ 2057 0018 1A89     		ldrh	r2, [r3, #8]
+ 2058 001a FB88     		ldrh	r3, [r7, #6]	@ movhi
+ 2059 001c D31A     		subs	r3, r2, r3
+ 2060 001e BB82     		strh	r3, [r7, #20]	@ movhi
+1121:Libraries/lwip-1.4.0/core/pbuf.c ****   if (p->tot_len >= mem_len + start_offset) {
+ 2061              		.loc 1 1121 0
+ 2062 0020 FB68     		ldr	r3, [r7, #12]
+ 2063 0022 1B89     		ldrh	r3, [r3, #8]
+ 2064 0024 1946     		mov	r1, r3
+ 2065 0026 FA88     		ldrh	r2, [r7, #6]
+ 2066 0028 BB88     		ldrh	r3, [r7, #4]
+ 2067 002a 1344     		add	r3, r3, r2
+ 2068 002c 9942     		cmp	r1, r3
+ 2069 002e 17DB     		blt	.L141
+1122:Libraries/lwip-1.4.0/core/pbuf.c ****     for(i = start_offset; i <= max; ) {
+ 2070              		.loc 1 1122 0
+ 2071 0030 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 2072 0032 FB82     		strh	r3, [r7, #22]	@ movhi
+ 2073 0034 10E0     		b	.L142
+ 2074              	.L145:
+ 2075              	.LBB6:
+1123:Libraries/lwip-1.4.0/core/pbuf.c ****       u16_t plus = pbuf_memcmp(p, i, mem, mem_len);
+ 2076              		.loc 1 1123 0
+ 2077 0036 FB88     		ldrh	r3, [r7, #6]
+ 2078 0038 F98A     		ldrh	r1, [r7, #22]
+ 2079 003a BA68     		ldr	r2, [r7, #8]
+ 2080 003c F868     		ldr	r0, [r7, #12]
+ 2081 003e FFF7FEFF 		bl	pbuf_memcmp
+ 2082 0042 0346     		mov	r3, r0
+ 2083 0044 7B82     		strh	r3, [r7, #18]	@ movhi
+1124:Libraries/lwip-1.4.0/core/pbuf.c ****       if (plus == 0) {
+ 2084              		.loc 1 1124 0
+ 2085 0046 7B8A     		ldrh	r3, [r7, #18]
+ 2086 0048 002B     		cmp	r3, #0
+ 2087 004a 01D1     		bne	.L143
+1125:Libraries/lwip-1.4.0/core/pbuf.c ****         return i;
+ 2088              		.loc 1 1125 0
+ 2089 004c FB8A     		ldrh	r3, [r7, #22]
+ 2090 004e 09E0     		b	.L144
+ 2091              	.L143:
+1126:Libraries/lwip-1.4.0/core/pbuf.c ****       } else {
+1127:Libraries/lwip-1.4.0/core/pbuf.c ****         i += plus;
+ 2092              		.loc 1 1127 0
+ 2093 0050 FA8A     		ldrh	r2, [r7, #22]	@ movhi
+ 2094 0052 7B8A     		ldrh	r3, [r7, #18]	@ movhi
+ 2095 0054 1344     		add	r3, r3, r2
+ 2096 0056 FB82     		strh	r3, [r7, #22]	@ movhi
+ 2097              	.L142:
+ 2098              	.LBE6:
+1122:Libraries/lwip-1.4.0/core/pbuf.c ****       u16_t plus = pbuf_memcmp(p, i, mem, mem_len);
+ 2099              		.loc 1 1122 0 discriminator 1
+ 2100 0058 FA8A     		ldrh	r2, [r7, #22]
+ 2101 005a BB8A     		ldrh	r3, [r7, #20]
+ 2102 005c 9A42     		cmp	r2, r3
+ 2103 005e EAD9     		bls	.L145
+ 2104              	.L141:
+1128:Libraries/lwip-1.4.0/core/pbuf.c ****       }
+1129:Libraries/lwip-1.4.0/core/pbuf.c ****     }
+1130:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1131:Libraries/lwip-1.4.0/core/pbuf.c ****   return 0xFFFF;
+ 2105              		.loc 1 1131 0
+ 2106 0060 4FF6FF73 		movw	r3, #65535
+ 2107              	.L144:
+1132:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 2108              		.loc 1 1132 0
+ 2109 0064 1846     		mov	r0, r3
+ 2110 0066 1837     		adds	r7, r7, #24
+ 2111              		.cfi_def_cfa_offset 8
+ 2112 0068 BD46     		mov	sp, r7
+ 2113              		.cfi_def_cfa_register 13
+ 2114              		@ sp needed
+ 2115 006a 80BD     		pop	{r7, pc}
+ 2116              		.cfi_endproc
+ 2117              	.LFE33:
+ 2119              		.section	.text.pbuf_strstr,"ax",%progbits
+ 2120              		.align	2
+ 2121              		.global	pbuf_strstr
+ 2122              		.thumb
+ 2123              		.thumb_func
+ 2125              	pbuf_strstr:
+ 2126              	.LFB34:
+1133:Libraries/lwip-1.4.0/core/pbuf.c **** 
+1134:Libraries/lwip-1.4.0/core/pbuf.c **** /** Find occurrence of substr with length substr_len in pbuf p, start at offset
+1135:Libraries/lwip-1.4.0/core/pbuf.c ****  * start_offset
+1136:Libraries/lwip-1.4.0/core/pbuf.c ****  * WARNING: in contrast to strstr(), this one does not stop at the first \0 in
+1137:Libraries/lwip-1.4.0/core/pbuf.c ****  * the pbuf/source string!
+1138:Libraries/lwip-1.4.0/core/pbuf.c ****  *
+1139:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param p pbuf to search, maximum length is 0xFFFE since 0xFFFF is used as
+1140:Libraries/lwip-1.4.0/core/pbuf.c ****  *        return value 'not found'
+1141:Libraries/lwip-1.4.0/core/pbuf.c ****  * @param substr string to search for in p, maximum length is 0xFFFE
+1142:Libraries/lwip-1.4.0/core/pbuf.c ****  * @return 0xFFFF if substr was not found in p or the index where it was found
+1143:Libraries/lwip-1.4.0/core/pbuf.c ****  */
+1144:Libraries/lwip-1.4.0/core/pbuf.c **** u16_t
+1145:Libraries/lwip-1.4.0/core/pbuf.c **** pbuf_strstr(struct pbuf* p, const char* substr)
+1146:Libraries/lwip-1.4.0/core/pbuf.c **** {
+ 2127              		.loc 1 1146 0
+ 2128              		.cfi_startproc
+ 2129              		@ args = 0, pretend = 0, frame = 16
+ 2130              		@ frame_needed = 1, uses_anonymous_args = 0
+ 2131 0000 80B5     		push	{r7, lr}
+ 2132              		.cfi_def_cfa_offset 8
+ 2133              		.cfi_offset 7, -8
+ 2134              		.cfi_offset 14, -4
+ 2135 0002 84B0     		sub	sp, sp, #16
+ 2136              		.cfi_def_cfa_offset 24
+ 2137 0004 00AF     		add	r7, sp, #0
+ 2138              		.cfi_def_cfa_register 7
+ 2139 0006 7860     		str	r0, [r7, #4]
+ 2140 0008 3960     		str	r1, [r7]
+1147:Libraries/lwip-1.4.0/core/pbuf.c ****   size_t substr_len;
+1148:Libraries/lwip-1.4.0/core/pbuf.c ****   if ((substr == NULL) || (substr[0] == 0) || (p->tot_len == 0xFFFF)) {
+ 2141              		.loc 1 1148 0
+ 2142 000a 3B68     		ldr	r3, [r7]
+ 2143 000c 002B     		cmp	r3, #0
+ 2144 000e 09D0     		beq	.L147
+ 2145              		.loc 1 1148 0 is_stmt 0 discriminator 1
+ 2146 0010 3B68     		ldr	r3, [r7]
+ 2147 0012 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 2148 0014 002B     		cmp	r3, #0
+ 2149 0016 05D0     		beq	.L147
+ 2150              		.loc 1 1148 0 discriminator 2
+ 2151 0018 7B68     		ldr	r3, [r7, #4]
+ 2152 001a 1B89     		ldrh	r3, [r3, #8]
+ 2153 001c 4FF6FF72 		movw	r2, #65535
+ 2154 0020 9342     		cmp	r3, r2
+ 2155 0022 02D1     		bne	.L148
+ 2156              	.L147:
+1149:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0xFFFF;
+ 2157              		.loc 1 1149 0 is_stmt 1
+ 2158 0024 4FF6FF73 		movw	r3, #65535
+ 2159 0028 13E0     		b	.L149
+ 2160              	.L148:
+1150:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1151:Libraries/lwip-1.4.0/core/pbuf.c ****   substr_len = strlen(substr);
+ 2161              		.loc 1 1151 0
+ 2162 002a 3868     		ldr	r0, [r7]
+ 2163 002c FFF7FEFF 		bl	strlen
+ 2164 0030 F860     		str	r0, [r7, #12]
+1152:Libraries/lwip-1.4.0/core/pbuf.c ****   if (substr_len >= 0xFFFF) {
+ 2165              		.loc 1 1152 0
+ 2166 0032 FB68     		ldr	r3, [r7, #12]
+ 2167 0034 4FF6FE72 		movw	r2, #65534
+ 2168 0038 9342     		cmp	r3, r2
+ 2169 003a 02D9     		bls	.L150
+1153:Libraries/lwip-1.4.0/core/pbuf.c ****     return 0xFFFF;
+ 2170              		.loc 1 1153 0
+ 2171 003c 4FF6FF73 		movw	r3, #65535
+ 2172 0040 07E0     		b	.L149
+ 2173              	.L150:
+1154:Libraries/lwip-1.4.0/core/pbuf.c ****   }
+1155:Libraries/lwip-1.4.0/core/pbuf.c ****   return pbuf_memfind(p, substr, (u16_t)substr_len, 0);
+ 2174              		.loc 1 1155 0
+ 2175 0042 FB68     		ldr	r3, [r7, #12]
+ 2176 0044 9AB2     		uxth	r2, r3
+ 2177 0046 0023     		movs	r3, #0
+ 2178 0048 3968     		ldr	r1, [r7]
+ 2179 004a 7868     		ldr	r0, [r7, #4]
+ 2180 004c FFF7FEFF 		bl	pbuf_memfind
+ 2181 0050 0346     		mov	r3, r0
+ 2182              	.L149:
+1156:Libraries/lwip-1.4.0/core/pbuf.c **** }
+ 2183              		.loc 1 1156 0
+ 2184 0052 1846     		mov	r0, r3
+ 2185 0054 1037     		adds	r7, r7, #16
+ 2186              		.cfi_def_cfa_offset 8
+ 2187 0056 BD46     		mov	sp, r7
+ 2188              		.cfi_def_cfa_register 13
+ 2189              		@ sp needed
+ 2190 0058 80BD     		pop	{r7, pc}
+ 2191              		.cfi_endproc
+ 2192              	.LFE34:
+ 2194 005a 00BF     		.text
+ 2195              	.Letext0:
+ 2196              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 2197              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\lib\\gcc\\arm-none-eabi\\5.4
+ 2198              		.file 4 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 2199              		.file 5 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 2200              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/err.h"
+ 2201              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/memp.h"
+ 2202              		.file 8 "./Libraries/lwip-1.4.0/include/lwip/pbuf.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 pbuf.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:20     .text.pbuf_alloc:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:25     .text.pbuf_alloc:00000000 pbuf_alloc
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:57     .text.pbuf_alloc:00000024 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:61     .text.pbuf_alloc:00000034 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:95     .text.pbuf_alloc:0000005c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:99     .text.pbuf_alloc:0000006c $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:816    .text.pbuf_free:00000000 pbuf_free
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:350    .text.pbuf_alloced_custom:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:355    .text.pbuf_alloced_custom:00000000 pbuf_alloced_custom
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:387    .text.pbuf_alloced_custom:00000024 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:391    .text.pbuf_alloced_custom:00000034 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:492    .text.pbuf_realloc:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:497    .text.pbuf_realloc:00000000 pbuf_realloc
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:642    .text.pbuf_header:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:647    .text.pbuf_header:00000000 pbuf_header
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:811    .text.pbuf_free:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:963    .text.pbuf_clen:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:968    .text.pbuf_clen:00000000 pbuf_clen
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1019   .text.pbuf_ref:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1024   .text.pbuf_ref:00000000 pbuf_ref
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1066   .text.pbuf_cat:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1071   .text.pbuf_cat:00000000 pbuf_cat
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1151   .text.pbuf_chain:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1156   .text.pbuf_chain:00000000 pbuf_chain
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1191   .text.pbuf_dechain:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1196   .text.pbuf_dechain:00000000 pbuf_dechain
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1269   .text.pbuf_copy:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1274   .text.pbuf_copy:00000000 pbuf_copy
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1452   .text.pbuf_copy_partial:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1457   .text.pbuf_copy_partial:00000000 pbuf_copy_partial
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1611   .text.pbuf_take:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1616   .text.pbuf_take:00000000 pbuf_take
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1737   .text.pbuf_coalesce:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1742   .text.pbuf_coalesce:00000000 pbuf_coalesce
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1807   .text.pbuf_get_at:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1812   .text.pbuf_get_at:00000000 pbuf_get_at
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1896   .text.pbuf_memcmp:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:1901   .text.pbuf_memcmp:00000000 pbuf_memcmp
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:2028   .text.pbuf_memfind:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:2033   .text.pbuf_memfind:00000000 pbuf_memfind
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:2120   .text.pbuf_strstr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccQrGvh3.s:2125   .text.pbuf_strstr:00000000 pbuf_strstr
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+memp_malloc
+mem_malloc
+mem_trim
+memp_free
+mem_free
+memcpy
+strlen

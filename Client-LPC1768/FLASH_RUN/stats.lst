@@ -1,0 +1,132 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"stats.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.comm	lwip_stats,278,4
+  20              		.section	.text.stats_init,"ax",%progbits
+  21              		.align	2
+  22              		.global	stats_init
+  23              		.thumb
+  24              		.thumb_func
+  26              	stats_init:
+  27              	.LFB17:
+  28              		.file 1 "Libraries/lwip-1.4.0/core/stats.c"
+   1:Libraries/lwip-1.4.0/core/stats.c **** /**
+   2:Libraries/lwip-1.4.0/core/stats.c ****  * @file
+   3:Libraries/lwip-1.4.0/core/stats.c ****  * Statistics module
+   4:Libraries/lwip-1.4.0/core/stats.c ****  *
+   5:Libraries/lwip-1.4.0/core/stats.c ****  */
+   6:Libraries/lwip-1.4.0/core/stats.c **** 
+   7:Libraries/lwip-1.4.0/core/stats.c **** /*
+   8:Libraries/lwip-1.4.0/core/stats.c ****  * Copyright (c) 2001-2004 Swedish Institute of Computer Science.
+   9:Libraries/lwip-1.4.0/core/stats.c ****  * All rights reserved. 
+  10:Libraries/lwip-1.4.0/core/stats.c ****  * 
+  11:Libraries/lwip-1.4.0/core/stats.c ****  * Redistribution and use in source and binary forms, with or without modification, 
+  12:Libraries/lwip-1.4.0/core/stats.c ****  * are permitted provided that the following conditions are met:
+  13:Libraries/lwip-1.4.0/core/stats.c ****  *
+  14:Libraries/lwip-1.4.0/core/stats.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  15:Libraries/lwip-1.4.0/core/stats.c ****  *    this list of conditions and the following disclaimer.
+  16:Libraries/lwip-1.4.0/core/stats.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  17:Libraries/lwip-1.4.0/core/stats.c ****  *    this list of conditions and the following disclaimer in the documentation
+  18:Libraries/lwip-1.4.0/core/stats.c ****  *    and/or other materials provided with the distribution.
+  19:Libraries/lwip-1.4.0/core/stats.c ****  * 3. The name of the author may not be used to endorse or promote products
+  20:Libraries/lwip-1.4.0/core/stats.c ****  *    derived from this software without specific prior written permission. 
+  21:Libraries/lwip-1.4.0/core/stats.c ****  *
+  22:Libraries/lwip-1.4.0/core/stats.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED 
+  23:Libraries/lwip-1.4.0/core/stats.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
+  24:Libraries/lwip-1.4.0/core/stats.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT 
+  25:Libraries/lwip-1.4.0/core/stats.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+  26:Libraries/lwip-1.4.0/core/stats.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT 
+  27:Libraries/lwip-1.4.0/core/stats.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+  28:Libraries/lwip-1.4.0/core/stats.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+  29:Libraries/lwip-1.4.0/core/stats.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING 
+  30:Libraries/lwip-1.4.0/core/stats.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+  31:Libraries/lwip-1.4.0/core/stats.c ****  * OF SUCH DAMAGE.
+  32:Libraries/lwip-1.4.0/core/stats.c ****  *
+  33:Libraries/lwip-1.4.0/core/stats.c ****  * This file is part of the lwIP TCP/IP stack.
+  34:Libraries/lwip-1.4.0/core/stats.c ****  * 
+  35:Libraries/lwip-1.4.0/core/stats.c ****  * Author: Adam Dunkels <adam@sics.se>
+  36:Libraries/lwip-1.4.0/core/stats.c ****  *
+  37:Libraries/lwip-1.4.0/core/stats.c ****  */
+  38:Libraries/lwip-1.4.0/core/stats.c **** 
+  39:Libraries/lwip-1.4.0/core/stats.c **** #include "lwip/opt.h"
+  40:Libraries/lwip-1.4.0/core/stats.c **** 
+  41:Libraries/lwip-1.4.0/core/stats.c **** #if LWIP_STATS /* don't build if not configured for use in lwipopts.h */
+  42:Libraries/lwip-1.4.0/core/stats.c **** 
+  43:Libraries/lwip-1.4.0/core/stats.c **** #include "lwip/def.h"
+  44:Libraries/lwip-1.4.0/core/stats.c **** #include "lwip/stats.h"
+  45:Libraries/lwip-1.4.0/core/stats.c **** #include "lwip/mem.h"
+  46:Libraries/lwip-1.4.0/core/stats.c **** 
+  47:Libraries/lwip-1.4.0/core/stats.c **** #include <string.h>
+  48:Libraries/lwip-1.4.0/core/stats.c **** 
+  49:Libraries/lwip-1.4.0/core/stats.c **** struct stats_ lwip_stats;
+  50:Libraries/lwip-1.4.0/core/stats.c **** 
+  51:Libraries/lwip-1.4.0/core/stats.c **** void stats_init(void)
+  52:Libraries/lwip-1.4.0/core/stats.c **** {
+  29              		.loc 1 52 0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 0
+  32              		@ frame_needed = 1, uses_anonymous_args = 0
+  33              		@ link register save eliminated.
+  34 0000 80B4     		push	{r7}
+  35              		.cfi_def_cfa_offset 4
+  36              		.cfi_offset 7, -4
+  37 0002 00AF     		add	r7, sp, #0
+  38              		.cfi_def_cfa_register 7
+  53:Libraries/lwip-1.4.0/core/stats.c **** #ifdef LWIP_DEBUG
+  54:Libraries/lwip-1.4.0/core/stats.c **** #if MEMP_STATS
+  55:Libraries/lwip-1.4.0/core/stats.c ****   const char * memp_names[] = {
+  56:Libraries/lwip-1.4.0/core/stats.c **** #define LWIP_MEMPOOL(name,num,size,desc) desc,
+  57:Libraries/lwip-1.4.0/core/stats.c **** #include "lwip/memp_std.h"
+  58:Libraries/lwip-1.4.0/core/stats.c ****   };
+  59:Libraries/lwip-1.4.0/core/stats.c ****   int i;
+  60:Libraries/lwip-1.4.0/core/stats.c ****   for (i = 0; i < MEMP_MAX; i++) {
+  61:Libraries/lwip-1.4.0/core/stats.c ****     lwip_stats.memp[i].name = memp_names[i];
+  62:Libraries/lwip-1.4.0/core/stats.c ****   }
+  63:Libraries/lwip-1.4.0/core/stats.c **** #endif /* MEMP_STATS */
+  64:Libraries/lwip-1.4.0/core/stats.c **** #if MEM_STATS
+  65:Libraries/lwip-1.4.0/core/stats.c ****   lwip_stats.mem.name = "MEM";
+  66:Libraries/lwip-1.4.0/core/stats.c **** #endif /* MEM_STATS */
+  67:Libraries/lwip-1.4.0/core/stats.c **** #endif /* LWIP_DEBUG */
+  68:Libraries/lwip-1.4.0/core/stats.c **** }
+  39              		.loc 1 68 0
+  40 0004 00BF     		nop
+  41 0006 BD46     		mov	sp, r7
+  42              		.cfi_def_cfa_register 13
+  43              		@ sp needed
+  44 0008 80BC     		pop	{r7}
+  45              		.cfi_restore 7
+  46              		.cfi_def_cfa_offset 0
+  47 000a 7047     		bx	lr
+  48              		.cfi_endproc
+  49              	.LFE17:
+  51              		.text
+  52              	.Letext0:
+  53              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+  54              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+  55              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+  56              		.file 5 "./Libraries/lwip-1.4.0/include/lwip/mem.h"
+  57              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/stats.h"
+  58              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/memp.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 stats.c
+                            *COM*:00000116 lwip_stats
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccMyGwAJ.s:21     .text.stats_init:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccMyGwAJ.s:26     .text.stats_init:00000000 stats_init
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

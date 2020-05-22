@@ -1,0 +1,2233 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"lpc17xx_gpio.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.section	.text.GPIO_GetPointer,"ax",%progbits
+  20              		.align	2
+  21              		.thumb
+  22              		.thumb_func
+  24              	GPIO_GetPointer:
+  25              	.LFB29:
+  26              		.file 1 "Libraries/NXP/Drivers/source/lpc17xx_gpio.c"
+   1:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+   2:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @file	: lpc17xx_gpio.c
+   3:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief	: Contains all functions support for GPIO firmware library on LPC17xx
+   4:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @version	: 1.0
+   5:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @date	: 11. Jun. 2009
+   6:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @author	: HieuNguyen
+   7:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **************************************************************************
+   8:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Software that is described herein is for illustrative purposes only
+   9:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * which provides customers with programming information regarding the
+  10:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * products. This software is supplied "AS IS" without any warranties.
+  11:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * NXP Semiconductors assumes no responsibility or liability for the
+  12:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * use of the software, conveys no license or title under any patent,
+  13:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * copyright, or mask work right to the product. NXP Semiconductors
+  14:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * reserves the right to make changes in the software without
+  15:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * notification. NXP Semiconductors also make no representation or
+  16:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * warranty that such application will be suitable for the specified
+  17:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * use without further testing or modification.
+  18:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+  19:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  20:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* Peripheral group ----------------------------------------------------------- */
+  21:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /** @addtogroup GPIO
+  22:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @{
+  23:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+  24:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  25:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* Includes ------------------------------------------------------------------- */
+  26:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #include "lpc17xx_gpio.h"
+  27:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #include "CMSIS/LPC17xx.h"
+  28:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  29:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* If this source file built with example, the LPC17xx FW library configuration
+  30:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * file in each example directory ("lpc17xx_libcfg.h") must be included,
+  31:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * otherwise the default FW library configuration file must be included instead
+  32:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+  33:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #ifdef __BUILD_WITH_EXAMPLE__
+  34:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #include "lpc17xx_libcfg.h"
+  35:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #else
+  36:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #include "lpc17xx_libcfg_default.h"
+  37:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #endif /* __BUILD_WITH_EXAMPLE__ */
+  38:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  39:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  40:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** #ifdef _GPIO
+  41:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  42:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* Private Functions ---------------------------------------------------------- */
+  43:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /** @addtogroup GPIO_Private_Functions
+  44:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @{
+  45:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+  46:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+  47:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Get pointer to GPIO peripheral due to GPIO port
+  48:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port Number value, should be in range from 0 to 4.
+  49:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Pointer to GPIO peripheral
+  50:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+  51:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** static LPC_GPIO_TypeDef *GPIO_GetPointer(uint8_t portNum)
+  52:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+  27              		.loc 1 52 0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 16
+  30              		@ frame_needed = 1, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  32 0000 80B4     		push	{r7}
+  33              		.cfi_def_cfa_offset 4
+  34              		.cfi_offset 7, -4
+  35 0002 85B0     		sub	sp, sp, #20
+  36              		.cfi_def_cfa_offset 24
+  37 0004 00AF     		add	r7, sp, #0
+  38              		.cfi_def_cfa_register 7
+  39 0006 0346     		mov	r3, r0
+  40 0008 FB71     		strb	r3, [r7, #7]
+  53:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pGPIO = NULL;
+  41              		.loc 1 53 0
+  42 000a 0023     		movs	r3, #0
+  43 000c FB60     		str	r3, [r7, #12]
+  54:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  55:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	switch (portNum) {
+  44              		.loc 1 55 0
+  45 000e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+  46 0010 042B     		cmp	r3, #4
+  47 0012 1CD8     		bhi	.L11
+  48 0014 01A2     		adr	r2, .L4
+  49 0016 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+  50 001a 00BF     		.p2align 2
+  51              	.L4:
+  52 001c 31000000 		.word	.L3+1
+  53 0020 37000000 		.word	.L5+1
+  54 0024 3D000000 		.word	.L6+1
+  55 0028 43000000 		.word	.L7+1
+  56 002c 49000000 		.word	.L8+1
+  57              		.p2align 1
+  58              	.L3:
+  56:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 0:
+  57:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO = LPC_GPIO0;
+  59              		.loc 1 57 0
+  60 0030 0A4B     		ldr	r3, .L12
+  61 0032 FB60     		str	r3, [r7, #12]
+  58:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  62              		.loc 1 58 0
+  63 0034 0CE0     		b	.L9
+  64              	.L5:
+  59:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 1:
+  60:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO = LPC_GPIO1;
+  65              		.loc 1 60 0
+  66 0036 0A4B     		ldr	r3, .L12+4
+  67 0038 FB60     		str	r3, [r7, #12]
+  61:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  68              		.loc 1 61 0
+  69 003a 09E0     		b	.L9
+  70              	.L6:
+  62:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 2:
+  63:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO = LPC_GPIO2;
+  71              		.loc 1 63 0
+  72 003c 094B     		ldr	r3, .L12+8
+  73 003e FB60     		str	r3, [r7, #12]
+  64:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  74              		.loc 1 64 0
+  75 0040 06E0     		b	.L9
+  76              	.L7:
+  65:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 3:
+  66:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO = LPC_GPIO3;
+  77              		.loc 1 66 0
+  78 0042 094B     		ldr	r3, .L12+12
+  79 0044 FB60     		str	r3, [r7, #12]
+  67:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  80              		.loc 1 67 0
+  81 0046 03E0     		b	.L9
+  82              	.L8:
+  68:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 4:
+  69:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO = LPC_GPIO4;
+  83              		.loc 1 69 0
+  84 0048 084B     		ldr	r3, .L12+16
+  85 004a FB60     		str	r3, [r7, #12]
+  70:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  86              		.loc 1 70 0
+  87 004c 00E0     		b	.L9
+  88              	.L11:
+  71:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	default:
+  72:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+  89              		.loc 1 72 0
+  90 004e 00BF     		nop
+  91              	.L9:
+  73:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+  74:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  75:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return pGPIO;
+  92              		.loc 1 75 0
+  93 0050 FB68     		ldr	r3, [r7, #12]
+  76:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+  94              		.loc 1 76 0
+  95 0052 1846     		mov	r0, r3
+  96 0054 1437     		adds	r7, r7, #20
+  97              		.cfi_def_cfa_offset 4
+  98 0056 BD46     		mov	sp, r7
+  99              		.cfi_def_cfa_register 13
+ 100              		@ sp needed
+ 101 0058 80BC     		pop	{r7}
+ 102              		.cfi_restore 7
+ 103              		.cfi_def_cfa_offset 0
+ 104 005a 7047     		bx	lr
+ 105              	.L13:
+ 106              		.align	2
+ 107              	.L12:
+ 108 005c 00C00920 		.word	537509888
+ 109 0060 20C00920 		.word	537509920
+ 110 0064 40C00920 		.word	537509952
+ 111 0068 60C00920 		.word	537509984
+ 112 006c 80C00920 		.word	537510016
+ 113              		.cfi_endproc
+ 114              	.LFE29:
+ 116              		.section	.text.FIO_HalfWordGetPointer,"ax",%progbits
+ 117              		.align	2
+ 118              		.thumb
+ 119              		.thumb_func
+ 121              	FIO_HalfWordGetPointer:
+ 122              	.LFB30:
+  77:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  78:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+  79:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Get pointer to FIO peripheral in halfword accessible style
+  80:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 				due to FIO port
+  81:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port Number value, should be in range from 0 to 4.
+  82:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Pointer to FIO peripheral
+  83:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+  84:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** static GPIO_HalfWord_TypeDef *FIO_HalfWordGetPointer(uint8_t portNum)
+  85:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 123              		.loc 1 85 0
+ 124              		.cfi_startproc
+ 125              		@ args = 0, pretend = 0, frame = 16
+ 126              		@ frame_needed = 1, uses_anonymous_args = 0
+ 127              		@ link register save eliminated.
+ 128 0000 80B4     		push	{r7}
+ 129              		.cfi_def_cfa_offset 4
+ 130              		.cfi_offset 7, -4
+ 131 0002 85B0     		sub	sp, sp, #20
+ 132              		.cfi_def_cfa_offset 24
+ 133 0004 00AF     		add	r7, sp, #0
+ 134              		.cfi_def_cfa_register 7
+ 135 0006 0346     		mov	r3, r0
+ 136 0008 FB71     		strb	r3, [r7, #7]
+  86:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = NULL;
+ 137              		.loc 1 86 0
+ 138 000a 0023     		movs	r3, #0
+ 139 000c FB60     		str	r3, [r7, #12]
+  87:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+  88:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	switch (portNum) {
+ 140              		.loc 1 88 0
+ 141 000e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 142 0010 042B     		cmp	r3, #4
+ 143 0012 1CD8     		bhi	.L24
+ 144 0014 01A2     		adr	r2, .L17
+ 145 0016 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 146 001a 00BF     		.p2align 2
+ 147              	.L17:
+ 148 001c 31000000 		.word	.L16+1
+ 149 0020 37000000 		.word	.L18+1
+ 150 0024 3D000000 		.word	.L19+1
+ 151 0028 43000000 		.word	.L20+1
+ 152 002c 49000000 		.word	.L21+1
+ 153              		.p2align 1
+ 154              	.L16:
+  89:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 0:
+  90:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO0_HalfWord;
+ 155              		.loc 1 90 0
+ 156 0030 0A4B     		ldr	r3, .L25
+ 157 0032 FB60     		str	r3, [r7, #12]
+  91:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 158              		.loc 1 91 0
+ 159 0034 0CE0     		b	.L22
+ 160              	.L18:
+  92:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 1:
+  93:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO1_HalfWord;
+ 161              		.loc 1 93 0
+ 162 0036 0A4B     		ldr	r3, .L25+4
+ 163 0038 FB60     		str	r3, [r7, #12]
+  94:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 164              		.loc 1 94 0
+ 165 003a 09E0     		b	.L22
+ 166              	.L19:
+  95:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 2:
+  96:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO2_HalfWord;
+ 167              		.loc 1 96 0
+ 168 003c 094B     		ldr	r3, .L25+8
+ 169 003e FB60     		str	r3, [r7, #12]
+  97:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 170              		.loc 1 97 0
+ 171 0040 06E0     		b	.L22
+ 172              	.L20:
+  98:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 3:
+  99:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO3_HalfWord;
+ 173              		.loc 1 99 0
+ 174 0042 094B     		ldr	r3, .L25+12
+ 175 0044 FB60     		str	r3, [r7, #12]
+ 100:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 176              		.loc 1 100 0
+ 177 0046 03E0     		b	.L22
+ 178              	.L21:
+ 101:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 4:
+ 102:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO4_HalfWord;
+ 179              		.loc 1 102 0
+ 180 0048 084B     		ldr	r3, .L25+16
+ 181 004a FB60     		str	r3, [r7, #12]
+ 103:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 182              		.loc 1 103 0
+ 183 004c 00E0     		b	.L22
+ 184              	.L24:
+ 104:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	default:
+ 105:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 185              		.loc 1 105 0
+ 186 004e 00BF     		nop
+ 187              	.L22:
+ 106:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 107:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 108:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return pFIO;
+ 188              		.loc 1 108 0
+ 189 0050 FB68     		ldr	r3, [r7, #12]
+ 109:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 190              		.loc 1 109 0
+ 191 0052 1846     		mov	r0, r3
+ 192 0054 1437     		adds	r7, r7, #20
+ 193              		.cfi_def_cfa_offset 4
+ 194 0056 BD46     		mov	sp, r7
+ 195              		.cfi_def_cfa_register 13
+ 196              		@ sp needed
+ 197 0058 80BC     		pop	{r7}
+ 198              		.cfi_restore 7
+ 199              		.cfi_def_cfa_offset 0
+ 200 005a 7047     		bx	lr
+ 201              	.L26:
+ 202              		.align	2
+ 203              	.L25:
+ 204 005c 00C00920 		.word	537509888
+ 205 0060 20C00920 		.word	537509920
+ 206 0064 40C00920 		.word	537509952
+ 207 0068 60C00920 		.word	537509984
+ 208 006c 80C00920 		.word	537510016
+ 209              		.cfi_endproc
+ 210              	.LFE30:
+ 212              		.section	.text.FIO_ByteGetPointer,"ax",%progbits
+ 213              		.align	2
+ 214              		.thumb
+ 215              		.thumb_func
+ 217              	FIO_ByteGetPointer:
+ 218              	.LFB31:
+ 110:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 111:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 112:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Get pointer to FIO peripheral in byte accessible style
+ 113:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 				due to FIO port
+ 114:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port Number value, should be in range from 0 to 4.
+ 115:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Pointer to FIO peripheral
+ 116:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 117:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** static GPIO_Byte_TypeDef *FIO_ByteGetPointer(uint8_t portNum)
+ 118:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 219              		.loc 1 118 0
+ 220              		.cfi_startproc
+ 221              		@ args = 0, pretend = 0, frame = 16
+ 222              		@ frame_needed = 1, uses_anonymous_args = 0
+ 223              		@ link register save eliminated.
+ 224 0000 80B4     		push	{r7}
+ 225              		.cfi_def_cfa_offset 4
+ 226              		.cfi_offset 7, -4
+ 227 0002 85B0     		sub	sp, sp, #20
+ 228              		.cfi_def_cfa_offset 24
+ 229 0004 00AF     		add	r7, sp, #0
+ 230              		.cfi_def_cfa_register 7
+ 231 0006 0346     		mov	r3, r0
+ 232 0008 FB71     		strb	r3, [r7, #7]
+ 119:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = NULL;
+ 233              		.loc 1 119 0
+ 234 000a 0023     		movs	r3, #0
+ 235 000c FB60     		str	r3, [r7, #12]
+ 120:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 121:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	switch (portNum) {
+ 236              		.loc 1 121 0
+ 237 000e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 238 0010 042B     		cmp	r3, #4
+ 239 0012 1CD8     		bhi	.L37
+ 240 0014 01A2     		adr	r2, .L30
+ 241 0016 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 242 001a 00BF     		.p2align 2
+ 243              	.L30:
+ 244 001c 31000000 		.word	.L29+1
+ 245 0020 37000000 		.word	.L31+1
+ 246 0024 3D000000 		.word	.L32+1
+ 247 0028 43000000 		.word	.L33+1
+ 248 002c 49000000 		.word	.L34+1
+ 249              		.p2align 1
+ 250              	.L29:
+ 122:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 0:
+ 123:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO0_Byte;
+ 251              		.loc 1 123 0
+ 252 0030 0A4B     		ldr	r3, .L38
+ 253 0032 FB60     		str	r3, [r7, #12]
+ 124:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 254              		.loc 1 124 0
+ 255 0034 0CE0     		b	.L35
+ 256              	.L31:
+ 125:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 1:
+ 126:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO1_Byte;
+ 257              		.loc 1 126 0
+ 258 0036 0A4B     		ldr	r3, .L38+4
+ 259 0038 FB60     		str	r3, [r7, #12]
+ 127:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 260              		.loc 1 127 0
+ 261 003a 09E0     		b	.L35
+ 262              	.L32:
+ 128:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 2:
+ 129:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO2_Byte;
+ 263              		.loc 1 129 0
+ 264 003c 094B     		ldr	r3, .L38+8
+ 265 003e FB60     		str	r3, [r7, #12]
+ 130:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 266              		.loc 1 130 0
+ 267 0040 06E0     		b	.L35
+ 268              	.L33:
+ 131:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 3:
+ 132:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO3_Byte;
+ 269              		.loc 1 132 0
+ 270 0042 094B     		ldr	r3, .L38+12
+ 271 0044 FB60     		str	r3, [r7, #12]
+ 133:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 272              		.loc 1 133 0
+ 273 0046 03E0     		b	.L35
+ 274              	.L34:
+ 134:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	case 4:
+ 135:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pFIO = GPIO4_Byte;
+ 275              		.loc 1 135 0
+ 276 0048 084B     		ldr	r3, .L38+16
+ 277 004a FB60     		str	r3, [r7, #12]
+ 136:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 278              		.loc 1 136 0
+ 279 004c 00E0     		b	.L35
+ 280              	.L37:
+ 137:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	default:
+ 138:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		break;
+ 281              		.loc 1 138 0
+ 282 004e 00BF     		nop
+ 283              	.L35:
+ 139:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 140:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 141:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return pFIO;
+ 284              		.loc 1 141 0
+ 285 0050 FB68     		ldr	r3, [r7, #12]
+ 142:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 286              		.loc 1 142 0
+ 287 0052 1846     		mov	r0, r3
+ 288 0054 1437     		adds	r7, r7, #20
+ 289              		.cfi_def_cfa_offset 4
+ 290 0056 BD46     		mov	sp, r7
+ 291              		.cfi_def_cfa_register 13
+ 292              		@ sp needed
+ 293 0058 80BC     		pop	{r7}
+ 294              		.cfi_restore 7
+ 295              		.cfi_def_cfa_offset 0
+ 296 005a 7047     		bx	lr
+ 297              	.L39:
+ 298              		.align	2
+ 299              	.L38:
+ 300 005c 00C00920 		.word	537509888
+ 301 0060 20C00920 		.word	537509920
+ 302 0064 40C00920 		.word	537509952
+ 303 0068 60C00920 		.word	537509984
+ 304 006c 80C00920 		.word	537510016
+ 305              		.cfi_endproc
+ 306              	.LFE31:
+ 308              		.section	.text.GPIO_SetDir,"ax",%progbits
+ 309              		.align	2
+ 310              		.global	GPIO_SetDir
+ 311              		.thumb
+ 312              		.thumb_func
+ 314              	GPIO_SetDir:
+ 315              	.LFB32:
+ 143:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 144:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+ 145:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @}
+ 146:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 147:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 148:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 149:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* Public Functions ----------------------------------------------------------- */
+ 150:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /** @addtogroup GPIO_Public_Functions
+ 151:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @{
+ 152:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 153:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 154:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 155:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* GPIO ------------------------------------------------------------------------------ */
+ 156:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 157:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 158:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set Direction for GPIO port.
+ 159:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port Number value, should be in range from 0 to 4
+ 160:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits to set direction,
+ 161:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFFFFFF.
+ 162:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							example: value 0x5 to set direction for bit 0 and bit 1.
+ 163:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	dir			Direction value, should be:
+ 164:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 0: Input.
+ 165:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 1: Output.
+ 166:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 167:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 168:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: All remaining bits that are not activated in bitValue (value '0')
+ 169:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 170:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 171:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void GPIO_SetDir(uint8_t portNum, uint32_t bitValue, uint8_t dir)
+ 172:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 316              		.loc 1 172 0
+ 317              		.cfi_startproc
+ 318              		@ args = 0, pretend = 0, frame = 16
+ 319              		@ frame_needed = 1, uses_anonymous_args = 0
+ 320 0000 80B5     		push	{r7, lr}
+ 321              		.cfi_def_cfa_offset 8
+ 322              		.cfi_offset 7, -8
+ 323              		.cfi_offset 14, -4
+ 324 0002 84B0     		sub	sp, sp, #16
+ 325              		.cfi_def_cfa_offset 24
+ 326 0004 00AF     		add	r7, sp, #0
+ 327              		.cfi_def_cfa_register 7
+ 328 0006 0346     		mov	r3, r0
+ 329 0008 3960     		str	r1, [r7]
+ 330 000a FB71     		strb	r3, [r7, #7]
+ 331 000c 1346     		mov	r3, r2
+ 332 000e BB71     		strb	r3, [r7, #6]
+ 173:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pGPIO = GPIO_GetPointer(portNum);
+ 333              		.loc 1 173 0
+ 334 0010 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 335 0012 1846     		mov	r0, r3
+ 336 0014 FFF7FEFF 		bl	GPIO_GetPointer
+ 337 0018 F860     		str	r0, [r7, #12]
+ 174:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 175:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pGPIO != NULL) {
+ 338              		.loc 1 175 0
+ 339 001a FB68     		ldr	r3, [r7, #12]
+ 340 001c 002B     		cmp	r3, #0
+ 341 001e 10D0     		beq	.L43
+ 176:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Enable Output
+ 177:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (dir) {
+ 342              		.loc 1 177 0
+ 343 0020 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 344 0022 002B     		cmp	r3, #0
+ 345 0024 06D0     		beq	.L42
+ 178:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pGPIO->FIODIR |= bitValue;
+ 346              		.loc 1 178 0
+ 347 0026 FB68     		ldr	r3, [r7, #12]
+ 348 0028 1A68     		ldr	r2, [r3]
+ 349 002a 3B68     		ldr	r3, [r7]
+ 350 002c 1A43     		orrs	r2, r2, r3
+ 351 002e FB68     		ldr	r3, [r7, #12]
+ 352 0030 1A60     		str	r2, [r3]
+ 179:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 180:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Enable Input
+ 181:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 182:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pGPIO->FIODIR &= ~bitValue;
+ 183:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 184:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 185:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 353              		.loc 1 185 0
+ 354 0032 06E0     		b	.L43
+ 355              	.L42:
+ 182:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 356              		.loc 1 182 0
+ 357 0034 FB68     		ldr	r3, [r7, #12]
+ 358 0036 1A68     		ldr	r2, [r3]
+ 359 0038 3B68     		ldr	r3, [r7]
+ 360 003a DB43     		mvns	r3, r3
+ 361 003c 1A40     		ands	r2, r2, r3
+ 362 003e FB68     		ldr	r3, [r7, #12]
+ 363 0040 1A60     		str	r2, [r3]
+ 364              	.L43:
+ 365              		.loc 1 185 0
+ 366 0042 00BF     		nop
+ 367 0044 1037     		adds	r7, r7, #16
+ 368              		.cfi_def_cfa_offset 8
+ 369 0046 BD46     		mov	sp, r7
+ 370              		.cfi_def_cfa_register 13
+ 371              		@ sp needed
+ 372 0048 80BD     		pop	{r7, pc}
+ 373              		.cfi_endproc
+ 374              	.LFE32:
+ 376 004a 00BF     		.section	.text.GPIO_SetValue,"ax",%progbits
+ 377              		.align	2
+ 378              		.global	GPIO_SetValue
+ 379              		.thumb
+ 380              		.thumb_func
+ 382              	GPIO_SetValue:
+ 383              	.LFB33:
+ 186:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 187:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 188:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 189:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set Value for bits that have output direction on GPIO port.
+ 190:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number value, should be in range from 0 to 4
+ 191:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits on GPIO to set,
+ 192:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFFFFFF.
+ 193:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							example: value 0x5 to set bit 0 and bit 1.
+ 194:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 195:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 196:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 197:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 198:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 199:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 200:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 201:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 202:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void GPIO_SetValue(uint8_t portNum, uint32_t bitValue)
+ 203:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 384              		.loc 1 203 0
+ 385              		.cfi_startproc
+ 386              		@ args = 0, pretend = 0, frame = 16
+ 387              		@ frame_needed = 1, uses_anonymous_args = 0
+ 388 0000 80B5     		push	{r7, lr}
+ 389              		.cfi_def_cfa_offset 8
+ 390              		.cfi_offset 7, -8
+ 391              		.cfi_offset 14, -4
+ 392 0002 84B0     		sub	sp, sp, #16
+ 393              		.cfi_def_cfa_offset 24
+ 394 0004 00AF     		add	r7, sp, #0
+ 395              		.cfi_def_cfa_register 7
+ 396 0006 0346     		mov	r3, r0
+ 397 0008 3960     		str	r1, [r7]
+ 398 000a FB71     		strb	r3, [r7, #7]
+ 204:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pGPIO = GPIO_GetPointer(portNum);
+ 399              		.loc 1 204 0
+ 400 000c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 401 000e 1846     		mov	r0, r3
+ 402 0010 FFF7FEFF 		bl	GPIO_GetPointer
+ 403 0014 F860     		str	r0, [r7, #12]
+ 205:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 206:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pGPIO != NULL) {
+ 404              		.loc 1 206 0
+ 405 0016 FB68     		ldr	r3, [r7, #12]
+ 406 0018 002B     		cmp	r3, #0
+ 407 001a 02D0     		beq	.L46
+ 207:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO->FIOSET = bitValue;
+ 408              		.loc 1 207 0
+ 409 001c FB68     		ldr	r3, [r7, #12]
+ 410 001e 3A68     		ldr	r2, [r7]
+ 411 0020 9A61     		str	r2, [r3, #24]
+ 412              	.L46:
+ 208:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 209:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 413              		.loc 1 209 0
+ 414 0022 00BF     		nop
+ 415 0024 1037     		adds	r7, r7, #16
+ 416              		.cfi_def_cfa_offset 8
+ 417 0026 BD46     		mov	sp, r7
+ 418              		.cfi_def_cfa_register 13
+ 419              		@ sp needed
+ 420 0028 80BD     		pop	{r7, pc}
+ 421              		.cfi_endproc
+ 422              	.LFE33:
+ 424 002a 00BF     		.section	.text.GPIO_ClearValue,"ax",%progbits
+ 425              		.align	2
+ 426              		.global	GPIO_ClearValue
+ 427              		.thumb
+ 428              		.thumb_func
+ 430              	GPIO_ClearValue:
+ 431              	.LFB34:
+ 210:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 211:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 212:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Clear Value for bits that have output direction on GPIO port.
+ 213:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number value, should be in range from 0 to 4
+ 214:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits on GPIO to clear,
+ 215:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFFFFFF.
+ 216:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							example: value 0x5 to clear bit 0 and bit 1.
+ 217:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 218:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 219:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 220:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 221:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 222:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 223:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 224:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 225:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void GPIO_ClearValue(uint8_t portNum, uint32_t bitValue)
+ 226:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 432              		.loc 1 226 0
+ 433              		.cfi_startproc
+ 434              		@ args = 0, pretend = 0, frame = 16
+ 435              		@ frame_needed = 1, uses_anonymous_args = 0
+ 436 0000 80B5     		push	{r7, lr}
+ 437              		.cfi_def_cfa_offset 8
+ 438              		.cfi_offset 7, -8
+ 439              		.cfi_offset 14, -4
+ 440 0002 84B0     		sub	sp, sp, #16
+ 441              		.cfi_def_cfa_offset 24
+ 442 0004 00AF     		add	r7, sp, #0
+ 443              		.cfi_def_cfa_register 7
+ 444 0006 0346     		mov	r3, r0
+ 445 0008 3960     		str	r1, [r7]
+ 446 000a FB71     		strb	r3, [r7, #7]
+ 227:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pGPIO = GPIO_GetPointer(portNum);
+ 447              		.loc 1 227 0
+ 448 000c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 449 000e 1846     		mov	r0, r3
+ 450 0010 FFF7FEFF 		bl	GPIO_GetPointer
+ 451 0014 F860     		str	r0, [r7, #12]
+ 228:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 229:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pGPIO != NULL) {
+ 452              		.loc 1 229 0
+ 453 0016 FB68     		ldr	r3, [r7, #12]
+ 454 0018 002B     		cmp	r3, #0
+ 455 001a 02D0     		beq	.L49
+ 230:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		pGPIO->FIOCLR = bitValue;
+ 456              		.loc 1 230 0
+ 457 001c FB68     		ldr	r3, [r7, #12]
+ 458 001e 3A68     		ldr	r2, [r7]
+ 459 0020 DA61     		str	r2, [r3, #28]
+ 460              	.L49:
+ 231:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 232:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 461              		.loc 1 232 0
+ 462 0022 00BF     		nop
+ 463 0024 1037     		adds	r7, r7, #16
+ 464              		.cfi_def_cfa_offset 8
+ 465 0026 BD46     		mov	sp, r7
+ 466              		.cfi_def_cfa_register 13
+ 467              		@ sp needed
+ 468 0028 80BD     		pop	{r7, pc}
+ 469              		.cfi_endproc
+ 470              	.LFE34:
+ 472 002a 00BF     		.section	.text.GPIO_ReadValue,"ax",%progbits
+ 473              		.align	2
+ 474              		.global	GPIO_ReadValue
+ 475              		.thumb
+ 476              		.thumb_func
+ 478              	GPIO_ReadValue:
+ 479              	.LFB35:
+ 233:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 234:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 235:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Read Current state on port pin that have input direction of GPIO
+ 236:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number to read value, in range from 0 to 4
+ 237:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Current value of GPIO port.
+ 238:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 239:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: Return value contain state of each port pin (bit) on that GPIO regardless
+ 240:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * its direction is input or output.
+ 241:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 242:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** uint32_t GPIO_ReadValue(uint8_t portNum)
+ 243:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 480              		.loc 1 243 0
+ 481              		.cfi_startproc
+ 482              		@ args = 0, pretend = 0, frame = 16
+ 483              		@ frame_needed = 1, uses_anonymous_args = 0
+ 484 0000 80B5     		push	{r7, lr}
+ 485              		.cfi_def_cfa_offset 8
+ 486              		.cfi_offset 7, -8
+ 487              		.cfi_offset 14, -4
+ 488 0002 84B0     		sub	sp, sp, #16
+ 489              		.cfi_def_cfa_offset 24
+ 490 0004 00AF     		add	r7, sp, #0
+ 491              		.cfi_def_cfa_register 7
+ 492 0006 0346     		mov	r3, r0
+ 493 0008 FB71     		strb	r3, [r7, #7]
+ 244:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pGPIO = GPIO_GetPointer(portNum);
+ 494              		.loc 1 244 0
+ 495 000a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 496 000c 1846     		mov	r0, r3
+ 497 000e FFF7FEFF 		bl	GPIO_GetPointer
+ 498 0012 F860     		str	r0, [r7, #12]
+ 245:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 246:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pGPIO != NULL) {
+ 499              		.loc 1 246 0
+ 500 0014 FB68     		ldr	r3, [r7, #12]
+ 501 0016 002B     		cmp	r3, #0
+ 502 0018 02D0     		beq	.L51
+ 247:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		return pGPIO->FIOPIN;
+ 503              		.loc 1 247 0
+ 504 001a FB68     		ldr	r3, [r7, #12]
+ 505 001c 5B69     		ldr	r3, [r3, #20]
+ 506 001e 00E0     		b	.L52
+ 507              	.L51:
+ 248:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 249:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 250:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return (0);
+ 508              		.loc 1 250 0
+ 509 0020 0023     		movs	r3, #0
+ 510              	.L52:
+ 251:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 511              		.loc 1 251 0
+ 512 0022 1846     		mov	r0, r3
+ 513 0024 1037     		adds	r7, r7, #16
+ 514              		.cfi_def_cfa_offset 8
+ 515 0026 BD46     		mov	sp, r7
+ 516              		.cfi_def_cfa_register 13
+ 517              		@ sp needed
+ 518 0028 80BD     		pop	{r7, pc}
+ 519              		.cfi_endproc
+ 520              	.LFE35:
+ 522 002a 00BF     		.section	.text.FIO_SetDir,"ax",%progbits
+ 523              		.align	2
+ 524              		.global	FIO_SetDir
+ 525              		.thumb
+ 526              		.thumb_func
+ 528              	FIO_SetDir:
+ 529              	.LFB36:
+ 252:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 253:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* FIO word accessible ----------------------------------------------------------------- */
+ 254:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* Stub function for FIO (word-accessible) style */
+ 255:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 256:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+ 257:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief The same with GPIO_SetDir()
+ 258:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 259:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_SetDir(uint8_t portNum, uint32_t bitValue, uint8_t dir)
+ 260:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 530              		.loc 1 260 0
+ 531              		.cfi_startproc
+ 532              		@ args = 0, pretend = 0, frame = 8
+ 533              		@ frame_needed = 1, uses_anonymous_args = 0
+ 534 0000 80B5     		push	{r7, lr}
+ 535              		.cfi_def_cfa_offset 8
+ 536              		.cfi_offset 7, -8
+ 537              		.cfi_offset 14, -4
+ 538 0002 82B0     		sub	sp, sp, #8
+ 539              		.cfi_def_cfa_offset 16
+ 540 0004 00AF     		add	r7, sp, #0
+ 541              		.cfi_def_cfa_register 7
+ 542 0006 0346     		mov	r3, r0
+ 543 0008 3960     		str	r1, [r7]
+ 544 000a FB71     		strb	r3, [r7, #7]
+ 545 000c 1346     		mov	r3, r2
+ 546 000e BB71     		strb	r3, [r7, #6]
+ 261:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_SetDir(portNum, bitValue, dir);
+ 547              		.loc 1 261 0
+ 548 0010 BA79     		ldrb	r2, [r7, #6]	@ zero_extendqisi2
+ 549 0012 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 550 0014 3968     		ldr	r1, [r7]
+ 551 0016 1846     		mov	r0, r3
+ 552 0018 FFF7FEFF 		bl	GPIO_SetDir
+ 262:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 553              		.loc 1 262 0
+ 554 001c 00BF     		nop
+ 555 001e 0837     		adds	r7, r7, #8
+ 556              		.cfi_def_cfa_offset 8
+ 557 0020 BD46     		mov	sp, r7
+ 558              		.cfi_def_cfa_register 13
+ 559              		@ sp needed
+ 560 0022 80BD     		pop	{r7, pc}
+ 561              		.cfi_endproc
+ 562              	.LFE36:
+ 564              		.section	.text.FIO_SetValue,"ax",%progbits
+ 565              		.align	2
+ 566              		.global	FIO_SetValue
+ 567              		.thumb
+ 568              		.thumb_func
+ 570              	FIO_SetValue:
+ 571              	.LFB37:
+ 263:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 264:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+ 265:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief The same with GPIO_SetValue()
+ 266:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 267:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_SetValue(uint8_t portNum, uint32_t bitValue)
+ 268:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 572              		.loc 1 268 0
+ 573              		.cfi_startproc
+ 574              		@ args = 0, pretend = 0, frame = 8
+ 575              		@ frame_needed = 1, uses_anonymous_args = 0
+ 576 0000 80B5     		push	{r7, lr}
+ 577              		.cfi_def_cfa_offset 8
+ 578              		.cfi_offset 7, -8
+ 579              		.cfi_offset 14, -4
+ 580 0002 82B0     		sub	sp, sp, #8
+ 581              		.cfi_def_cfa_offset 16
+ 582 0004 00AF     		add	r7, sp, #0
+ 583              		.cfi_def_cfa_register 7
+ 584 0006 0346     		mov	r3, r0
+ 585 0008 3960     		str	r1, [r7]
+ 586 000a FB71     		strb	r3, [r7, #7]
+ 269:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_SetValue(portNum, bitValue);
+ 587              		.loc 1 269 0
+ 588 000c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 589 000e 3968     		ldr	r1, [r7]
+ 590 0010 1846     		mov	r0, r3
+ 591 0012 FFF7FEFF 		bl	GPIO_SetValue
+ 270:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 592              		.loc 1 270 0
+ 593 0016 00BF     		nop
+ 594 0018 0837     		adds	r7, r7, #8
+ 595              		.cfi_def_cfa_offset 8
+ 596 001a BD46     		mov	sp, r7
+ 597              		.cfi_def_cfa_register 13
+ 598              		@ sp needed
+ 599 001c 80BD     		pop	{r7, pc}
+ 600              		.cfi_endproc
+ 601              	.LFE37:
+ 603 001e 00BF     		.section	.text.FIO_ClearValue,"ax",%progbits
+ 604              		.align	2
+ 605              		.global	FIO_ClearValue
+ 606              		.thumb
+ 607              		.thumb_func
+ 609              	FIO_ClearValue:
+ 610              	.LFB38:
+ 271:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 272:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+ 273:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief The same with GPIO_ClearValue()
+ 274:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 275:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_ClearValue(uint8_t portNum, uint32_t bitValue)
+ 276:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 611              		.loc 1 276 0
+ 612              		.cfi_startproc
+ 613              		@ args = 0, pretend = 0, frame = 8
+ 614              		@ frame_needed = 1, uses_anonymous_args = 0
+ 615 0000 80B5     		push	{r7, lr}
+ 616              		.cfi_def_cfa_offset 8
+ 617              		.cfi_offset 7, -8
+ 618              		.cfi_offset 14, -4
+ 619 0002 82B0     		sub	sp, sp, #8
+ 620              		.cfi_def_cfa_offset 16
+ 621 0004 00AF     		add	r7, sp, #0
+ 622              		.cfi_def_cfa_register 7
+ 623 0006 0346     		mov	r3, r0
+ 624 0008 3960     		str	r1, [r7]
+ 625 000a FB71     		strb	r3, [r7, #7]
+ 277:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_ClearValue(portNum, bitValue);
+ 626              		.loc 1 277 0
+ 627 000c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 628 000e 3968     		ldr	r1, [r7]
+ 629 0010 1846     		mov	r0, r3
+ 630 0012 FFF7FEFF 		bl	GPIO_ClearValue
+ 278:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 631              		.loc 1 278 0
+ 632 0016 00BF     		nop
+ 633 0018 0837     		adds	r7, r7, #8
+ 634              		.cfi_def_cfa_offset 8
+ 635 001a BD46     		mov	sp, r7
+ 636              		.cfi_def_cfa_register 13
+ 637              		@ sp needed
+ 638 001c 80BD     		pop	{r7, pc}
+ 639              		.cfi_endproc
+ 640              	.LFE38:
+ 642 001e 00BF     		.section	.text.FIO_ReadValue,"ax",%progbits
+ 643              		.align	2
+ 644              		.global	FIO_ReadValue
+ 645              		.thumb
+ 646              		.thumb_func
+ 648              	FIO_ReadValue:
+ 649              	.LFB39:
+ 279:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 280:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /**
+ 281:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief The same with GPIO_ReadValue()
+ 282:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  */
+ 283:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** uint32_t FIO_ReadValue(uint8_t portNum)
+ 284:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 650              		.loc 1 284 0
+ 651              		.cfi_startproc
+ 652              		@ args = 0, pretend = 0, frame = 8
+ 653              		@ frame_needed = 1, uses_anonymous_args = 0
+ 654 0000 80B5     		push	{r7, lr}
+ 655              		.cfi_def_cfa_offset 8
+ 656              		.cfi_offset 7, -8
+ 657              		.cfi_offset 14, -4
+ 658 0002 82B0     		sub	sp, sp, #8
+ 659              		.cfi_def_cfa_offset 16
+ 660 0004 00AF     		add	r7, sp, #0
+ 661              		.cfi_def_cfa_register 7
+ 662 0006 0346     		mov	r3, r0
+ 663 0008 FB71     		strb	r3, [r7, #7]
+ 285:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return (GPIO_ReadValue(portNum));
+ 664              		.loc 1 285 0
+ 665 000a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 666 000c 1846     		mov	r0, r3
+ 667 000e FFF7FEFF 		bl	GPIO_ReadValue
+ 668 0012 0346     		mov	r3, r0
+ 286:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 669              		.loc 1 286 0
+ 670 0014 1846     		mov	r0, r3
+ 671 0016 0837     		adds	r7, r7, #8
+ 672              		.cfi_def_cfa_offset 8
+ 673 0018 BD46     		mov	sp, r7
+ 674              		.cfi_def_cfa_register 13
+ 675              		@ sp needed
+ 676 001a 80BD     		pop	{r7, pc}
+ 677              		.cfi_endproc
+ 678              	.LFE39:
+ 680              		.section	.text.FIO_SetMask,"ax",%progbits
+ 681              		.align	2
+ 682              		.global	FIO_SetMask
+ 683              		.thumb
+ 684              		.thumb_func
+ 686              	FIO_SetMask:
+ 687              	.LFB40:
+ 287:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 288:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 289:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 290:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set mask value for bits in FIO port
+ 291:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 292:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set,
+ 293:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFFFFFF.
+ 294:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	maskValue	Mask value contains state value for each bit:
+ 295:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 0: not mask.
+ 296:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 1: mask.
+ 297:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 298:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 299:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 300:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - All remaining bits that are not activated in bitValue (value '0')
+ 301:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 302:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - After executing this function, in mask register, value '0' on each bit
+ 303:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * enables an access to the corresponding physical pin via a read or write access,
+ 304:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * while value '1' on bit (masked) that corresponding pin will not be changed
+ 305:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * with write access and if read, will not be reflected in the updated pin.
+ 306:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 307:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_SetMask(uint8_t portNum, uint32_t bitValue, uint8_t maskValue)
+ 308:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 688              		.loc 1 308 0
+ 689              		.cfi_startproc
+ 690              		@ args = 0, pretend = 0, frame = 16
+ 691              		@ frame_needed = 1, uses_anonymous_args = 0
+ 692 0000 80B5     		push	{r7, lr}
+ 693              		.cfi_def_cfa_offset 8
+ 694              		.cfi_offset 7, -8
+ 695              		.cfi_offset 14, -4
+ 696 0002 84B0     		sub	sp, sp, #16
+ 697              		.cfi_def_cfa_offset 24
+ 698 0004 00AF     		add	r7, sp, #0
+ 699              		.cfi_def_cfa_register 7
+ 700 0006 0346     		mov	r3, r0
+ 701 0008 3960     		str	r1, [r7]
+ 702 000a FB71     		strb	r3, [r7, #7]
+ 703 000c 1346     		mov	r3, r2
+ 704 000e BB71     		strb	r3, [r7, #6]
+ 309:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	LPC_GPIO_TypeDef *pFIO = GPIO_GetPointer(portNum);
+ 705              		.loc 1 309 0
+ 706 0010 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 707 0012 1846     		mov	r0, r3
+ 708 0014 FFF7FEFF 		bl	GPIO_GetPointer
+ 709 0018 F860     		str	r0, [r7, #12]
+ 310:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 710              		.loc 1 310 0
+ 711 001a FB68     		ldr	r3, [r7, #12]
+ 712 001c 002B     		cmp	r3, #0
+ 713 001e 10D0     		beq	.L61
+ 311:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Mask
+ 312:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (maskValue){
+ 714              		.loc 1 312 0
+ 715 0020 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 716 0022 002B     		cmp	r3, #0
+ 717 0024 06D0     		beq	.L60
+ 313:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOMASK |= bitValue;
+ 718              		.loc 1 313 0
+ 719 0026 FB68     		ldr	r3, [r7, #12]
+ 720 0028 1A69     		ldr	r2, [r3, #16]
+ 721 002a 3B68     		ldr	r3, [r7]
+ 722 002c 1A43     		orrs	r2, r2, r3
+ 723 002e FB68     		ldr	r3, [r7, #12]
+ 724 0030 1A61     		str	r2, [r3, #16]
+ 314:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 315:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Un-mask
+ 316:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 317:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOMASK &= ~bitValue;
+ 318:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 319:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 320:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 725              		.loc 1 320 0
+ 726 0032 06E0     		b	.L61
+ 727              	.L60:
+ 317:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 728              		.loc 1 317 0
+ 729 0034 FB68     		ldr	r3, [r7, #12]
+ 730 0036 1A69     		ldr	r2, [r3, #16]
+ 731 0038 3B68     		ldr	r3, [r7]
+ 732 003a DB43     		mvns	r3, r3
+ 733 003c 1A40     		ands	r2, r2, r3
+ 734 003e FB68     		ldr	r3, [r7, #12]
+ 735 0040 1A61     		str	r2, [r3, #16]
+ 736              	.L61:
+ 737              		.loc 1 320 0
+ 738 0042 00BF     		nop
+ 739 0044 1037     		adds	r7, r7, #16
+ 740              		.cfi_def_cfa_offset 8
+ 741 0046 BD46     		mov	sp, r7
+ 742              		.cfi_def_cfa_register 13
+ 743              		@ sp needed
+ 744 0048 80BD     		pop	{r7, pc}
+ 745              		.cfi_endproc
+ 746              	.LFE40:
+ 748 004a 00BF     		.section	.text.FIO_HalfWordSetDir,"ax",%progbits
+ 749              		.align	2
+ 750              		.global	FIO_HalfWordSetDir
+ 751              		.thumb
+ 752              		.thumb_func
+ 754              	FIO_HalfWordSetDir:
+ 755              	.LFB41:
+ 321:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 322:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 323:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* FIO halfword accessible ------------------------------------------------------------- */
+ 324:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 325:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 326:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set direction for FIO port in halfword accessible style
+ 327:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 328:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	halfwordNum	HalfWord part number, should be 0 (lower) or 1(upper)
+ 329:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set direction,
+ 330:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFF.
+ 331:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	dir			Direction value, should be:
+ 332:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 0: Input.
+ 333:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 1: Output.
+ 334:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 335:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 336:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: All remaining bits that are not activated in bitValue (value '0')
+ 337:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 338:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 339:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_HalfWordSetDir(uint8_t portNum, uint8_t halfwordNum, uint16_t bitValue, uint8_t dir)
+ 340:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 756              		.loc 1 340 0
+ 757              		.cfi_startproc
+ 758              		@ args = 0, pretend = 0, frame = 16
+ 759              		@ frame_needed = 1, uses_anonymous_args = 0
+ 760 0000 90B5     		push	{r4, r7, lr}
+ 761              		.cfi_def_cfa_offset 12
+ 762              		.cfi_offset 4, -12
+ 763              		.cfi_offset 7, -8
+ 764              		.cfi_offset 14, -4
+ 765 0002 85B0     		sub	sp, sp, #20
+ 766              		.cfi_def_cfa_offset 32
+ 767 0004 00AF     		add	r7, sp, #0
+ 768              		.cfi_def_cfa_register 7
+ 769 0006 0446     		mov	r4, r0
+ 770 0008 0846     		mov	r0, r1
+ 771 000a 1146     		mov	r1, r2
+ 772 000c 1A46     		mov	r2, r3
+ 773 000e 2346     		mov	r3, r4
+ 774 0010 FB71     		strb	r3, [r7, #7]
+ 775 0012 0346     		mov	r3, r0
+ 776 0014 BB71     		strb	r3, [r7, #6]
+ 777 0016 0B46     		mov	r3, r1	@ movhi
+ 778 0018 BB80     		strh	r3, [r7, #4]	@ movhi
+ 779 001a 1346     		mov	r3, r2
+ 780 001c FB70     		strb	r3, [r7, #3]
+ 341:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = FIO_HalfWordGetPointer(portNum);
+ 781              		.loc 1 341 0
+ 782 001e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 783 0020 1846     		mov	r0, r3
+ 784 0022 FFF7FEFF 		bl	FIO_HalfWordGetPointer
+ 785 0026 F860     		str	r0, [r7, #12]
+ 342:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 786              		.loc 1 342 0
+ 787 0028 FB68     		ldr	r3, [r7, #12]
+ 788 002a 002B     		cmp	r3, #0
+ 789 002c 35D0     		beq	.L68
+ 343:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Output direction
+ 344:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (dir) {
+ 790              		.loc 1 344 0
+ 791 002e FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 792 0030 002B     		cmp	r3, #0
+ 793 0032 14D0     		beq	.L64
+ 345:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// Upper
+ 346:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if(halfwordNum) {
+ 794              		.loc 1 346 0
+ 795 0034 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 796 0036 002B     		cmp	r3, #0
+ 797 0038 08D0     		beq	.L65
+ 347:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIRU |= bitValue;
+ 798              		.loc 1 347 0
+ 799 003a FB68     		ldr	r3, [r7, #12]
+ 800 003c 5B88     		ldrh	r3, [r3, #2]	@ movhi
+ 801 003e 9AB2     		uxth	r2, r3
+ 802 0040 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 803 0042 1343     		orrs	r3, r3, r2
+ 804 0044 9AB2     		uxth	r2, r3
+ 805 0046 FB68     		ldr	r3, [r7, #12]
+ 806 0048 5A80     		strh	r2, [r3, #2]	@ movhi
+ 348:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 349:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// lower
+ 350:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			else {
+ 351:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIRL |= bitValue;
+ 352:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 353:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 354:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Input direction
+ 355:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 356:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// Upper
+ 357:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if(halfwordNum) {
+ 358:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIRU &= ~bitValue;
+ 359:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 360:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// lower
+ 361:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			else {
+ 362:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIRL &= ~bitValue;
+ 363:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 364:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 365:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 366:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 807              		.loc 1 366 0
+ 808 004a 26E0     		b	.L68
+ 809              	.L65:
+ 351:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 810              		.loc 1 351 0
+ 811 004c FB68     		ldr	r3, [r7, #12]
+ 812 004e 1B88     		ldrh	r3, [r3]	@ movhi
+ 813 0050 9AB2     		uxth	r2, r3
+ 814 0052 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 815 0054 1343     		orrs	r3, r3, r2
+ 816 0056 9AB2     		uxth	r2, r3
+ 817 0058 FB68     		ldr	r3, [r7, #12]
+ 818 005a 1A80     		strh	r2, [r3]	@ movhi
+ 819              		.loc 1 366 0
+ 820 005c 1DE0     		b	.L68
+ 821              	.L64:
+ 357:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIRU &= ~bitValue;
+ 822              		.loc 1 357 0
+ 823 005e BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 824 0060 002B     		cmp	r3, #0
+ 825 0062 0DD0     		beq	.L67
+ 358:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 826              		.loc 1 358 0
+ 827 0064 FB68     		ldr	r3, [r7, #12]
+ 828 0066 5B88     		ldrh	r3, [r3, #2]	@ movhi
+ 829 0068 9BB2     		uxth	r3, r3
+ 830 006a 1AB2     		sxth	r2, r3
+ 831 006c B7F90430 		ldrsh	r3, [r7, #4]
+ 832 0070 DB43     		mvns	r3, r3
+ 833 0072 1BB2     		sxth	r3, r3
+ 834 0074 1340     		ands	r3, r3, r2
+ 835 0076 1BB2     		sxth	r3, r3
+ 836 0078 9AB2     		uxth	r2, r3
+ 837 007a FB68     		ldr	r3, [r7, #12]
+ 838 007c 5A80     		strh	r2, [r3, #2]	@ movhi
+ 839              		.loc 1 366 0
+ 840 007e 0CE0     		b	.L68
+ 841              	.L67:
+ 362:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 842              		.loc 1 362 0
+ 843 0080 FB68     		ldr	r3, [r7, #12]
+ 844 0082 1B88     		ldrh	r3, [r3]	@ movhi
+ 845 0084 9BB2     		uxth	r3, r3
+ 846 0086 1AB2     		sxth	r2, r3
+ 847 0088 B7F90430 		ldrsh	r3, [r7, #4]
+ 848 008c DB43     		mvns	r3, r3
+ 849 008e 1BB2     		sxth	r3, r3
+ 850 0090 1340     		ands	r3, r3, r2
+ 851 0092 1BB2     		sxth	r3, r3
+ 852 0094 9AB2     		uxth	r2, r3
+ 853 0096 FB68     		ldr	r3, [r7, #12]
+ 854 0098 1A80     		strh	r2, [r3]	@ movhi
+ 855              	.L68:
+ 856              		.loc 1 366 0
+ 857 009a 00BF     		nop
+ 858 009c 1437     		adds	r7, r7, #20
+ 859              		.cfi_def_cfa_offset 12
+ 860 009e BD46     		mov	sp, r7
+ 861              		.cfi_def_cfa_register 13
+ 862              		@ sp needed
+ 863 00a0 90BD     		pop	{r4, r7, pc}
+ 864              		.cfi_endproc
+ 865              	.LFE41:
+ 867 00a2 00BF     		.section	.text.FIO_HalfWordSetMask,"ax",%progbits
+ 868              		.align	2
+ 869              		.global	FIO_HalfWordSetMask
+ 870              		.thumb
+ 871              		.thumb_func
+ 873              	FIO_HalfWordSetMask:
+ 874              	.LFB42:
+ 367:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 368:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 369:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 370:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set mask value for bits in FIO port in halfword accessible style
+ 371:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 372:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	halfwordNum	HalfWord part number, should be 0 (lower) or 1(upper)
+ 373:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set,
+ 374:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFF.
+ 375:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	maskValue	Mask value contains state value for each bit:
+ 376:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 					- 0: not mask.
+ 377:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 					- 1: mask.
+ 378:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 379:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 380:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 381:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - All remaining bits that are not activated in bitValue (value '0')
+ 382:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 383:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - After executing this function, in mask register, value '0' on each bit
+ 384:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * enables an access to the corresponding physical pin via a read or write access,
+ 385:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * while value '1' on bit (masked) that corresponding pin will not be changed
+ 386:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * with write access and if read, will not be reflected in the updated pin.
+ 387:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 388:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_HalfWordSetMask(uint8_t portNum, uint8_t halfwordNum, uint16_t bitValue, uint8_t maskValue
+ 389:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 875              		.loc 1 389 0
+ 876              		.cfi_startproc
+ 877              		@ args = 0, pretend = 0, frame = 16
+ 878              		@ frame_needed = 1, uses_anonymous_args = 0
+ 879 0000 90B5     		push	{r4, r7, lr}
+ 880              		.cfi_def_cfa_offset 12
+ 881              		.cfi_offset 4, -12
+ 882              		.cfi_offset 7, -8
+ 883              		.cfi_offset 14, -4
+ 884 0002 85B0     		sub	sp, sp, #20
+ 885              		.cfi_def_cfa_offset 32
+ 886 0004 00AF     		add	r7, sp, #0
+ 887              		.cfi_def_cfa_register 7
+ 888 0006 0446     		mov	r4, r0
+ 889 0008 0846     		mov	r0, r1
+ 890 000a 1146     		mov	r1, r2
+ 891 000c 1A46     		mov	r2, r3
+ 892 000e 2346     		mov	r3, r4
+ 893 0010 FB71     		strb	r3, [r7, #7]
+ 894 0012 0346     		mov	r3, r0
+ 895 0014 BB71     		strb	r3, [r7, #6]
+ 896 0016 0B46     		mov	r3, r1	@ movhi
+ 897 0018 BB80     		strh	r3, [r7, #4]	@ movhi
+ 898 001a 1346     		mov	r3, r2
+ 899 001c FB70     		strb	r3, [r7, #3]
+ 390:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = FIO_HalfWordGetPointer(portNum);
+ 900              		.loc 1 390 0
+ 901 001e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 902 0020 1846     		mov	r0, r3
+ 903 0022 FFF7FEFF 		bl	FIO_HalfWordGetPointer
+ 904 0026 F860     		str	r0, [r7, #12]
+ 391:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 905              		.loc 1 391 0
+ 906 0028 FB68     		ldr	r3, [r7, #12]
+ 907 002a 002B     		cmp	r3, #0
+ 908 002c 35D0     		beq	.L75
+ 392:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Mask
+ 393:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (maskValue){
+ 909              		.loc 1 393 0
+ 910 002e FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 911 0030 002B     		cmp	r3, #0
+ 912 0032 14D0     		beq	.L71
+ 394:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// Upper
+ 395:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if(halfwordNum) {
+ 913              		.loc 1 395 0
+ 914 0034 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 915 0036 002B     		cmp	r3, #0
+ 916 0038 08D0     		beq	.L72
+ 396:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASKU |= bitValue;
+ 917              		.loc 1 396 0
+ 918 003a FB68     		ldr	r3, [r7, #12]
+ 919 003c 5B8A     		ldrh	r3, [r3, #18]	@ movhi
+ 920 003e 9AB2     		uxth	r2, r3
+ 921 0040 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 922 0042 1343     		orrs	r3, r3, r2
+ 923 0044 9AB2     		uxth	r2, r3
+ 924 0046 FB68     		ldr	r3, [r7, #12]
+ 925 0048 5A82     		strh	r2, [r3, #18]	@ movhi
+ 397:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 398:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// lower
+ 399:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			else {
+ 400:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASKL |= bitValue;
+ 401:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 402:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 403:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Un-mask
+ 404:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 405:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// Upper
+ 406:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if(halfwordNum) {
+ 407:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASKU &= ~bitValue;
+ 408:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 409:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// lower
+ 410:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			else {
+ 411:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASKL &= ~bitValue;
+ 412:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 413:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 414:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 415:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 926              		.loc 1 415 0
+ 927 004a 26E0     		b	.L75
+ 928              	.L72:
+ 400:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 929              		.loc 1 400 0
+ 930 004c FB68     		ldr	r3, [r7, #12]
+ 931 004e 1B8A     		ldrh	r3, [r3, #16]	@ movhi
+ 932 0050 9AB2     		uxth	r2, r3
+ 933 0052 BB88     		ldrh	r3, [r7, #4]	@ movhi
+ 934 0054 1343     		orrs	r3, r3, r2
+ 935 0056 9AB2     		uxth	r2, r3
+ 936 0058 FB68     		ldr	r3, [r7, #12]
+ 937 005a 1A82     		strh	r2, [r3, #16]	@ movhi
+ 938              		.loc 1 415 0
+ 939 005c 1DE0     		b	.L75
+ 940              	.L71:
+ 406:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASKU &= ~bitValue;
+ 941              		.loc 1 406 0
+ 942 005e BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 943 0060 002B     		cmp	r3, #0
+ 944 0062 0DD0     		beq	.L74
+ 407:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 945              		.loc 1 407 0
+ 946 0064 FB68     		ldr	r3, [r7, #12]
+ 947 0066 5B8A     		ldrh	r3, [r3, #18]	@ movhi
+ 948 0068 9BB2     		uxth	r3, r3
+ 949 006a 1AB2     		sxth	r2, r3
+ 950 006c B7F90430 		ldrsh	r3, [r7, #4]
+ 951 0070 DB43     		mvns	r3, r3
+ 952 0072 1BB2     		sxth	r3, r3
+ 953 0074 1340     		ands	r3, r3, r2
+ 954 0076 1BB2     		sxth	r3, r3
+ 955 0078 9AB2     		uxth	r2, r3
+ 956 007a FB68     		ldr	r3, [r7, #12]
+ 957 007c 5A82     		strh	r2, [r3, #18]	@ movhi
+ 958              		.loc 1 415 0
+ 959 007e 0CE0     		b	.L75
+ 960              	.L74:
+ 411:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 961              		.loc 1 411 0
+ 962 0080 FB68     		ldr	r3, [r7, #12]
+ 963 0082 1B8A     		ldrh	r3, [r3, #16]	@ movhi
+ 964 0084 9BB2     		uxth	r3, r3
+ 965 0086 1AB2     		sxth	r2, r3
+ 966 0088 B7F90430 		ldrsh	r3, [r7, #4]
+ 967 008c DB43     		mvns	r3, r3
+ 968 008e 1BB2     		sxth	r3, r3
+ 969 0090 1340     		ands	r3, r3, r2
+ 970 0092 1BB2     		sxth	r3, r3
+ 971 0094 9AB2     		uxth	r2, r3
+ 972 0096 FB68     		ldr	r3, [r7, #12]
+ 973 0098 1A82     		strh	r2, [r3, #16]	@ movhi
+ 974              	.L75:
+ 975              		.loc 1 415 0
+ 976 009a 00BF     		nop
+ 977 009c 1437     		adds	r7, r7, #20
+ 978              		.cfi_def_cfa_offset 12
+ 979 009e BD46     		mov	sp, r7
+ 980              		.cfi_def_cfa_register 13
+ 981              		@ sp needed
+ 982 00a0 90BD     		pop	{r4, r7, pc}
+ 983              		.cfi_endproc
+ 984              	.LFE42:
+ 986 00a2 00BF     		.section	.text.FIO_HalfWordSetValue,"ax",%progbits
+ 987              		.align	2
+ 988              		.global	FIO_HalfWordSetValue
+ 989              		.thumb
+ 990              		.thumb_func
+ 992              	FIO_HalfWordSetValue:
+ 993              	.LFB43:
+ 416:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 417:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 418:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 419:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set bits for FIO port in halfword accessible style
+ 420:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 421:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	halfwordNum	HalfWord part number, should be 0 (lower) or 1(upper)
+ 422:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set,
+ 423:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFF.
+ 424:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 425:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 426:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 427:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 428:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 429:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 430:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 431:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 432:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_HalfWordSetValue(uint8_t portNum, uint8_t halfwordNum, uint16_t bitValue)
+ 433:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 994              		.loc 1 433 0
+ 995              		.cfi_startproc
+ 996              		@ args = 0, pretend = 0, frame = 16
+ 997              		@ frame_needed = 1, uses_anonymous_args = 0
+ 998 0000 80B5     		push	{r7, lr}
+ 999              		.cfi_def_cfa_offset 8
+ 1000              		.cfi_offset 7, -8
+ 1001              		.cfi_offset 14, -4
+ 1002 0002 84B0     		sub	sp, sp, #16
+ 1003              		.cfi_def_cfa_offset 24
+ 1004 0004 00AF     		add	r7, sp, #0
+ 1005              		.cfi_def_cfa_register 7
+ 1006 0006 0346     		mov	r3, r0
+ 1007 0008 FB71     		strb	r3, [r7, #7]
+ 1008 000a 0B46     		mov	r3, r1
+ 1009 000c BB71     		strb	r3, [r7, #6]
+ 1010 000e 1346     		mov	r3, r2	@ movhi
+ 1011 0010 BB80     		strh	r3, [r7, #4]	@ movhi
+ 434:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = FIO_HalfWordGetPointer(portNum);
+ 1012              		.loc 1 434 0
+ 1013 0012 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1014 0014 1846     		mov	r0, r3
+ 1015 0016 FFF7FEFF 		bl	FIO_HalfWordGetPointer
+ 1016 001a F860     		str	r0, [r7, #12]
+ 435:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 1017              		.loc 1 435 0
+ 1018 001c FB68     		ldr	r3, [r7, #12]
+ 1019 001e 002B     		cmp	r3, #0
+ 1020 0020 09D0     		beq	.L79
+ 436:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Upper
+ 437:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if(halfwordNum) {
+ 1021              		.loc 1 437 0
+ 1022 0022 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1023 0024 002B     		cmp	r3, #0
+ 1024 0026 03D0     		beq	.L78
+ 438:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOSETU = bitValue;
+ 1025              		.loc 1 438 0
+ 1026 0028 FB68     		ldr	r3, [r7, #12]
+ 1027 002a BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1028 002c 5A83     		strh	r2, [r3, #26]	@ movhi
+ 439:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 440:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// lower
+ 441:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 442:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOSETL = bitValue;
+ 443:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 444:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 445:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1029              		.loc 1 445 0
+ 1030 002e 02E0     		b	.L79
+ 1031              	.L78:
+ 442:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 1032              		.loc 1 442 0
+ 1033 0030 FB68     		ldr	r3, [r7, #12]
+ 1034 0032 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1035 0034 1A83     		strh	r2, [r3, #24]	@ movhi
+ 1036              	.L79:
+ 1037              		.loc 1 445 0
+ 1038 0036 00BF     		nop
+ 1039 0038 1037     		adds	r7, r7, #16
+ 1040              		.cfi_def_cfa_offset 8
+ 1041 003a BD46     		mov	sp, r7
+ 1042              		.cfi_def_cfa_register 13
+ 1043              		@ sp needed
+ 1044 003c 80BD     		pop	{r7, pc}
+ 1045              		.cfi_endproc
+ 1046              	.LFE43:
+ 1048 003e 00BF     		.section	.text.FIO_HalfWordClearValue,"ax",%progbits
+ 1049              		.align	2
+ 1050              		.global	FIO_HalfWordClearValue
+ 1051              		.thumb
+ 1052              		.thumb_func
+ 1054              	FIO_HalfWordClearValue:
+ 1055              	.LFB44:
+ 446:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 447:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 448:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 449:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Clear bits for FIO port in halfword accessible style
+ 450:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 451:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	halfwordNum	HalfWord part number, should be 0 (lower) or 1(upper)
+ 452:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to clear,
+ 453:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFFFF.
+ 454:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 455:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 456:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 457:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 458:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 459:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 460:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 461:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 462:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_HalfWordClearValue(uint8_t portNum, uint8_t halfwordNum, uint16_t bitValue)
+ 463:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1056              		.loc 1 463 0
+ 1057              		.cfi_startproc
+ 1058              		@ args = 0, pretend = 0, frame = 16
+ 1059              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1060 0000 80B5     		push	{r7, lr}
+ 1061              		.cfi_def_cfa_offset 8
+ 1062              		.cfi_offset 7, -8
+ 1063              		.cfi_offset 14, -4
+ 1064 0002 84B0     		sub	sp, sp, #16
+ 1065              		.cfi_def_cfa_offset 24
+ 1066 0004 00AF     		add	r7, sp, #0
+ 1067              		.cfi_def_cfa_register 7
+ 1068 0006 0346     		mov	r3, r0
+ 1069 0008 FB71     		strb	r3, [r7, #7]
+ 1070 000a 0B46     		mov	r3, r1
+ 1071 000c BB71     		strb	r3, [r7, #6]
+ 1072 000e 1346     		mov	r3, r2	@ movhi
+ 1073 0010 BB80     		strh	r3, [r7, #4]	@ movhi
+ 464:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = FIO_HalfWordGetPointer(portNum);
+ 1074              		.loc 1 464 0
+ 1075 0012 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1076 0014 1846     		mov	r0, r3
+ 1077 0016 FFF7FEFF 		bl	FIO_HalfWordGetPointer
+ 1078 001a F860     		str	r0, [r7, #12]
+ 465:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 1079              		.loc 1 465 0
+ 1080 001c FB68     		ldr	r3, [r7, #12]
+ 1081 001e 002B     		cmp	r3, #0
+ 1082 0020 09D0     		beq	.L83
+ 466:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Upper
+ 467:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if(halfwordNum) {
+ 1083              		.loc 1 467 0
+ 1084 0022 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1085 0024 002B     		cmp	r3, #0
+ 1086 0026 03D0     		beq	.L82
+ 468:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOCLRU = bitValue;
+ 1087              		.loc 1 468 0
+ 1088 0028 FB68     		ldr	r3, [r7, #12]
+ 1089 002a BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1090 002c DA83     		strh	r2, [r3, #30]	@ movhi
+ 469:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 470:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// lower
+ 471:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 472:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOCLRL = bitValue;
+ 473:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 474:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 475:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1091              		.loc 1 475 0
+ 1092 002e 02E0     		b	.L83
+ 1093              	.L82:
+ 472:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 1094              		.loc 1 472 0
+ 1095 0030 FB68     		ldr	r3, [r7, #12]
+ 1096 0032 BA88     		ldrh	r2, [r7, #4]	@ movhi
+ 1097 0034 9A83     		strh	r2, [r3, #28]	@ movhi
+ 1098              	.L83:
+ 1099              		.loc 1 475 0
+ 1100 0036 00BF     		nop
+ 1101 0038 1037     		adds	r7, r7, #16
+ 1102              		.cfi_def_cfa_offset 8
+ 1103 003a BD46     		mov	sp, r7
+ 1104              		.cfi_def_cfa_register 13
+ 1105              		@ sp needed
+ 1106 003c 80BD     		pop	{r7, pc}
+ 1107              		.cfi_endproc
+ 1108              	.LFE44:
+ 1110 003e 00BF     		.section	.text.FIO_HalfWordReadValue,"ax",%progbits
+ 1111              		.align	2
+ 1112              		.global	FIO_HalfWordReadValue
+ 1113              		.thumb
+ 1114              		.thumb_func
+ 1116              	FIO_HalfWordReadValue:
+ 1117              	.LFB45:
+ 476:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 477:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 478:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 479:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Read Current state on port pin that have input direction of GPIO
+ 480:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 				in halfword accessible style.
+ 481:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 482:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	halfwordNum	HalfWord part number, should be 0 (lower) or 1(upper)
+ 483:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Current value of FIO port pin of specified halfword.
+ 484:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: Return value contain state of each port pin (bit) on that FIO regardless
+ 485:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * its direction is input or output.
+ 486:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 487:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** uint16_t FIO_HalfWordReadValue(uint8_t portNum, uint8_t halfwordNum)
+ 488:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1118              		.loc 1 488 0
+ 1119              		.cfi_startproc
+ 1120              		@ args = 0, pretend = 0, frame = 16
+ 1121              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1122 0000 80B5     		push	{r7, lr}
+ 1123              		.cfi_def_cfa_offset 8
+ 1124              		.cfi_offset 7, -8
+ 1125              		.cfi_offset 14, -4
+ 1126 0002 84B0     		sub	sp, sp, #16
+ 1127              		.cfi_def_cfa_offset 24
+ 1128 0004 00AF     		add	r7, sp, #0
+ 1129              		.cfi_def_cfa_register 7
+ 1130 0006 0346     		mov	r3, r0
+ 1131 0008 0A46     		mov	r2, r1
+ 1132 000a FB71     		strb	r3, [r7, #7]
+ 1133 000c 1346     		mov	r3, r2
+ 1134 000e BB71     		strb	r3, [r7, #6]
+ 489:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_HalfWord_TypeDef *pFIO = FIO_HalfWordGetPointer(portNum);
+ 1135              		.loc 1 489 0
+ 1136 0010 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1137 0012 1846     		mov	r0, r3
+ 1138 0014 FFF7FEFF 		bl	FIO_HalfWordGetPointer
+ 1139 0018 F860     		str	r0, [r7, #12]
+ 490:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 1140              		.loc 1 490 0
+ 1141 001a FB68     		ldr	r3, [r7, #12]
+ 1142 001c 002B     		cmp	r3, #0
+ 1143 001e 0AD0     		beq	.L85
+ 491:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Upper
+ 492:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if(halfwordNum) {
+ 1144              		.loc 1 492 0
+ 1145 0020 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1146 0022 002B     		cmp	r3, #0
+ 1147 0024 03D0     		beq	.L86
+ 493:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			return (pFIO->FIOPINU);
+ 1148              		.loc 1 493 0
+ 1149 0026 FB68     		ldr	r3, [r7, #12]
+ 1150 0028 DB8A     		ldrh	r3, [r3, #22]	@ movhi
+ 1151 002a 9BB2     		uxth	r3, r3
+ 1152 002c 04E0     		b	.L87
+ 1153              	.L86:
+ 494:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 495:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// lower
+ 496:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 497:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			return (pFIO->FIOPINL);
+ 1154              		.loc 1 497 0
+ 1155 002e FB68     		ldr	r3, [r7, #12]
+ 1156 0030 9B8A     		ldrh	r3, [r3, #20]	@ movhi
+ 1157 0032 9BB2     		uxth	r3, r3
+ 1158 0034 00E0     		b	.L87
+ 1159              	.L85:
+ 498:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 499:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 500:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return (0);
+ 1160              		.loc 1 500 0
+ 1161 0036 0023     		movs	r3, #0
+ 1162              	.L87:
+ 501:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1163              		.loc 1 501 0
+ 1164 0038 1846     		mov	r0, r3
+ 1165 003a 1037     		adds	r7, r7, #16
+ 1166              		.cfi_def_cfa_offset 8
+ 1167 003c BD46     		mov	sp, r7
+ 1168              		.cfi_def_cfa_register 13
+ 1169              		@ sp needed
+ 1170 003e 80BD     		pop	{r7, pc}
+ 1171              		.cfi_endproc
+ 1172              	.LFE45:
+ 1174              		.section	.text.FIO_ByteSetDir,"ax",%progbits
+ 1175              		.align	2
+ 1176              		.global	FIO_ByteSetDir
+ 1177              		.thumb
+ 1178              		.thumb_func
+ 1180              	FIO_ByteSetDir:
+ 1181              	.LFB46:
+ 502:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 503:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 504:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /* FIO Byte accessible ------------------------------------------------------------ */
+ 505:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 506:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 507:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set direction for FIO port in byte accessible style
+ 508:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 509:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	byteNum		Byte part number, should be in range from 0 to 3
+ 510:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set direction,
+ 511:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFF.
+ 512:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	dir			Direction value, should be:
+ 513:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 0: Input.
+ 514:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 1: Output.
+ 515:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 516:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 517:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: All remaining bits that are not activated in bitValue (value '0')
+ 518:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 519:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 520:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_ByteSetDir(uint8_t portNum, uint8_t byteNum, uint8_t bitValue, uint8_t dir)
+ 521:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1182              		.loc 1 521 0
+ 1183              		.cfi_startproc
+ 1184              		@ args = 0, pretend = 0, frame = 16
+ 1185              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1186 0000 90B5     		push	{r4, r7, lr}
+ 1187              		.cfi_def_cfa_offset 12
+ 1188              		.cfi_offset 4, -12
+ 1189              		.cfi_offset 7, -8
+ 1190              		.cfi_offset 14, -4
+ 1191 0002 85B0     		sub	sp, sp, #20
+ 1192              		.cfi_def_cfa_offset 32
+ 1193 0004 00AF     		add	r7, sp, #0
+ 1194              		.cfi_def_cfa_register 7
+ 1195 0006 0446     		mov	r4, r0
+ 1196 0008 0846     		mov	r0, r1
+ 1197 000a 1146     		mov	r1, r2
+ 1198 000c 1A46     		mov	r2, r3
+ 1199 000e 2346     		mov	r3, r4
+ 1200 0010 FB71     		strb	r3, [r7, #7]
+ 1201 0012 0346     		mov	r3, r0
+ 1202 0014 BB71     		strb	r3, [r7, #6]
+ 1203 0016 0B46     		mov	r3, r1
+ 1204 0018 7B71     		strb	r3, [r7, #5]
+ 1205 001a 1346     		mov	r3, r2
+ 1206 001c 3B71     		strb	r3, [r7, #4]
+ 522:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = FIO_ByteGetPointer(portNum);
+ 1207              		.loc 1 522 0
+ 1208 001e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1209 0020 1846     		mov	r0, r3
+ 1210 0022 FFF7FEFF 		bl	FIO_ByteGetPointer
+ 1211 0026 F860     		str	r0, [r7, #12]
+ 523:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 1212              		.loc 1 523 0
+ 1213 0028 FB68     		ldr	r3, [r7, #12]
+ 1214 002a 002B     		cmp	r3, #0
+ 1215 002c 22D0     		beq	.L92
+ 524:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Output direction
+ 525:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (dir) {
+ 1216              		.loc 1 525 0
+ 1217 002e 3B79     		ldrb	r3, [r7, #4]	@ zero_extendqisi2
+ 1218 0030 002B     		cmp	r3, #0
+ 1219 0032 0DD0     		beq	.L90
+ 526:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			//mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 527:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if (byteNum <= 3) {
+ 1220              		.loc 1 527 0
+ 1221 0034 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1222 0036 032B     		cmp	r3, #3
+ 1223 0038 1CD8     		bhi	.L92
+ 528:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIR[byteNum] |= bitValue;
+ 1224              		.loc 1 528 0
+ 1225 003a BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1226 003c BA79     		ldrb	r2, [r7, #6]	@ zero_extendqisi2
+ 1227 003e F968     		ldr	r1, [r7, #12]
+ 1228 0040 8A5C     		ldrb	r2, [r1, r2]
+ 1229 0042 D1B2     		uxtb	r1, r2
+ 1230 0044 7A79     		ldrb	r2, [r7, #5]
+ 1231 0046 0A43     		orrs	r2, r2, r1
+ 1232 0048 D1B2     		uxtb	r1, r2
+ 1233 004a FA68     		ldr	r2, [r7, #12]
+ 1234 004c D154     		strb	r1, [r2, r3]
+ 529:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 530:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 531:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Input direction
+ 532:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 533:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 534:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if (byteNum <= 3) {
+ 535:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIR[byteNum] &= ~bitValue;
+ 536:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 537:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 538:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 539:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1235              		.loc 1 539 0
+ 1236 004e 11E0     		b	.L92
+ 1237              	.L90:
+ 534:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIODIR[byteNum] &= ~bitValue;
+ 1238              		.loc 1 534 0
+ 1239 0050 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1240 0052 032B     		cmp	r3, #3
+ 1241 0054 0ED8     		bhi	.L92
+ 535:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 1242              		.loc 1 535 0
+ 1243 0056 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1244 0058 BA79     		ldrb	r2, [r7, #6]	@ zero_extendqisi2
+ 1245 005a F968     		ldr	r1, [r7, #12]
+ 1246 005c 8A5C     		ldrb	r2, [r1, r2]
+ 1247 005e D2B2     		uxtb	r2, r2
+ 1248 0060 51B2     		sxtb	r1, r2
+ 1249 0062 97F90520 		ldrsb	r2, [r7, #5]
+ 1250 0066 D243     		mvns	r2, r2
+ 1251 0068 52B2     		sxtb	r2, r2
+ 1252 006a 0A40     		ands	r2, r2, r1
+ 1253 006c 52B2     		sxtb	r2, r2
+ 1254 006e D1B2     		uxtb	r1, r2
+ 1255 0070 FA68     		ldr	r2, [r7, #12]
+ 1256 0072 D154     		strb	r1, [r2, r3]
+ 1257              	.L92:
+ 1258              		.loc 1 539 0
+ 1259 0074 00BF     		nop
+ 1260 0076 1437     		adds	r7, r7, #20
+ 1261              		.cfi_def_cfa_offset 12
+ 1262 0078 BD46     		mov	sp, r7
+ 1263              		.cfi_def_cfa_register 13
+ 1264              		@ sp needed
+ 1265 007a 90BD     		pop	{r4, r7, pc}
+ 1266              		.cfi_endproc
+ 1267              	.LFE46:
+ 1269              		.section	.text.FIO_ByteSetMask,"ax",%progbits
+ 1270              		.align	2
+ 1271              		.global	FIO_ByteSetMask
+ 1272              		.thumb
+ 1273              		.thumb_func
+ 1275              	FIO_ByteSetMask:
+ 1276              	.LFB47:
+ 540:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 541:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 542:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set mask value for bits in FIO port in byte accessible style
+ 543:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 544:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	byteNum		Byte part number, should be in range from 0 to 3
+ 545:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set mask,
+ 546:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFF.
+ 547:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	maskValue	Mask value contains state value for each bit:
+ 548:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 0: not mask.
+ 549:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							- 1: mask.
+ 550:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 551:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 552:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 553:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - All remaining bits that are not activated in bitValue (value '0')
+ 554:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 555:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - After executing this function, in mask register, value '0' on each bit
+ 556:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * enables an access to the corresponding physical pin via a read or write access,
+ 557:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * while value '1' on bit (masked) that corresponding pin will not be changed
+ 558:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * with write access and if read, will not be reflected in the updated pin.
+ 559:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 560:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_ByteSetMask(uint8_t portNum, uint8_t byteNum, uint8_t bitValue, uint8_t maskValue)
+ 561:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1277              		.loc 1 561 0
+ 1278              		.cfi_startproc
+ 1279              		@ args = 0, pretend = 0, frame = 16
+ 1280              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1281 0000 90B5     		push	{r4, r7, lr}
+ 1282              		.cfi_def_cfa_offset 12
+ 1283              		.cfi_offset 4, -12
+ 1284              		.cfi_offset 7, -8
+ 1285              		.cfi_offset 14, -4
+ 1286 0002 85B0     		sub	sp, sp, #20
+ 1287              		.cfi_def_cfa_offset 32
+ 1288 0004 00AF     		add	r7, sp, #0
+ 1289              		.cfi_def_cfa_register 7
+ 1290 0006 0446     		mov	r4, r0
+ 1291 0008 0846     		mov	r0, r1
+ 1292 000a 1146     		mov	r1, r2
+ 1293 000c 1A46     		mov	r2, r3
+ 1294 000e 2346     		mov	r3, r4
+ 1295 0010 FB71     		strb	r3, [r7, #7]
+ 1296 0012 0346     		mov	r3, r0
+ 1297 0014 BB71     		strb	r3, [r7, #6]
+ 1298 0016 0B46     		mov	r3, r1
+ 1299 0018 7B71     		strb	r3, [r7, #5]
+ 1300 001a 1346     		mov	r3, r2
+ 1301 001c 3B71     		strb	r3, [r7, #4]
+ 562:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = FIO_ByteGetPointer(portNum);
+ 1302              		.loc 1 562 0
+ 1303 001e FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1304 0020 1846     		mov	r0, r3
+ 1305 0022 FFF7FEFF 		bl	FIO_ByteGetPointer
+ 1306 0026 F860     		str	r0, [r7, #12]
+ 563:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if(pFIO != NULL) {
+ 1307              		.loc 1 563 0
+ 1308 0028 FB68     		ldr	r3, [r7, #12]
+ 1309 002a 002B     		cmp	r3, #0
+ 1310 002c 28D0     		beq	.L97
+ 564:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Mask
+ 565:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (maskValue) {
+ 1311              		.loc 1 565 0
+ 1312 002e 3B79     		ldrb	r3, [r7, #4]	@ zero_extendqisi2
+ 1313 0030 002B     		cmp	r3, #0
+ 1314 0032 10D0     		beq	.L95
+ 566:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 567:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if (byteNum <= 3) {
+ 1315              		.loc 1 567 0
+ 1316 0034 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1317 0036 032B     		cmp	r3, #3
+ 1318 0038 22D8     		bhi	.L97
+ 568:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASK[byteNum] |= bitValue;
+ 1319              		.loc 1 568 0
+ 1320 003a BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1321 003c BA79     		ldrb	r2, [r7, #6]	@ zero_extendqisi2
+ 1322 003e F968     		ldr	r1, [r7, #12]
+ 1323 0040 0A44     		add	r2, r2, r1
+ 1324 0042 127C     		ldrb	r2, [r2, #16]
+ 1325 0044 D1B2     		uxtb	r1, r2
+ 1326 0046 7A79     		ldrb	r2, [r7, #5]
+ 1327 0048 0A43     		orrs	r2, r2, r1
+ 1328 004a D1B2     		uxtb	r1, r2
+ 1329 004c FA68     		ldr	r2, [r7, #12]
+ 1330 004e 1344     		add	r3, r3, r2
+ 1331 0050 0A46     		mov	r2, r1
+ 1332 0052 1A74     		strb	r2, [r3, #16]
+ 569:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 570:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 571:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// Un-mask
+ 572:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		else {
+ 573:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 574:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			if (byteNum <= 3) {
+ 575:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASK[byteNum] &= ~bitValue;
+ 576:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 577:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 578:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 579:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1333              		.loc 1 579 0
+ 1334 0054 14E0     		b	.L97
+ 1335              	.L95:
+ 574:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 				pFIO->FIOMASK[byteNum] &= ~bitValue;
+ 1336              		.loc 1 574 0
+ 1337 0056 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1338 0058 032B     		cmp	r3, #3
+ 1339 005a 11D8     		bhi	.L97
+ 575:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			}
+ 1340              		.loc 1 575 0
+ 1341 005c BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1342 005e BA79     		ldrb	r2, [r7, #6]	@ zero_extendqisi2
+ 1343 0060 F968     		ldr	r1, [r7, #12]
+ 1344 0062 0A44     		add	r2, r2, r1
+ 1345 0064 127C     		ldrb	r2, [r2, #16]
+ 1346 0066 D2B2     		uxtb	r2, r2
+ 1347 0068 51B2     		sxtb	r1, r2
+ 1348 006a 97F90520 		ldrsb	r2, [r7, #5]
+ 1349 006e D243     		mvns	r2, r2
+ 1350 0070 52B2     		sxtb	r2, r2
+ 1351 0072 0A40     		ands	r2, r2, r1
+ 1352 0074 52B2     		sxtb	r2, r2
+ 1353 0076 D1B2     		uxtb	r1, r2
+ 1354 0078 FA68     		ldr	r2, [r7, #12]
+ 1355 007a 1344     		add	r3, r3, r2
+ 1356 007c 0A46     		mov	r2, r1
+ 1357 007e 1A74     		strb	r2, [r3, #16]
+ 1358              	.L97:
+ 1359              		.loc 1 579 0
+ 1360 0080 00BF     		nop
+ 1361 0082 1437     		adds	r7, r7, #20
+ 1362              		.cfi_def_cfa_offset 12
+ 1363 0084 BD46     		mov	sp, r7
+ 1364              		.cfi_def_cfa_register 13
+ 1365              		@ sp needed
+ 1366 0086 90BD     		pop	{r4, r7, pc}
+ 1367              		.cfi_endproc
+ 1368              	.LFE47:
+ 1370              		.section	.text.FIO_ByteSetValue,"ax",%progbits
+ 1371              		.align	2
+ 1372              		.global	FIO_ByteSetValue
+ 1373              		.thumb
+ 1374              		.thumb_func
+ 1376              	FIO_ByteSetValue:
+ 1377              	.LFB48:
+ 580:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 581:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 582:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 583:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Set bits for FIO port in byte accessible style
+ 584:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 585:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	byteNum		Byte part number, should be in range from 0 to 3
+ 586:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to set,
+ 587:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFF.
+ 588:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 589:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 590:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 591:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 592:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 593:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 594:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 595:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 596:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_ByteSetValue(uint8_t portNum, uint8_t byteNum, uint8_t bitValue)
+ 597:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1378              		.loc 1 597 0
+ 1379              		.cfi_startproc
+ 1380              		@ args = 0, pretend = 0, frame = 16
+ 1381              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1382 0000 80B5     		push	{r7, lr}
+ 1383              		.cfi_def_cfa_offset 8
+ 1384              		.cfi_offset 7, -8
+ 1385              		.cfi_offset 14, -4
+ 1386 0002 84B0     		sub	sp, sp, #16
+ 1387              		.cfi_def_cfa_offset 24
+ 1388 0004 00AF     		add	r7, sp, #0
+ 1389              		.cfi_def_cfa_register 7
+ 1390 0006 0346     		mov	r3, r0
+ 1391 0008 FB71     		strb	r3, [r7, #7]
+ 1392 000a 0B46     		mov	r3, r1
+ 1393 000c BB71     		strb	r3, [r7, #6]
+ 1394 000e 1346     		mov	r3, r2
+ 1395 0010 7B71     		strb	r3, [r7, #5]
+ 598:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = FIO_ByteGetPointer(portNum);
+ 1396              		.loc 1 598 0
+ 1397 0012 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1398 0014 1846     		mov	r0, r3
+ 1399 0016 FFF7FEFF 		bl	FIO_ByteGetPointer
+ 1400 001a F860     		str	r0, [r7, #12]
+ 599:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pFIO != NULL) {
+ 1401              		.loc 1 599 0
+ 1402 001c FB68     		ldr	r3, [r7, #12]
+ 1403 001e 002B     		cmp	r3, #0
+ 1404 0020 07D0     		beq	.L100
+ 600:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 601:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (byteNum <= 3) {
+ 1405              		.loc 1 601 0
+ 1406 0022 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1407 0024 032B     		cmp	r3, #3
+ 1408 0026 04D8     		bhi	.L100
+ 602:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOSET[byteNum] = bitValue;
+ 1409              		.loc 1 602 0
+ 1410 0028 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1411 002a FA68     		ldr	r2, [r7, #12]
+ 1412 002c 1344     		add	r3, r3, r2
+ 1413 002e 7A79     		ldrb	r2, [r7, #5]
+ 1414 0030 1A76     		strb	r2, [r3, #24]
+ 1415              	.L100:
+ 603:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 604:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 605:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1416              		.loc 1 605 0
+ 1417 0032 00BF     		nop
+ 1418 0034 1037     		adds	r7, r7, #16
+ 1419              		.cfi_def_cfa_offset 8
+ 1420 0036 BD46     		mov	sp, r7
+ 1421              		.cfi_def_cfa_register 13
+ 1422              		@ sp needed
+ 1423 0038 80BD     		pop	{r7, pc}
+ 1424              		.cfi_endproc
+ 1425              	.LFE48:
+ 1427 003a 00BF     		.section	.text.FIO_ByteClearValue,"ax",%progbits
+ 1428              		.align	2
+ 1429              		.global	FIO_ByteClearValue
+ 1430              		.thumb
+ 1431              		.thumb_func
+ 1433              	FIO_ByteClearValue:
+ 1434              	.LFB49:
+ 606:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 607:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 608:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 609:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Clear bits for FIO port in byte accessible style
+ 610:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 611:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	byteNum		Byte part number, should be in range from 0 to 3
+ 612:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	bitValue	Value that contains all bits in to clear,
+ 613:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 							in range from 0 to 0xFF.
+ 614:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		None
+ 615:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  *
+ 616:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note:
+ 617:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all bits that has been set as input direction, this function will
+ 618:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * not effect.
+ 619:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * - For all remaining bits that are not activated in bitValue (value '0')
+ 620:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * will not be effected by this function.
+ 621:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 622:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** void FIO_ByteClearValue(uint8_t portNum, uint8_t byteNum, uint8_t bitValue)
+ 623:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1435              		.loc 1 623 0
+ 1436              		.cfi_startproc
+ 1437              		@ args = 0, pretend = 0, frame = 16
+ 1438              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1439 0000 80B5     		push	{r7, lr}
+ 1440              		.cfi_def_cfa_offset 8
+ 1441              		.cfi_offset 7, -8
+ 1442              		.cfi_offset 14, -4
+ 1443 0002 84B0     		sub	sp, sp, #16
+ 1444              		.cfi_def_cfa_offset 24
+ 1445 0004 00AF     		add	r7, sp, #0
+ 1446              		.cfi_def_cfa_register 7
+ 1447 0006 0346     		mov	r3, r0
+ 1448 0008 FB71     		strb	r3, [r7, #7]
+ 1449 000a 0B46     		mov	r3, r1
+ 1450 000c BB71     		strb	r3, [r7, #6]
+ 1451 000e 1346     		mov	r3, r2
+ 1452 0010 7B71     		strb	r3, [r7, #5]
+ 624:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = FIO_ByteGetPointer(portNum);
+ 1453              		.loc 1 624 0
+ 1454 0012 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1455 0014 1846     		mov	r0, r3
+ 1456 0016 FFF7FEFF 		bl	FIO_ByteGetPointer
+ 1457 001a F860     		str	r0, [r7, #12]
+ 625:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pFIO != NULL) {
+ 1458              		.loc 1 625 0
+ 1459 001c FB68     		ldr	r3, [r7, #12]
+ 1460 001e 002B     		cmp	r3, #0
+ 1461 0020 07D0     		beq	.L103
+ 626:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 627:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (byteNum <= 3) {
+ 1462              		.loc 1 627 0
+ 1463 0022 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1464 0024 032B     		cmp	r3, #3
+ 1465 0026 04D8     		bhi	.L103
+ 628:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			pFIO->FIOCLR[byteNum] = bitValue;
+ 1466              		.loc 1 628 0
+ 1467 0028 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1468 002a FA68     		ldr	r2, [r7, #12]
+ 1469 002c 1344     		add	r3, r3, r2
+ 1470 002e 7A79     		ldrb	r2, [r7, #5]
+ 1471 0030 1A77     		strb	r2, [r3, #28]
+ 1472              	.L103:
+ 629:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 630:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 631:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1473              		.loc 1 631 0
+ 1474 0032 00BF     		nop
+ 1475 0034 1037     		adds	r7, r7, #16
+ 1476              		.cfi_def_cfa_offset 8
+ 1477 0036 BD46     		mov	sp, r7
+ 1478              		.cfi_def_cfa_register 13
+ 1479              		@ sp needed
+ 1480 0038 80BD     		pop	{r7, pc}
+ 1481              		.cfi_endproc
+ 1482              	.LFE49:
+ 1484 003a 00BF     		.section	.text.FIO_ByteReadValue,"ax",%progbits
+ 1485              		.align	2
+ 1486              		.global	FIO_ByteReadValue
+ 1487              		.thumb
+ 1488              		.thumb_func
+ 1490              	FIO_ByteReadValue:
+ 1491              	.LFB50:
+ 632:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 633:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 
+ 634:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** /*********************************************************************//**
+ 635:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @brief		Read Current state on port pin that have input direction of GPIO
+ 636:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * 				in byte accessible style.
+ 637:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	portNum		Port number, in range from 0 to 4
+ 638:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @param[in]	byteNum		Byte part number, should be in range from 0 to 3
+ 639:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * @return		Current value of FIO port pin of specified byte part.
+ 640:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * Note: Return value contain state of each port pin (bit) on that FIO regardless
+ 641:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  * its direction is input or output.
+ 642:Libraries/NXP/Drivers/source/lpc17xx_gpio.c ****  **********************************************************************/
+ 643:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** uint8_t FIO_ByteReadValue(uint8_t portNum, uint8_t byteNum)
+ 644:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** {
+ 1492              		.loc 1 644 0
+ 1493              		.cfi_startproc
+ 1494              		@ args = 0, pretend = 0, frame = 16
+ 1495              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1496 0000 80B5     		push	{r7, lr}
+ 1497              		.cfi_def_cfa_offset 8
+ 1498              		.cfi_offset 7, -8
+ 1499              		.cfi_offset 14, -4
+ 1500 0002 84B0     		sub	sp, sp, #16
+ 1501              		.cfi_def_cfa_offset 24
+ 1502 0004 00AF     		add	r7, sp, #0
+ 1503              		.cfi_def_cfa_register 7
+ 1504 0006 0346     		mov	r3, r0
+ 1505 0008 0A46     		mov	r2, r1
+ 1506 000a FB71     		strb	r3, [r7, #7]
+ 1507 000c 1346     		mov	r3, r2
+ 1508 000e BB71     		strb	r3, [r7, #6]
+ 645:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	GPIO_Byte_TypeDef *pFIO = FIO_ByteGetPointer(portNum);
+ 1509              		.loc 1 645 0
+ 1510 0010 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 1511 0012 1846     		mov	r0, r3
+ 1512 0014 FFF7FEFF 		bl	FIO_ByteGetPointer
+ 1513 0018 F860     		str	r0, [r7, #12]
+ 646:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	if (pFIO != NULL) {
+ 1514              		.loc 1 646 0
+ 1515 001a FB68     		ldr	r3, [r7, #12]
+ 1516 001c 002B     		cmp	r3, #0
+ 1517 001e 08D0     		beq	.L105
+ 647:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		// mthomas if ((byteNum >= 0) && (byteNum <= 3)) {
+ 648:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		if (byteNum <= 3) {
+ 1518              		.loc 1 648 0
+ 1519 0020 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1520 0022 032B     		cmp	r3, #3
+ 1521 0024 05D8     		bhi	.L105
+ 649:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 			return (pFIO->FIOPIN[byteNum]);
+ 1522              		.loc 1 649 0
+ 1523 0026 BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 1524 0028 FA68     		ldr	r2, [r7, #12]
+ 1525 002a 1344     		add	r3, r3, r2
+ 1526 002c 1B7D     		ldrb	r3, [r3, #20]
+ 1527 002e DBB2     		uxtb	r3, r3
+ 1528 0030 00E0     		b	.L106
+ 1529              	.L105:
+ 650:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 		}
+ 651:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	}
+ 652:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** 	return (0);
+ 1530              		.loc 1 652 0
+ 1531 0032 0023     		movs	r3, #0
+ 1532              	.L106:
+ 653:Libraries/NXP/Drivers/source/lpc17xx_gpio.c **** }
+ 1533              		.loc 1 653 0
+ 1534 0034 1846     		mov	r0, r3
+ 1535 0036 1037     		adds	r7, r7, #16
+ 1536              		.cfi_def_cfa_offset 8
+ 1537 0038 BD46     		mov	sp, r7
+ 1538              		.cfi_def_cfa_register 13
+ 1539              		@ sp needed
+ 1540 003a 80BD     		pop	{r7, pc}
+ 1541              		.cfi_endproc
+ 1542              	.LFE50:
+ 1544              		.text
+ 1545              	.Letext0:
+ 1546              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 1547              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 1548              		.file 4 "./Libraries/NXP/Core/CM3/DeviceSupport/NXP/LPC17xx/LPC17xx.h"
+ 1549              		.file 5 "./Libraries/NXP/Drivers/include/lpc17xx_gpio.h"
+ 1550              		.file 6 "./Libraries/NXP/Core/CM3/CoreSupport/core_cm3.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lpc17xx_gpio.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:20     .text.GPIO_GetPointer:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:24     .text.GPIO_GetPointer:00000000 GPIO_GetPointer
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:52     .text.GPIO_GetPointer:0000001c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:57     .text.GPIO_GetPointer:00000030 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:108    .text.GPIO_GetPointer:0000005c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:117    .text.FIO_HalfWordGetPointer:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:121    .text.FIO_HalfWordGetPointer:00000000 FIO_HalfWordGetPointer
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:148    .text.FIO_HalfWordGetPointer:0000001c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:153    .text.FIO_HalfWordGetPointer:00000030 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:204    .text.FIO_HalfWordGetPointer:0000005c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:213    .text.FIO_ByteGetPointer:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:217    .text.FIO_ByteGetPointer:00000000 FIO_ByteGetPointer
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:244    .text.FIO_ByteGetPointer:0000001c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:249    .text.FIO_ByteGetPointer:00000030 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:300    .text.FIO_ByteGetPointer:0000005c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:309    .text.GPIO_SetDir:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:314    .text.GPIO_SetDir:00000000 GPIO_SetDir
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:377    .text.GPIO_SetValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:382    .text.GPIO_SetValue:00000000 GPIO_SetValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:425    .text.GPIO_ClearValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:430    .text.GPIO_ClearValue:00000000 GPIO_ClearValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:473    .text.GPIO_ReadValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:478    .text.GPIO_ReadValue:00000000 GPIO_ReadValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:523    .text.FIO_SetDir:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:528    .text.FIO_SetDir:00000000 FIO_SetDir
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:565    .text.FIO_SetValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:570    .text.FIO_SetValue:00000000 FIO_SetValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:604    .text.FIO_ClearValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:609    .text.FIO_ClearValue:00000000 FIO_ClearValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:643    .text.FIO_ReadValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:648    .text.FIO_ReadValue:00000000 FIO_ReadValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:681    .text.FIO_SetMask:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:686    .text.FIO_SetMask:00000000 FIO_SetMask
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:749    .text.FIO_HalfWordSetDir:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:754    .text.FIO_HalfWordSetDir:00000000 FIO_HalfWordSetDir
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:868    .text.FIO_HalfWordSetMask:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:873    .text.FIO_HalfWordSetMask:00000000 FIO_HalfWordSetMask
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:987    .text.FIO_HalfWordSetValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:992    .text.FIO_HalfWordSetValue:00000000 FIO_HalfWordSetValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1049   .text.FIO_HalfWordClearValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1054   .text.FIO_HalfWordClearValue:00000000 FIO_HalfWordClearValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1111   .text.FIO_HalfWordReadValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1116   .text.FIO_HalfWordReadValue:00000000 FIO_HalfWordReadValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1175   .text.FIO_ByteSetDir:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1180   .text.FIO_ByteSetDir:00000000 FIO_ByteSetDir
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1270   .text.FIO_ByteSetMask:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1275   .text.FIO_ByteSetMask:00000000 FIO_ByteSetMask
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1371   .text.FIO_ByteSetValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1376   .text.FIO_ByteSetValue:00000000 FIO_ByteSetValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1428   .text.FIO_ByteClearValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1433   .text.FIO_ByteClearValue:00000000 FIO_ByteClearValue
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1485   .text.FIO_ByteReadValue:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccp1oVTm.s:1490   .text.FIO_ByteReadValue:00000000 FIO_ByteReadValue
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS

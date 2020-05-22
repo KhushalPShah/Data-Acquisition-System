@@ -1,0 +1,3409 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"etharp.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.global	ethbroadcast
+  20              		.section	.rodata.ethbroadcast,"a",%progbits
+  21              		.align	2
+  24              	ethbroadcast:
+  25 0000 FF       		.byte	-1
+  26 0001 FF       		.byte	-1
+  27 0002 FF       		.byte	-1
+  28 0003 FF       		.byte	-1
+  29 0004 FF       		.byte	-1
+  30 0005 FF       		.byte	-1
+  31              		.global	ethzero
+  32              		.section	.rodata.ethzero,"a",%progbits
+  33              		.align	2
+  36              	ethzero:
+  37 0000 00000000 		.space	6
+  37      0000
+  38              		.section	.bss.arp_table,"aw",%nobits
+  39              		.align	2
+  42              	arp_table:
+  43 0000 00000000 		.space	160
+  43      00000000 
+  43      00000000 
+  43      00000000 
+  43      00000000 
+  44              		.section	.bss.etharp_cached_entry,"aw",%nobits
+  47              	etharp_cached_entry:
+  48 0000 00       		.space	1
+  49              		.section	.text.free_entry,"ax",%progbits
+  50              		.align	2
+  51              		.thumb
+  52              		.thumb_func
+  54              	free_entry:
+  55              	.LFB17:
+  56              		.file 1 "Libraries/lwip-1.4.0/netif/etharp.c"
+   1:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+   2:Libraries/lwip-1.4.0/netif/etharp.c ****  * @file
+   3:Libraries/lwip-1.4.0/netif/etharp.c ****  * Address Resolution Protocol module for IP over Ethernet
+   4:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+   5:Libraries/lwip-1.4.0/netif/etharp.c ****  * Functionally, ARP is divided into two parts. The first maps an IP address
+   6:Libraries/lwip-1.4.0/netif/etharp.c ****  * to a physical address when sending a packet, and the second part answers
+   7:Libraries/lwip-1.4.0/netif/etharp.c ****  * requests from other machines for our physical address.
+   8:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+   9:Libraries/lwip-1.4.0/netif/etharp.c ****  * This implementation complies with RFC 826 (Ethernet ARP). It supports
+  10:Libraries/lwip-1.4.0/netif/etharp.c ****  * Gratuitious ARP from RFC3220 (IP Mobility Support for IPv4) section 4.6
+  11:Libraries/lwip-1.4.0/netif/etharp.c ****  * if an interface calls etharp_gratuitous(our_netif) upon address change.
+  12:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+  13:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  14:Libraries/lwip-1.4.0/netif/etharp.c **** /*
+  15:Libraries/lwip-1.4.0/netif/etharp.c ****  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
+  16:Libraries/lwip-1.4.0/netif/etharp.c ****  * Copyright (c) 2003-2004 Leon Woestenberg <leon.woestenberg@axon.tv>
+  17:Libraries/lwip-1.4.0/netif/etharp.c ****  * Copyright (c) 2003-2004 Axon Digital Design B.V., The Netherlands.
+  18:Libraries/lwip-1.4.0/netif/etharp.c ****  * All rights reserved.
+  19:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+  20:Libraries/lwip-1.4.0/netif/etharp.c ****  * Redistribution and use in source and binary forms, with or without modification,
+  21:Libraries/lwip-1.4.0/netif/etharp.c ****  * are permitted provided that the following conditions are met:
+  22:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+  23:Libraries/lwip-1.4.0/netif/etharp.c ****  * 1. Redistributions of source code must retain the above copyright notice,
+  24:Libraries/lwip-1.4.0/netif/etharp.c ****  *    this list of conditions and the following disclaimer.
+  25:Libraries/lwip-1.4.0/netif/etharp.c ****  * 2. Redistributions in binary form must reproduce the above copyright notice,
+  26:Libraries/lwip-1.4.0/netif/etharp.c ****  *    this list of conditions and the following disclaimer in the documentation
+  27:Libraries/lwip-1.4.0/netif/etharp.c ****  *    and/or other materials provided with the distribution.
+  28:Libraries/lwip-1.4.0/netif/etharp.c ****  * 3. The name of the author may not be used to endorse or promote products
+  29:Libraries/lwip-1.4.0/netif/etharp.c ****  *    derived from this software without specific prior written permission.
+  30:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+  31:Libraries/lwip-1.4.0/netif/etharp.c ****  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
+  32:Libraries/lwip-1.4.0/netif/etharp.c ****  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+  33:Libraries/lwip-1.4.0/netif/etharp.c ****  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+  34:Libraries/lwip-1.4.0/netif/etharp.c ****  * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+  35:Libraries/lwip-1.4.0/netif/etharp.c ****  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+  36:Libraries/lwip-1.4.0/netif/etharp.c ****  * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  37:Libraries/lwip-1.4.0/netif/etharp.c ****  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  38:Libraries/lwip-1.4.0/netif/etharp.c ****  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+  39:Libraries/lwip-1.4.0/netif/etharp.c ****  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+  40:Libraries/lwip-1.4.0/netif/etharp.c ****  * OF SUCH DAMAGE.
+  41:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+  42:Libraries/lwip-1.4.0/netif/etharp.c ****  * This file is part of the lwIP TCP/IP stack.
+  43:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+  44:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+  45:Libraries/lwip-1.4.0/netif/etharp.c ****  
+  46:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/opt.h"
+  47:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  48:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_ARP || LWIP_ETHERNET
+  49:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  50:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/ip_addr.h"
+  51:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/def.h"
+  52:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/ip.h"
+  53:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/stats.h"
+  54:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/snmp.h"
+  55:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/dhcp.h"
+  56:Libraries/lwip-1.4.0/netif/etharp.c **** #include "lwip/autoip.h"
+  57:Libraries/lwip-1.4.0/netif/etharp.c **** #include "netif/etharp.h"
+  58:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  59:Libraries/lwip-1.4.0/netif/etharp.c **** #if PPPOE_SUPPORT
+  60:Libraries/lwip-1.4.0/netif/etharp.c **** #include "netif/ppp_oe.h"
+  61:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* PPPOE_SUPPORT */
+  62:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  63:Libraries/lwip-1.4.0/netif/etharp.c **** #include <string.h>
+  64:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  65:Libraries/lwip-1.4.0/netif/etharp.c **** const struct eth_addr ethbroadcast = {{0xff,0xff,0xff,0xff,0xff,0xff}};
+  66:Libraries/lwip-1.4.0/netif/etharp.c **** const struct eth_addr ethzero = {{0,0,0,0,0,0}};
+  67:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  68:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_ARP /* don't build if not configured for use in lwipopts.h */
+  69:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  70:Libraries/lwip-1.4.0/netif/etharp.c **** /** the time an ARP entry stays valid after its last update,
+  71:Libraries/lwip-1.4.0/netif/etharp.c ****  *  for ARP_TMR_INTERVAL = 5000, this is
+  72:Libraries/lwip-1.4.0/netif/etharp.c ****  *  (240 * 5) seconds = 20 minutes.
+  73:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+  74:Libraries/lwip-1.4.0/netif/etharp.c **** #define ARP_MAXAGE 240
+  75:Libraries/lwip-1.4.0/netif/etharp.c **** /** the time an ARP entry stays pending after first request,
+  76:Libraries/lwip-1.4.0/netif/etharp.c ****  *  for ARP_TMR_INTERVAL = 5000, this is
+  77:Libraries/lwip-1.4.0/netif/etharp.c ****  *  (2 * 5) seconds = 10 seconds.
+  78:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+  79:Libraries/lwip-1.4.0/netif/etharp.c ****  *  @internal Keep this number at least 2, otherwise it might
+  80:Libraries/lwip-1.4.0/netif/etharp.c ****  *  run out instantly if the timeout occurs directly after a request.
+  81:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+  82:Libraries/lwip-1.4.0/netif/etharp.c **** #define ARP_MAXPENDING 2
+  83:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  84:Libraries/lwip-1.4.0/netif/etharp.c **** #define HWTYPE_ETHERNET 1
+  85:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  86:Libraries/lwip-1.4.0/netif/etharp.c **** enum etharp_state {
+  87:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHARP_STATE_EMPTY = 0,
+  88:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHARP_STATE_PENDING,
+  89:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHARP_STATE_STABLE
+  90:Libraries/lwip-1.4.0/netif/etharp.c **** };
+  91:Libraries/lwip-1.4.0/netif/etharp.c **** 
+  92:Libraries/lwip-1.4.0/netif/etharp.c **** struct etharp_entry {
+  93:Libraries/lwip-1.4.0/netif/etharp.c **** #if ARP_QUEUEING
+  94:Libraries/lwip-1.4.0/netif/etharp.c ****   /** Pointer to queue of pending outgoing packets on this ARP entry. */
+  95:Libraries/lwip-1.4.0/netif/etharp.c ****   struct etharp_q_entry *q;
+  96:Libraries/lwip-1.4.0/netif/etharp.c **** #else /* ARP_QUEUEING */
+  97:Libraries/lwip-1.4.0/netif/etharp.c ****   /** Pointer to a single pending outgoing packet on this ARP entry. */
+  98:Libraries/lwip-1.4.0/netif/etharp.c ****   struct pbuf *q;
+  99:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ARP_QUEUEING */
+ 100:Libraries/lwip-1.4.0/netif/etharp.c ****   ip_addr_t ipaddr;
+ 101:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_addr ethaddr;
+ 102:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_SNMP
+ 103:Libraries/lwip-1.4.0/netif/etharp.c ****   struct netif *netif;
+ 104:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_SNMP */
+ 105:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t state;
+ 106:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t ctime;
+ 107:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 108:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t static_entry;
+ 109:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 110:Libraries/lwip-1.4.0/netif/etharp.c **** };
+ 111:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 112:Libraries/lwip-1.4.0/netif/etharp.c **** static struct etharp_entry arp_table[ARP_TABLE_SIZE];
+ 113:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 114:Libraries/lwip-1.4.0/netif/etharp.c **** #if !LWIP_NETIF_HWADDRHINT
+ 115:Libraries/lwip-1.4.0/netif/etharp.c **** static u8_t etharp_cached_entry;
+ 116:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* !LWIP_NETIF_HWADDRHINT */
+ 117:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 118:Libraries/lwip-1.4.0/netif/etharp.c **** /** Try hard to create a new entry - we want the IP address to appear in
+ 119:Libraries/lwip-1.4.0/netif/etharp.c ****     the cache (even if this means removing an active entry or so). */
+ 120:Libraries/lwip-1.4.0/netif/etharp.c **** #define ETHARP_FLAG_TRY_HARD     1
+ 121:Libraries/lwip-1.4.0/netif/etharp.c **** #define ETHARP_FLAG_FIND_ONLY    2
+ 122:Libraries/lwip-1.4.0/netif/etharp.c **** #define ETHARP_FLAG_STATIC_ENTRY 4
+ 123:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 124:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_NETIF_HWADDRHINT
+ 125:Libraries/lwip-1.4.0/netif/etharp.c **** #define ETHARP_SET_HINT(netif, hint)  if (((netif) != NULL) && ((netif)->addr_hint != NULL))  \
+ 126:Libraries/lwip-1.4.0/netif/etharp.c ****                                       *((netif)->addr_hint) = (hint);
+ 127:Libraries/lwip-1.4.0/netif/etharp.c **** #else /* LWIP_NETIF_HWADDRHINT */
+ 128:Libraries/lwip-1.4.0/netif/etharp.c **** #define ETHARP_SET_HINT(netif, hint)  (etharp_cached_entry = (hint))
+ 129:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_NETIF_HWADDRHINT */
+ 130:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 131:Libraries/lwip-1.4.0/netif/etharp.c **** static err_t update_arp_entry(struct netif *netif, ip_addr_t *ipaddr, struct eth_addr *ethaddr, u8_
+ 132:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 133:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 134:Libraries/lwip-1.4.0/netif/etharp.c **** /* Some checks, instead of etharp_init(): */
+ 135:Libraries/lwip-1.4.0/netif/etharp.c **** #if (LWIP_ARP && (ARP_TABLE_SIZE > 0x7f))
+ 136:Libraries/lwip-1.4.0/netif/etharp.c ****   #error "ARP_TABLE_SIZE must fit in an s8_t, you have to reduce it in your lwipopts.h"
+ 137:Libraries/lwip-1.4.0/netif/etharp.c **** #endif
+ 138:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 139:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 140:Libraries/lwip-1.4.0/netif/etharp.c **** #if ARP_QUEUEING
+ 141:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 142:Libraries/lwip-1.4.0/netif/etharp.c ****  * Free a complete queue of etharp entries
+ 143:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 144:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param q a qeueue of etharp_q_entry's to free
+ 145:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 146:Libraries/lwip-1.4.0/netif/etharp.c **** static void
+ 147:Libraries/lwip-1.4.0/netif/etharp.c **** free_etharp_q(struct etharp_q_entry *q)
+ 148:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 149:Libraries/lwip-1.4.0/netif/etharp.c ****   struct etharp_q_entry *r;
+ 150:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("q != NULL", q != NULL);
+ 151:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("q->p != NULL", q->p != NULL);
+ 152:Libraries/lwip-1.4.0/netif/etharp.c ****   while (q) {
+ 153:Libraries/lwip-1.4.0/netif/etharp.c ****     r = q;
+ 154:Libraries/lwip-1.4.0/netif/etharp.c ****     q = q->next;
+ 155:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_ASSERT("r->p != NULL", (r->p != NULL));
+ 156:Libraries/lwip-1.4.0/netif/etharp.c ****     pbuf_free(r->p);
+ 157:Libraries/lwip-1.4.0/netif/etharp.c ****     memp_free(MEMP_ARP_QUEUE, r);
+ 158:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 159:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 160:Libraries/lwip-1.4.0/netif/etharp.c **** #else /* ARP_QUEUEING */
+ 161:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 162:Libraries/lwip-1.4.0/netif/etharp.c **** /** Compatibility define: free the queued pbuf */
+ 163:Libraries/lwip-1.4.0/netif/etharp.c **** #define free_etharp_q(q) pbuf_free(q)
+ 164:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 165:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ARP_QUEUEING */
+ 166:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 167:Libraries/lwip-1.4.0/netif/etharp.c **** /** Clean up ARP table entries */
+ 168:Libraries/lwip-1.4.0/netif/etharp.c **** static void
+ 169:Libraries/lwip-1.4.0/netif/etharp.c **** free_entry(int i)
+ 170:Libraries/lwip-1.4.0/netif/etharp.c **** {
+  57              		.loc 1 170 0
+  58              		.cfi_startproc
+  59              		@ args = 0, pretend = 0, frame = 8
+  60              		@ frame_needed = 1, uses_anonymous_args = 0
+  61 0000 80B5     		push	{r7, lr}
+  62              		.cfi_def_cfa_offset 8
+  63              		.cfi_offset 7, -8
+  64              		.cfi_offset 14, -4
+  65 0002 82B0     		sub	sp, sp, #8
+  66              		.cfi_def_cfa_offset 16
+  67 0004 00AF     		add	r7, sp, #0
+  68              		.cfi_def_cfa_register 7
+  69 0006 7860     		str	r0, [r7, #4]
+ 171:Libraries/lwip-1.4.0/netif/etharp.c ****   /* remove from SNMP ARP index tree */
+ 172:Libraries/lwip-1.4.0/netif/etharp.c ****   snmp_delete_arpidx_tree(arp_table[i].netif, &arp_table[i].ipaddr);
+ 173:Libraries/lwip-1.4.0/netif/etharp.c ****   /* and empty packet queue */
+ 174:Libraries/lwip-1.4.0/netif/etharp.c ****   if (arp_table[i].q != NULL) {
+  70              		.loc 1 174 0
+  71 0008 0F4A     		ldr	r2, .L3
+  72 000a 7B68     		ldr	r3, [r7, #4]
+  73 000c 1B01     		lsls	r3, r3, #4
+  74 000e 1344     		add	r3, r3, r2
+  75 0010 1B68     		ldr	r3, [r3]
+  76 0012 002B     		cmp	r3, #0
+  77 0014 0DD0     		beq	.L2
+ 175:Libraries/lwip-1.4.0/netif/etharp.c ****     /* remove all queued packets */
+ 176:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer: freeing entry %"U16_F", packet queue %p.\n", (u16_t)i
+ 177:Libraries/lwip-1.4.0/netif/etharp.c ****     free_etharp_q(arp_table[i].q);
+  78              		.loc 1 177 0
+  79 0016 0C4A     		ldr	r2, .L3
+  80 0018 7B68     		ldr	r3, [r7, #4]
+  81 001a 1B01     		lsls	r3, r3, #4
+  82 001c 1344     		add	r3, r3, r2
+  83 001e 1B68     		ldr	r3, [r3]
+  84 0020 1846     		mov	r0, r3
+  85 0022 FFF7FEFF 		bl	pbuf_free
+ 178:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].q = NULL;
+  86              		.loc 1 178 0
+  87 0026 084A     		ldr	r2, .L3
+  88 0028 7B68     		ldr	r3, [r7, #4]
+  89 002a 1B01     		lsls	r3, r3, #4
+  90 002c 1344     		add	r3, r3, r2
+  91 002e 0022     		movs	r2, #0
+  92 0030 1A60     		str	r2, [r3]
+  93              	.L2:
+ 179:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 180:Libraries/lwip-1.4.0/netif/etharp.c ****   /* recycle entry for re-use */      
+ 181:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].state = ETHARP_STATE_EMPTY;
+  94              		.loc 1 181 0
+  95 0032 054A     		ldr	r2, .L3
+  96 0034 7B68     		ldr	r3, [r7, #4]
+  97 0036 1B01     		lsls	r3, r3, #4
+  98 0038 1344     		add	r3, r3, r2
+  99 003a 0E33     		adds	r3, r3, #14
+ 100 003c 0022     		movs	r2, #0
+ 101 003e 1A70     		strb	r2, [r3]
+ 182:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 183:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].static_entry = 0;
+ 184:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 185:Libraries/lwip-1.4.0/netif/etharp.c **** #ifdef LWIP_DEBUG
+ 186:Libraries/lwip-1.4.0/netif/etharp.c ****   /* for debugging, clean out the complete entry */
+ 187:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].ctime = 0;
+ 188:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_SNMP
+ 189:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].netif = NULL;
+ 190:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_SNMP */
+ 191:Libraries/lwip-1.4.0/netif/etharp.c ****   ip_addr_set_zero(&arp_table[i].ipaddr);
+ 192:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].ethaddr = ethzero;
+ 193:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_DEBUG */
+ 194:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 102              		.loc 1 194 0
+ 103 0040 00BF     		nop
+ 104 0042 0837     		adds	r7, r7, #8
+ 105              		.cfi_def_cfa_offset 8
+ 106 0044 BD46     		mov	sp, r7
+ 107              		.cfi_def_cfa_register 13
+ 108              		@ sp needed
+ 109 0046 80BD     		pop	{r7, pc}
+ 110              	.L4:
+ 111              		.align	2
+ 112              	.L3:
+ 113 0048 00000000 		.word	arp_table
+ 114              		.cfi_endproc
+ 115              	.LFE17:
+ 117              		.section	.text.etharp_tmr,"ax",%progbits
+ 118              		.align	2
+ 119              		.global	etharp_tmr
+ 120              		.thumb
+ 121              		.thumb_func
+ 123              	etharp_tmr:
+ 124              	.LFB18:
+ 195:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 196:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 197:Libraries/lwip-1.4.0/netif/etharp.c ****  * Clears expired entries in the ARP table.
+ 198:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 199:Libraries/lwip-1.4.0/netif/etharp.c ****  * This function should be called every ETHARP_TMR_INTERVAL milliseconds (5 seconds),
+ 200:Libraries/lwip-1.4.0/netif/etharp.c ****  * in order to expire entries in the ARP table.
+ 201:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 202:Libraries/lwip-1.4.0/netif/etharp.c **** void
+ 203:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_tmr(void)
+ 204:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 125              		.loc 1 204 0
+ 126              		.cfi_startproc
+ 127              		@ args = 0, pretend = 0, frame = 8
+ 128              		@ frame_needed = 1, uses_anonymous_args = 0
+ 129 0000 80B5     		push	{r7, lr}
+ 130              		.cfi_def_cfa_offset 8
+ 131              		.cfi_offset 7, -8
+ 132              		.cfi_offset 14, -4
+ 133 0002 82B0     		sub	sp, sp, #8
+ 134              		.cfi_def_cfa_offset 16
+ 135 0004 00AF     		add	r7, sp, #0
+ 136              		.cfi_def_cfa_register 7
+ 205:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t i;
+ 206:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 207:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer\n"));
+ 208:Libraries/lwip-1.4.0/netif/etharp.c ****   /* remove expired entries from the ARP table */
+ 209:Libraries/lwip-1.4.0/netif/etharp.c ****   for (i = 0; i < ARP_TABLE_SIZE; ++i) {
+ 137              		.loc 1 209 0
+ 138 0006 0023     		movs	r3, #0
+ 139 0008 FB71     		strb	r3, [r7, #7]
+ 140 000a 36E0     		b	.L6
+ 141              	.L9:
+ 142              	.LBB2:
+ 210:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 143              		.loc 1 210 0
+ 144 000c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 145 000e 1E4A     		ldr	r2, .L10
+ 146 0010 1B01     		lsls	r3, r3, #4
+ 147 0012 1344     		add	r3, r3, r2
+ 148 0014 0E33     		adds	r3, r3, #14
+ 149 0016 1B78     		ldrb	r3, [r3]
+ 150 0018 BB71     		strb	r3, [r7, #6]
+ 211:Libraries/lwip-1.4.0/netif/etharp.c ****     if (state != ETHARP_STATE_EMPTY
+ 151              		.loc 1 211 0
+ 152 001a BB79     		ldrb	r3, [r7, #6]	@ zero_extendqisi2
+ 153 001c 002B     		cmp	r3, #0
+ 154 001e 29D0     		beq	.L7
+ 212:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 213:Libraries/lwip-1.4.0/netif/etharp.c ****       && (arp_table[i].static_entry == 0)
+ 214:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 215:Libraries/lwip-1.4.0/netif/etharp.c ****       ) {
+ 216:Libraries/lwip-1.4.0/netif/etharp.c ****       arp_table[i].ctime++;
+ 155              		.loc 1 216 0
+ 156 0020 FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 157 0022 1949     		ldr	r1, .L10
+ 158 0024 1A01     		lsls	r2, r3, #4
+ 159 0026 0A44     		add	r2, r2, r1
+ 160 0028 0F32     		adds	r2, r2, #15
+ 161 002a 1278     		ldrb	r2, [r2]	@ zero_extendqisi2
+ 162 002c 0132     		adds	r2, r2, #1
+ 163 002e D1B2     		uxtb	r1, r2
+ 164 0030 154A     		ldr	r2, .L10
+ 165 0032 1B01     		lsls	r3, r3, #4
+ 166 0034 1344     		add	r3, r3, r2
+ 167 0036 0F33     		adds	r3, r3, #15
+ 168 0038 0A46     		mov	r2, r1
+ 169 003a 1A70     		strb	r2, [r3]
+ 217:Libraries/lwip-1.4.0/netif/etharp.c ****       if ((arp_table[i].ctime >= ARP_MAXAGE) ||
+ 170              		.loc 1 217 0
+ 171 003c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 172 003e 124A     		ldr	r2, .L10
+ 173 0040 1B01     		lsls	r3, r3, #4
+ 174 0042 1344     		add	r3, r3, r2
+ 175 0044 0F33     		adds	r3, r3, #15
+ 176 0046 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 177 0048 EF2B     		cmp	r3, #239
+ 178 004a 0FD8     		bhi	.L8
+ 218:Libraries/lwip-1.4.0/netif/etharp.c ****           ((arp_table[i].state == ETHARP_STATE_PENDING)  &&
+ 179              		.loc 1 218 0 discriminator 1
+ 180 004c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 181 004e 0E4A     		ldr	r2, .L10
+ 182 0050 1B01     		lsls	r3, r3, #4
+ 183 0052 1344     		add	r3, r3, r2
+ 184 0054 0E33     		adds	r3, r3, #14
+ 185 0056 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 217:Libraries/lwip-1.4.0/netif/etharp.c ****       if ((arp_table[i].ctime >= ARP_MAXAGE) ||
+ 186              		.loc 1 217 0 discriminator 1
+ 187 0058 012B     		cmp	r3, #1
+ 188 005a 0BD1     		bne	.L7
+ 219:Libraries/lwip-1.4.0/netif/etharp.c ****            (arp_table[i].ctime >= ARP_MAXPENDING))) {
+ 189              		.loc 1 219 0
+ 190 005c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 191 005e 0A4A     		ldr	r2, .L10
+ 192 0060 1B01     		lsls	r3, r3, #4
+ 193 0062 1344     		add	r3, r3, r2
+ 194 0064 0F33     		adds	r3, r3, #15
+ 195 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 218:Libraries/lwip-1.4.0/netif/etharp.c ****           ((arp_table[i].state == ETHARP_STATE_PENDING)  &&
+ 196              		.loc 1 218 0
+ 197 0068 012B     		cmp	r3, #1
+ 198 006a 03D9     		bls	.L7
+ 199              	.L8:
+ 220:Libraries/lwip-1.4.0/netif/etharp.c ****         /* pending or stable entry has become old! */
+ 221:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_DEBUGF(ETHARP_DEBUG, ("etharp_timer: expired %s entry %"U16_F".\n",
+ 222:Libraries/lwip-1.4.0/netif/etharp.c ****              arp_table[i].state == ETHARP_STATE_STABLE ? "stable" : "pending", (u16_t)i));
+ 223:Libraries/lwip-1.4.0/netif/etharp.c ****         /* clean up entries that have just been expired */
+ 224:Libraries/lwip-1.4.0/netif/etharp.c ****         free_entry(i);
+ 200              		.loc 1 224 0
+ 201 006c FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 202 006e 1846     		mov	r0, r3
+ 203 0070 FFF7FEFF 		bl	free_entry
+ 204              	.L7:
+ 205              	.LBE2:
+ 209:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 206              		.loc 1 209 0 discriminator 2
+ 207 0074 FB79     		ldrb	r3, [r7, #7]
+ 208 0076 0133     		adds	r3, r3, #1
+ 209 0078 FB71     		strb	r3, [r7, #7]
+ 210              	.L6:
+ 209:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 211              		.loc 1 209 0 is_stmt 0 discriminator 1
+ 212 007a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+ 213 007c 092B     		cmp	r3, #9
+ 214 007e C5D9     		bls	.L9
+ 225:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 226:Libraries/lwip-1.4.0/netif/etharp.c **** #if ARP_QUEUEING
+ 227:Libraries/lwip-1.4.0/netif/etharp.c ****       /* still pending entry? (not expired) */
+ 228:Libraries/lwip-1.4.0/netif/etharp.c ****       if (arp_table[i].state == ETHARP_STATE_PENDING) {
+ 229:Libraries/lwip-1.4.0/netif/etharp.c ****         /* resend an ARP query here? */
+ 230:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 231:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ARP_QUEUEING */
+ 232:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 233:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 234:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 215              		.loc 1 234 0 is_stmt 1
+ 216 0080 00BF     		nop
+ 217 0082 0837     		adds	r7, r7, #8
+ 218              		.cfi_def_cfa_offset 8
+ 219 0084 BD46     		mov	sp, r7
+ 220              		.cfi_def_cfa_register 13
+ 221              		@ sp needed
+ 222 0086 80BD     		pop	{r7, pc}
+ 223              	.L11:
+ 224              		.align	2
+ 225              	.L10:
+ 226 0088 00000000 		.word	arp_table
+ 227              		.cfi_endproc
+ 228              	.LFE18:
+ 230              		.section	.text.find_entry,"ax",%progbits
+ 231              		.align	2
+ 232              		.thumb
+ 233              		.thumb_func
+ 235              	find_entry:
+ 236              	.LFB19:
+ 235:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 236:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 237:Libraries/lwip-1.4.0/netif/etharp.c ****  * Search the ARP table for a matching or new entry.
+ 238:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 239:Libraries/lwip-1.4.0/netif/etharp.c ****  * If an IP address is given, return a pending or stable ARP entry that matches
+ 240:Libraries/lwip-1.4.0/netif/etharp.c ****  * the address. If no match is found, create a new entry with this address set,
+ 241:Libraries/lwip-1.4.0/netif/etharp.c ****  * but in state ETHARP_EMPTY. The caller must check and possibly change the
+ 242:Libraries/lwip-1.4.0/netif/etharp.c ****  * state of the returned entry.
+ 243:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 244:Libraries/lwip-1.4.0/netif/etharp.c ****  * If ipaddr is NULL, return a initialized new entry in state ETHARP_EMPTY.
+ 245:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 246:Libraries/lwip-1.4.0/netif/etharp.c ****  * In all cases, attempt to create new entries from an empty entry. If no
+ 247:Libraries/lwip-1.4.0/netif/etharp.c ****  * empty entries are available and ETHARP_FLAG_TRY_HARD flag is set, recycle
+ 248:Libraries/lwip-1.4.0/netif/etharp.c ****  * old entries. Heuristic choose the least important entry for recycling.
+ 249:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 250:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr IP address to find in ARP cache, or to add if not found.
+ 251:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param flags @see definition of ETHARP_FLAG_*
+ 252:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif netif related to this address (used for NETIF_HWADDRHINT)
+ 253:Libraries/lwip-1.4.0/netif/etharp.c ****  *  
+ 254:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return The ARP entry index that matched or is created, ERR_MEM if no
+ 255:Libraries/lwip-1.4.0/netif/etharp.c ****  * entry is found or could be recycled.
+ 256:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 257:Libraries/lwip-1.4.0/netif/etharp.c **** static s8_t
+ 258:Libraries/lwip-1.4.0/netif/etharp.c **** find_entry(ip_addr_t *ipaddr, u8_t flags)
+ 259:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 237              		.loc 1 259 0
+ 238              		.cfi_startproc
+ 239              		@ args = 0, pretend = 0, frame = 24
+ 240              		@ frame_needed = 1, uses_anonymous_args = 0
+ 241 0000 80B5     		push	{r7, lr}
+ 242              		.cfi_def_cfa_offset 8
+ 243              		.cfi_offset 7, -8
+ 244              		.cfi_offset 14, -4
+ 245 0002 86B0     		sub	sp, sp, #24
+ 246              		.cfi_def_cfa_offset 32
+ 247 0004 00AF     		add	r7, sp, #0
+ 248              		.cfi_def_cfa_register 7
+ 249 0006 7860     		str	r0, [r7, #4]
+ 250 0008 0B46     		mov	r3, r1
+ 251 000a FB70     		strb	r3, [r7, #3]
+ 260:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t old_pending = ARP_TABLE_SIZE, old_stable = ARP_TABLE_SIZE;
+ 252              		.loc 1 260 0
+ 253 000c 0A23     		movs	r3, #10
+ 254 000e FB75     		strb	r3, [r7, #23]
+ 255 0010 0A23     		movs	r3, #10
+ 256 0012 BB75     		strb	r3, [r7, #22]
+ 261:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t empty = ARP_TABLE_SIZE;
+ 257              		.loc 1 261 0
+ 258 0014 0A23     		movs	r3, #10
+ 259 0016 7B75     		strb	r3, [r7, #21]
+ 262:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t i = 0, age_pending = 0, age_stable = 0;
+ 260              		.loc 1 262 0
+ 261 0018 0023     		movs	r3, #0
+ 262 001a 3B75     		strb	r3, [r7, #20]
+ 263 001c 0023     		movs	r3, #0
+ 264 001e FB74     		strb	r3, [r7, #19]
+ 265 0020 0023     		movs	r3, #0
+ 266 0022 BB74     		strb	r3, [r7, #18]
+ 263:Libraries/lwip-1.4.0/netif/etharp.c ****   /* oldest entry with packets on queue */
+ 264:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t old_queue = ARP_TABLE_SIZE;
+ 267              		.loc 1 264 0
+ 268 0024 0A23     		movs	r3, #10
+ 269 0026 7B74     		strb	r3, [r7, #17]
+ 265:Libraries/lwip-1.4.0/netif/etharp.c ****   /* its age */
+ 266:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t age_queue = 0;
+ 270              		.loc 1 266 0
+ 271 0028 0023     		movs	r3, #0
+ 272 002a 3B74     		strb	r3, [r7, #16]
+ 267:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 268:Libraries/lwip-1.4.0/netif/etharp.c ****   /**
+ 269:Libraries/lwip-1.4.0/netif/etharp.c ****    * a) do a search through the cache, remember candidates
+ 270:Libraries/lwip-1.4.0/netif/etharp.c ****    * b) select candidate entry
+ 271:Libraries/lwip-1.4.0/netif/etharp.c ****    * c) create new entry
+ 272:Libraries/lwip-1.4.0/netif/etharp.c ****    */
+ 273:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 274:Libraries/lwip-1.4.0/netif/etharp.c ****   /* a) in a single search sweep, do all of this
+ 275:Libraries/lwip-1.4.0/netif/etharp.c ****    * 1) remember the first empty entry (if any)
+ 276:Libraries/lwip-1.4.0/netif/etharp.c ****    * 2) remember the oldest stable entry (if any)
+ 277:Libraries/lwip-1.4.0/netif/etharp.c ****    * 3) remember the oldest pending entry without queued packets (if any)
+ 278:Libraries/lwip-1.4.0/netif/etharp.c ****    * 4) remember the oldest pending entry with queued packets (if any)
+ 279:Libraries/lwip-1.4.0/netif/etharp.c ****    * 5) search for a matching IP entry, either pending or stable
+ 280:Libraries/lwip-1.4.0/netif/etharp.c ****    *    until 5 matches, or all entries are searched for.
+ 281:Libraries/lwip-1.4.0/netif/etharp.c ****    */
+ 282:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 283:Libraries/lwip-1.4.0/netif/etharp.c ****   for (i = 0; i < ARP_TABLE_SIZE; ++i) {
+ 273              		.loc 1 283 0
+ 274 002c 0023     		movs	r3, #0
+ 275 002e 3B75     		strb	r3, [r7, #20]
+ 276 0030 6BE0     		b	.L13
+ 277              	.L22:
+ 278              	.LBB3:
+ 284:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 279              		.loc 1 284 0
+ 280 0032 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 281 0034 5C4A     		ldr	r2, .L33
+ 282 0036 1B01     		lsls	r3, r3, #4
+ 283 0038 1344     		add	r3, r3, r2
+ 284 003a 0E33     		adds	r3, r3, #14
+ 285 003c 1B78     		ldrb	r3, [r3]
+ 286 003e FB73     		strb	r3, [r7, #15]
+ 285:Libraries/lwip-1.4.0/netif/etharp.c ****     /* no empty entry found yet and now we do find one? */
+ 286:Libraries/lwip-1.4.0/netif/etharp.c ****     if ((empty == ARP_TABLE_SIZE) && (state == ETHARP_STATE_EMPTY)) {
+ 287              		.loc 1 286 0
+ 288 0040 97F91530 		ldrsb	r3, [r7, #21]
+ 289 0044 0A2B     		cmp	r3, #10
+ 290 0046 05D1     		bne	.L14
+ 291              		.loc 1 286 0 is_stmt 0 discriminator 1
+ 292 0048 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 293 004a 002B     		cmp	r3, #0
+ 294 004c 02D1     		bne	.L14
+ 287:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG, ("find_entry: found empty entry %"U16_F"\n", (u16_t)i));
+ 288:Libraries/lwip-1.4.0/netif/etharp.c ****       /* remember first empty entry */
+ 289:Libraries/lwip-1.4.0/netif/etharp.c ****       empty = i;
+ 295              		.loc 1 289 0 is_stmt 1
+ 296 004e 3B7D     		ldrb	r3, [r7, #20]
+ 297 0050 7B75     		strb	r3, [r7, #21]
+ 298 0052 57E0     		b	.L15
+ 299              	.L14:
+ 290:Libraries/lwip-1.4.0/netif/etharp.c ****     } else if (state != ETHARP_STATE_EMPTY) {
+ 300              		.loc 1 290 0
+ 301 0054 FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 302 0056 002B     		cmp	r3, #0
+ 303 0058 54D0     		beq	.L15
+ 291:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_ASSERT("state == ETHARP_STATE_PENDING || state == ETHARP_STATE_STABLE",
+ 292:Libraries/lwip-1.4.0/netif/etharp.c ****         state == ETHARP_STATE_PENDING || state == ETHARP_STATE_STABLE);
+ 293:Libraries/lwip-1.4.0/netif/etharp.c ****       /* if given, does IP address match IP address in ARP entry? */
+ 294:Libraries/lwip-1.4.0/netif/etharp.c ****       if (ipaddr && ip_addr_cmp(ipaddr, &arp_table[i].ipaddr)) {
+ 304              		.loc 1 294 0
+ 305 005a 7B68     		ldr	r3, [r7, #4]
+ 306 005c 002B     		cmp	r3, #0
+ 307 005e 0CD0     		beq	.L16
+ 308              		.loc 1 294 0 is_stmt 0 discriminator 1
+ 309 0060 7B68     		ldr	r3, [r7, #4]
+ 310 0062 1A68     		ldr	r2, [r3]
+ 311 0064 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 312 0066 5049     		ldr	r1, .L33
+ 313 0068 1B01     		lsls	r3, r3, #4
+ 314 006a 0B44     		add	r3, r3, r1
+ 315 006c 0433     		adds	r3, r3, #4
+ 316 006e 1B68     		ldr	r3, [r3]
+ 317 0070 9A42     		cmp	r2, r3
+ 318 0072 02D1     		bne	.L16
+ 295:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: found matching entry %"U16_F"\n", 
+ 296:Libraries/lwip-1.4.0/netif/etharp.c ****         /* found exact IP address match, simply bail out */
+ 297:Libraries/lwip-1.4.0/netif/etharp.c ****         return i;
+ 319              		.loc 1 297 0 is_stmt 1
+ 320 0074 97F91430 		ldrsb	r3, [r7, #20]
+ 321 0078 92E0     		b	.L17
+ 322              	.L16:
+ 298:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 299:Libraries/lwip-1.4.0/netif/etharp.c ****       /* pending entry? */
+ 300:Libraries/lwip-1.4.0/netif/etharp.c ****       if (state == ETHARP_STATE_PENDING) {
+ 323              		.loc 1 300 0
+ 324 007a FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 325 007c 012B     		cmp	r3, #1
+ 326 007e 2CD1     		bne	.L18
+ 301:Libraries/lwip-1.4.0/netif/etharp.c ****         /* pending with queued packets? */
+ 302:Libraries/lwip-1.4.0/netif/etharp.c ****         if (arp_table[i].q != NULL) {
+ 327              		.loc 1 302 0
+ 328 0080 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 329 0082 494A     		ldr	r2, .L33
+ 330 0084 1B01     		lsls	r3, r3, #4
+ 331 0086 1344     		add	r3, r3, r2
+ 332 0088 1B68     		ldr	r3, [r3]
+ 333 008a 002B     		cmp	r3, #0
+ 334 008c 12D0     		beq	.L19
+ 303:Libraries/lwip-1.4.0/netif/etharp.c ****           if (arp_table[i].ctime >= age_queue) {
+ 335              		.loc 1 303 0
+ 336 008e 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 337 0090 454A     		ldr	r2, .L33
+ 338 0092 1B01     		lsls	r3, r3, #4
+ 339 0094 1344     		add	r3, r3, r2
+ 340 0096 0F33     		adds	r3, r3, #15
+ 341 0098 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 342 009a 3A7C     		ldrb	r2, [r7, #16]	@ zero_extendqisi2
+ 343 009c 9A42     		cmp	r2, r3
+ 344 009e 31D8     		bhi	.L15
+ 304:Libraries/lwip-1.4.0/netif/etharp.c ****             old_queue = i;
+ 345              		.loc 1 304 0
+ 346 00a0 3B7D     		ldrb	r3, [r7, #20]
+ 347 00a2 7B74     		strb	r3, [r7, #17]
+ 305:Libraries/lwip-1.4.0/netif/etharp.c ****             age_queue = arp_table[i].ctime;
+ 348              		.loc 1 305 0
+ 349 00a4 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 350 00a6 404A     		ldr	r2, .L33
+ 351 00a8 1B01     		lsls	r3, r3, #4
+ 352 00aa 1344     		add	r3, r3, r2
+ 353 00ac 0F33     		adds	r3, r3, #15
+ 354 00ae 1B78     		ldrb	r3, [r3]
+ 355 00b0 3B74     		strb	r3, [r7, #16]
+ 356 00b2 27E0     		b	.L15
+ 357              	.L19:
+ 306:Libraries/lwip-1.4.0/netif/etharp.c ****           }
+ 307:Libraries/lwip-1.4.0/netif/etharp.c ****         } else
+ 308:Libraries/lwip-1.4.0/netif/etharp.c ****         /* pending without queued packets? */
+ 309:Libraries/lwip-1.4.0/netif/etharp.c ****         {
+ 310:Libraries/lwip-1.4.0/netif/etharp.c ****           if (arp_table[i].ctime >= age_pending) {
+ 358              		.loc 1 310 0
+ 359 00b4 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 360 00b6 3C4A     		ldr	r2, .L33
+ 361 00b8 1B01     		lsls	r3, r3, #4
+ 362 00ba 1344     		add	r3, r3, r2
+ 363 00bc 0F33     		adds	r3, r3, #15
+ 364 00be 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 365 00c0 FA7C     		ldrb	r2, [r7, #19]	@ zero_extendqisi2
+ 366 00c2 9A42     		cmp	r2, r3
+ 367 00c4 1ED8     		bhi	.L15
+ 311:Libraries/lwip-1.4.0/netif/etharp.c ****             old_pending = i;
+ 368              		.loc 1 311 0
+ 369 00c6 3B7D     		ldrb	r3, [r7, #20]
+ 370 00c8 FB75     		strb	r3, [r7, #23]
+ 312:Libraries/lwip-1.4.0/netif/etharp.c ****             age_pending = arp_table[i].ctime;
+ 371              		.loc 1 312 0
+ 372 00ca 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 373 00cc 364A     		ldr	r2, .L33
+ 374 00ce 1B01     		lsls	r3, r3, #4
+ 375 00d0 1344     		add	r3, r3, r2
+ 376 00d2 0F33     		adds	r3, r3, #15
+ 377 00d4 1B78     		ldrb	r3, [r3]
+ 378 00d6 FB74     		strb	r3, [r7, #19]
+ 379 00d8 14E0     		b	.L15
+ 380              	.L18:
+ 313:Libraries/lwip-1.4.0/netif/etharp.c ****           }
+ 314:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+ 315:Libraries/lwip-1.4.0/netif/etharp.c ****       /* stable entry? */
+ 316:Libraries/lwip-1.4.0/netif/etharp.c ****       } else if (state == ETHARP_STATE_STABLE) {
+ 381              		.loc 1 316 0
+ 382 00da FB7B     		ldrb	r3, [r7, #15]	@ zero_extendqisi2
+ 383 00dc 022B     		cmp	r3, #2
+ 384 00de 11D1     		bne	.L15
+ 317:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 318:Libraries/lwip-1.4.0/netif/etharp.c ****         /* don't record old_stable for static entries since they never expire */
+ 319:Libraries/lwip-1.4.0/netif/etharp.c ****         if (arp_table[i].static_entry == 0)
+ 320:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 321:Libraries/lwip-1.4.0/netif/etharp.c ****         {
+ 322:Libraries/lwip-1.4.0/netif/etharp.c ****           /* remember entry with oldest stable entry in oldest, its age in maxtime */
+ 323:Libraries/lwip-1.4.0/netif/etharp.c ****           if (arp_table[i].ctime >= age_stable) {
+ 385              		.loc 1 323 0
+ 386 00e0 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 387 00e2 314A     		ldr	r2, .L33
+ 388 00e4 1B01     		lsls	r3, r3, #4
+ 389 00e6 1344     		add	r3, r3, r2
+ 390 00e8 0F33     		adds	r3, r3, #15
+ 391 00ea 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 392 00ec BA7C     		ldrb	r2, [r7, #18]	@ zero_extendqisi2
+ 393 00ee 9A42     		cmp	r2, r3
+ 394 00f0 08D8     		bhi	.L15
+ 324:Libraries/lwip-1.4.0/netif/etharp.c ****             old_stable = i;
+ 395              		.loc 1 324 0
+ 396 00f2 3B7D     		ldrb	r3, [r7, #20]
+ 397 00f4 BB75     		strb	r3, [r7, #22]
+ 325:Libraries/lwip-1.4.0/netif/etharp.c ****             age_stable = arp_table[i].ctime;
+ 398              		.loc 1 325 0
+ 399 00f6 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 400 00f8 2B4A     		ldr	r2, .L33
+ 401 00fa 1B01     		lsls	r3, r3, #4
+ 402 00fc 1344     		add	r3, r3, r2
+ 403 00fe 0F33     		adds	r3, r3, #15
+ 404 0100 1B78     		ldrb	r3, [r3]
+ 405 0102 BB74     		strb	r3, [r7, #18]
+ 406              	.L15:
+ 407              	.LBE3:
+ 283:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 408              		.loc 1 283 0 discriminator 2
+ 409 0104 3B7D     		ldrb	r3, [r7, #20]
+ 410 0106 0133     		adds	r3, r3, #1
+ 411 0108 3B75     		strb	r3, [r7, #20]
+ 412              	.L13:
+ 283:Libraries/lwip-1.4.0/netif/etharp.c ****     u8_t state = arp_table[i].state;
+ 413              		.loc 1 283 0 is_stmt 0 discriminator 1
+ 414 010a 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 415 010c 092B     		cmp	r3, #9
+ 416 010e 90D9     		bls	.L22
+ 326:Libraries/lwip-1.4.0/netif/etharp.c ****           }
+ 327:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+ 328:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 329:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 330:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 331:Libraries/lwip-1.4.0/netif/etharp.c ****   /* { we have no match } => try to create a new entry */
+ 332:Libraries/lwip-1.4.0/netif/etharp.c ****    
+ 333:Libraries/lwip-1.4.0/netif/etharp.c ****   /* don't create new entry, only search? */
+ 334:Libraries/lwip-1.4.0/netif/etharp.c ****   if (((flags & ETHARP_FLAG_FIND_ONLY) != 0) ||
+ 417              		.loc 1 334 0 is_stmt 1
+ 418 0110 FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 419 0112 03F00203 		and	r3, r3, #2
+ 420 0116 002B     		cmp	r3, #0
+ 421 0118 08D1     		bne	.L23
+ 422              		.loc 1 334 0 is_stmt 0 discriminator 1
+ 423 011a 97F91530 		ldrsb	r3, [r7, #21]
+ 424 011e 0A2B     		cmp	r3, #10
+ 425 0120 07D1     		bne	.L24
+ 335:Libraries/lwip-1.4.0/netif/etharp.c ****       /* or no empty entry found and not allowed to recycle? */
+ 336:Libraries/lwip-1.4.0/netif/etharp.c ****       ((empty == ARP_TABLE_SIZE) && ((flags & ETHARP_FLAG_TRY_HARD) == 0))) {
+ 426              		.loc 1 336 0 is_stmt 1
+ 427 0122 FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 428 0124 03F00103 		and	r3, r3, #1
+ 429 0128 002B     		cmp	r3, #0
+ 430 012a 02D1     		bne	.L24
+ 431              	.L23:
+ 337:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: no empty entry found and not allowed t
+ 338:Libraries/lwip-1.4.0/netif/etharp.c ****     return (s8_t)ERR_MEM;
+ 432              		.loc 1 338 0
+ 433 012c 4FF0FF33 		mov	r3, #-1
+ 434 0130 36E0     		b	.L17
+ 435              	.L24:
+ 339:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 340:Libraries/lwip-1.4.0/netif/etharp.c ****   
+ 341:Libraries/lwip-1.4.0/netif/etharp.c ****   /* b) choose the least destructive entry to recycle:
+ 342:Libraries/lwip-1.4.0/netif/etharp.c ****    * 1) empty entry
+ 343:Libraries/lwip-1.4.0/netif/etharp.c ****    * 2) oldest stable entry
+ 344:Libraries/lwip-1.4.0/netif/etharp.c ****    * 3) oldest pending entry without queued packets
+ 345:Libraries/lwip-1.4.0/netif/etharp.c ****    * 4) oldest pending entry with queued packets
+ 346:Libraries/lwip-1.4.0/netif/etharp.c ****    * 
+ 347:Libraries/lwip-1.4.0/netif/etharp.c ****    * { ETHARP_FLAG_TRY_HARD is set at this point }
+ 348:Libraries/lwip-1.4.0/netif/etharp.c ****    */ 
+ 349:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 350:Libraries/lwip-1.4.0/netif/etharp.c ****   /* 1) empty entry available? */
+ 351:Libraries/lwip-1.4.0/netif/etharp.c ****   if (empty < ARP_TABLE_SIZE) {
+ 436              		.loc 1 351 0
+ 437 0132 97F91530 		ldrsb	r3, [r7, #21]
+ 438 0136 092B     		cmp	r3, #9
+ 439 0138 02DC     		bgt	.L25
+ 352:Libraries/lwip-1.4.0/netif/etharp.c ****     i = empty;
+ 440              		.loc 1 352 0
+ 441 013a 7B7D     		ldrb	r3, [r7, #21]
+ 442 013c 3B75     		strb	r3, [r7, #20]
+ 443 013e 1BE0     		b	.L32
+ 444              	.L25:
+ 353:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: selecting empty entry %"U16_F"\n", (u1
+ 354:Libraries/lwip-1.4.0/netif/etharp.c ****   } else {
+ 355:Libraries/lwip-1.4.0/netif/etharp.c ****     /* 2) found recyclable stable entry? */
+ 356:Libraries/lwip-1.4.0/netif/etharp.c ****     if (old_stable < ARP_TABLE_SIZE) {
+ 445              		.loc 1 356 0
+ 446 0140 97F91630 		ldrsb	r3, [r7, #22]
+ 447 0144 092B     		cmp	r3, #9
+ 448 0146 02DC     		bgt	.L27
+ 357:Libraries/lwip-1.4.0/netif/etharp.c ****       /* recycle oldest stable*/
+ 358:Libraries/lwip-1.4.0/netif/etharp.c ****       i = old_stable;
+ 449              		.loc 1 358 0
+ 450 0148 BB7D     		ldrb	r3, [r7, #22]
+ 451 014a 3B75     		strb	r3, [r7, #20]
+ 452 014c 10E0     		b	.L28
+ 453              	.L27:
+ 359:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: selecting oldest stable entry %"U16_
+ 360:Libraries/lwip-1.4.0/netif/etharp.c ****       /* no queued packets should exist on stable entries */
+ 361:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_ASSERT("arp_table[i].q == NULL", arp_table[i].q == NULL);
+ 362:Libraries/lwip-1.4.0/netif/etharp.c ****     /* 3) found recyclable pending entry without queued packets? */
+ 363:Libraries/lwip-1.4.0/netif/etharp.c ****     } else if (old_pending < ARP_TABLE_SIZE) {
+ 454              		.loc 1 363 0
+ 455 014e 97F91730 		ldrsb	r3, [r7, #23]
+ 456 0152 092B     		cmp	r3, #9
+ 457 0154 02DC     		bgt	.L29
+ 364:Libraries/lwip-1.4.0/netif/etharp.c ****       /* recycle oldest pending */
+ 365:Libraries/lwip-1.4.0/netif/etharp.c ****       i = old_pending;
+ 458              		.loc 1 365 0
+ 459 0156 FB7D     		ldrb	r3, [r7, #23]
+ 460 0158 3B75     		strb	r3, [r7, #20]
+ 461 015a 09E0     		b	.L28
+ 462              	.L29:
+ 366:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: selecting oldest pending entry %"U16
+ 367:Libraries/lwip-1.4.0/netif/etharp.c ****     /* 4) found recyclable pending entry with queued packets? */
+ 368:Libraries/lwip-1.4.0/netif/etharp.c ****     } else if (old_queue < ARP_TABLE_SIZE) {
+ 463              		.loc 1 368 0
+ 464 015c 97F91130 		ldrsb	r3, [r7, #17]
+ 465 0160 092B     		cmp	r3, #9
+ 466 0162 02DC     		bgt	.L30
+ 369:Libraries/lwip-1.4.0/netif/etharp.c ****       /* recycle oldest pending (queued packets are free in free_entry) */
+ 370:Libraries/lwip-1.4.0/netif/etharp.c ****       i = old_queue;
+ 467              		.loc 1 370 0
+ 468 0164 7B7C     		ldrb	r3, [r7, #17]
+ 469 0166 3B75     		strb	r3, [r7, #20]
+ 470 0168 02E0     		b	.L28
+ 471              	.L30:
+ 371:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: selecting oldest pending entry %"U16
+ 372:Libraries/lwip-1.4.0/netif/etharp.c ****       /* no empty or recyclable entries found */
+ 373:Libraries/lwip-1.4.0/netif/etharp.c ****     } else {
+ 374:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("find_entry: no empty or recyclable entries found
+ 375:Libraries/lwip-1.4.0/netif/etharp.c ****       return (s8_t)ERR_MEM;
+ 472              		.loc 1 375 0
+ 473 016a 4FF0FF33 		mov	r3, #-1
+ 474 016e 17E0     		b	.L17
+ 475              	.L28:
+ 376:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 377:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 378:Libraries/lwip-1.4.0/netif/etharp.c ****     /* { empty or recyclable entry found } */
+ 379:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_ASSERT("i < ARP_TABLE_SIZE", i < ARP_TABLE_SIZE);
+ 380:Libraries/lwip-1.4.0/netif/etharp.c ****     free_entry(i);
+ 476              		.loc 1 380 0
+ 477 0170 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 478 0172 1846     		mov	r0, r3
+ 479 0174 FFF7FEFF 		bl	free_entry
+ 480              	.L32:
+ 381:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 382:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 383:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("i < ARP_TABLE_SIZE", i < ARP_TABLE_SIZE);
+ 384:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("arp_table[i].state == ETHARP_STATE_EMPTY",
+ 385:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].state == ETHARP_STATE_EMPTY);
+ 386:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 387:Libraries/lwip-1.4.0/netif/etharp.c ****   /* IP address given? */
+ 388:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ipaddr != NULL) {
+ 481              		.loc 1 388 0
+ 482 0178 7B68     		ldr	r3, [r7, #4]
+ 483 017a 002B     		cmp	r3, #0
+ 484 017c 07D0     		beq	.L31
+ 389:Libraries/lwip-1.4.0/netif/etharp.c ****     /* set IP address */
+ 390:Libraries/lwip-1.4.0/netif/etharp.c ****     ip_addr_copy(arp_table[i].ipaddr, *ipaddr);
+ 485              		.loc 1 390 0
+ 486 017e 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 487 0180 7A68     		ldr	r2, [r7, #4]
+ 488 0182 1268     		ldr	r2, [r2]
+ 489 0184 0849     		ldr	r1, .L33
+ 490 0186 1B01     		lsls	r3, r3, #4
+ 491 0188 0B44     		add	r3, r3, r1
+ 492 018a 0433     		adds	r3, r3, #4
+ 493 018c 1A60     		str	r2, [r3]
+ 494              	.L31:
+ 391:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 392:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].ctime = 0;
+ 495              		.loc 1 392 0
+ 496 018e 3B7D     		ldrb	r3, [r7, #20]	@ zero_extendqisi2
+ 497 0190 054A     		ldr	r2, .L33
+ 498 0192 1B01     		lsls	r3, r3, #4
+ 499 0194 1344     		add	r3, r3, r2
+ 500 0196 0F33     		adds	r3, r3, #15
+ 501 0198 0022     		movs	r2, #0
+ 502 019a 1A70     		strb	r2, [r3]
+ 393:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 394:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].static_entry = 0;
+ 395:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 396:Libraries/lwip-1.4.0/netif/etharp.c ****   return (err_t)i;
+ 503              		.loc 1 396 0
+ 504 019c 97F91430 		ldrsb	r3, [r7, #20]
+ 505              	.L17:
+ 397:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 506              		.loc 1 397 0
+ 507 01a0 1846     		mov	r0, r3
+ 508 01a2 1837     		adds	r7, r7, #24
+ 509              		.cfi_def_cfa_offset 8
+ 510 01a4 BD46     		mov	sp, r7
+ 511              		.cfi_def_cfa_register 13
+ 512              		@ sp needed
+ 513 01a6 80BD     		pop	{r7, pc}
+ 514              	.L34:
+ 515              		.align	2
+ 516              	.L33:
+ 517 01a8 00000000 		.word	arp_table
+ 518              		.cfi_endproc
+ 519              	.LFE19:
+ 521              		.section	.text.etharp_send_ip,"ax",%progbits
+ 522              		.align	2
+ 523              		.thumb
+ 524              		.thumb_func
+ 526              	etharp_send_ip:
+ 527              	.LFB20:
+ 398:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 399:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 400:Libraries/lwip-1.4.0/netif/etharp.c ****  * Send an IP packet on the network using netif->linkoutput
+ 401:Libraries/lwip-1.4.0/netif/etharp.c ****  * The ethernet header is filled in before sending.
+ 402:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 403:Libraries/lwip-1.4.0/netif/etharp.c ****  * @params netif the lwIP network interface on which to send the packet
+ 404:Libraries/lwip-1.4.0/netif/etharp.c ****  * @params p the packet to send, p->payload pointing to the (uninitialized) ethernet header
+ 405:Libraries/lwip-1.4.0/netif/etharp.c ****  * @params src the source MAC address to be copied into the ethernet header
+ 406:Libraries/lwip-1.4.0/netif/etharp.c ****  * @params dst the destination MAC address to be copied into the ethernet header
+ 407:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return ERR_OK if the packet was sent, any other err_t on failure
+ 408:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 409:Libraries/lwip-1.4.0/netif/etharp.c **** static err_t
+ 410:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_send_ip(struct netif *netif, struct pbuf *p, struct eth_addr *src, struct eth_addr *dst)
+ 411:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 528              		.loc 1 411 0
+ 529              		.cfi_startproc
+ 530              		@ args = 0, pretend = 0, frame = 24
+ 531              		@ frame_needed = 1, uses_anonymous_args = 0
+ 532 0000 80B5     		push	{r7, lr}
+ 533              		.cfi_def_cfa_offset 8
+ 534              		.cfi_offset 7, -8
+ 535              		.cfi_offset 14, -4
+ 536 0002 86B0     		sub	sp, sp, #24
+ 537              		.cfi_def_cfa_offset 32
+ 538 0004 00AF     		add	r7, sp, #0
+ 539              		.cfi_def_cfa_register 7
+ 540 0006 F860     		str	r0, [r7, #12]
+ 541 0008 B960     		str	r1, [r7, #8]
+ 542 000a 7A60     		str	r2, [r7, #4]
+ 543 000c 3B60     		str	r3, [r7]
+ 412:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_hdr *ethhdr = (struct eth_hdr *)p->payload;
+ 544              		.loc 1 412 0
+ 545 000e BB68     		ldr	r3, [r7, #8]
+ 546 0010 5B68     		ldr	r3, [r3, #4]
+ 547 0012 7B61     		str	r3, [r7, #20]
+ 413:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 414:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("netif->hwaddr_len must be the same as ETHARP_HWADDR_LEN for etharp!",
+ 415:Libraries/lwip-1.4.0/netif/etharp.c ****               (netif->hwaddr_len == ETHARP_HWADDR_LEN));
+ 416:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR32_COPY(&ethhdr->dest, dst);
+ 548              		.loc 1 416 0
+ 549 0014 7B69     		ldr	r3, [r7, #20]
+ 550 0016 0233     		adds	r3, r3, #2
+ 551 0018 0622     		movs	r2, #6
+ 552 001a 3968     		ldr	r1, [r7]
+ 553 001c 1846     		mov	r0, r3
+ 554 001e FFF7FEFF 		bl	memcpy
+ 417:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&ethhdr->src, src);
+ 555              		.loc 1 417 0
+ 556 0022 7B69     		ldr	r3, [r7, #20]
+ 557 0024 0833     		adds	r3, r3, #8
+ 558 0026 0622     		movs	r2, #6
+ 559 0028 7968     		ldr	r1, [r7, #4]
+ 560 002a 1846     		mov	r0, r3
+ 561 002c FFF7FEFF 		bl	memcpy
+ 418:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr->type = PP_HTONS(ETHTYPE_IP);
+ 562              		.loc 1 418 0
+ 563 0030 7B69     		ldr	r3, [r7, #20]
+ 564 0032 0022     		movs	r2, #0
+ 565 0034 42F00802 		orr	r2, r2, #8
+ 566 0038 9A73     		strb	r2, [r3, #14]
+ 567 003a 0022     		movs	r2, #0
+ 568 003c DA73     		strb	r2, [r3, #15]
+ 419:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_send_ip: sending packet %p\n", (void *)p));
+ 420:Libraries/lwip-1.4.0/netif/etharp.c ****   /* send the packet */
+ 421:Libraries/lwip-1.4.0/netif/etharp.c ****   return netif->linkoutput(netif, p);
+ 569              		.loc 1 421 0
+ 570 003e FB68     		ldr	r3, [r7, #12]
+ 571 0040 9B69     		ldr	r3, [r3, #24]
+ 572 0042 B968     		ldr	r1, [r7, #8]
+ 573 0044 F868     		ldr	r0, [r7, #12]
+ 574 0046 9847     		blx	r3
+ 575 0048 0346     		mov	r3, r0
+ 422:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 576              		.loc 1 422 0
+ 577 004a 1846     		mov	r0, r3
+ 578 004c 1837     		adds	r7, r7, #24
+ 579              		.cfi_def_cfa_offset 8
+ 580 004e BD46     		mov	sp, r7
+ 581              		.cfi_def_cfa_register 13
+ 582              		@ sp needed
+ 583 0050 80BD     		pop	{r7, pc}
+ 584              		.cfi_endproc
+ 585              	.LFE20:
+ 587 0052 00BF     		.section	.text.update_arp_entry,"ax",%progbits
+ 588              		.align	2
+ 589              		.thumb
+ 590              		.thumb_func
+ 592              	update_arp_entry:
+ 593              	.LFB21:
+ 423:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 424:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 425:Libraries/lwip-1.4.0/netif/etharp.c ****  * Update (or insert) a IP/MAC address pair in the ARP cache.
+ 426:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 427:Libraries/lwip-1.4.0/netif/etharp.c ****  * If a pending entry is resolved, any queued packets will be sent
+ 428:Libraries/lwip-1.4.0/netif/etharp.c ****  * at this point.
+ 429:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 430:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif netif related to this entry (used for NETIF_ADDRHINT)
+ 431:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr IP address of the inserted ARP entry.
+ 432:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ethaddr Ethernet address of the inserted ARP entry.
+ 433:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param flags @see definition of ETHARP_FLAG_*
+ 434:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 435:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return
+ 436:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_OK Succesfully updated ARP cache.
+ 437:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_MEM If we could not add a new ARP entry when ETHARP_FLAG_TRY_HARD was set.
+ 438:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_ARG Non-unicast address given, those will not appear in ARP cache.
+ 439:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 440:Libraries/lwip-1.4.0/netif/etharp.c ****  * @see pbuf_free()
+ 441:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 442:Libraries/lwip-1.4.0/netif/etharp.c **** static err_t
+ 443:Libraries/lwip-1.4.0/netif/etharp.c **** update_arp_entry(struct netif *netif, ip_addr_t *ipaddr, struct eth_addr *ethaddr, u8_t flags)
+ 444:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 594              		.loc 1 444 0
+ 595              		.cfi_startproc
+ 596              		@ args = 0, pretend = 0, frame = 24
+ 597              		@ frame_needed = 1, uses_anonymous_args = 0
+ 598 0000 80B5     		push	{r7, lr}
+ 599              		.cfi_def_cfa_offset 8
+ 600              		.cfi_offset 7, -8
+ 601              		.cfi_offset 14, -4
+ 602 0002 86B0     		sub	sp, sp, #24
+ 603              		.cfi_def_cfa_offset 32
+ 604 0004 00AF     		add	r7, sp, #0
+ 605              		.cfi_def_cfa_register 7
+ 606 0006 F860     		str	r0, [r7, #12]
+ 607 0008 B960     		str	r1, [r7, #8]
+ 608 000a 7A60     		str	r2, [r7, #4]
+ 609 000c FB70     		strb	r3, [r7, #3]
+ 445:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t i;
+ 446:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("netif->hwaddr_len == ETHARP_HWADDR_LEN", netif->hwaddr_len == ETHARP_HWADDR_LEN);
+ 447:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("update_arp_entry: %"U16_F".%"U16_F".%"U16_F".%"U16_F
+ 448:Libraries/lwip-1.4.0/netif/etharp.c ****     ip4_addr1_16(ipaddr), ip4_addr2_16(ipaddr), ip4_addr3_16(ipaddr), ip4_addr4_16(ipaddr),
+ 449:Libraries/lwip-1.4.0/netif/etharp.c ****     ethaddr->addr[0], ethaddr->addr[1], ethaddr->addr[2],
+ 450:Libraries/lwip-1.4.0/netif/etharp.c ****     ethaddr->addr[3], ethaddr->addr[4], ethaddr->addr[5]));
+ 451:Libraries/lwip-1.4.0/netif/etharp.c ****   /* non-unicast address? */
+ 452:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ip_addr_isany(ipaddr) ||
+ 610              		.loc 1 452 0
+ 611 000e BB68     		ldr	r3, [r7, #8]
+ 612 0010 002B     		cmp	r3, #0
+ 613 0012 12D0     		beq	.L38
+ 614              		.loc 1 452 0 is_stmt 0 discriminator 1
+ 615 0014 BB68     		ldr	r3, [r7, #8]
+ 616 0016 1B68     		ldr	r3, [r3]
+ 617 0018 002B     		cmp	r3, #0
+ 618 001a 0ED0     		beq	.L38
+ 453:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_isbroadcast(ipaddr, netif) ||
+ 619              		.loc 1 453 0 is_stmt 1 discriminator 2
+ 620 001c BB68     		ldr	r3, [r7, #8]
+ 621 001e 1B68     		ldr	r3, [r3]
+ 622 0020 F968     		ldr	r1, [r7, #12]
+ 623 0022 1846     		mov	r0, r3
+ 624 0024 FFF7FEFF 		bl	ip4_addr_isbroadcast
+ 625 0028 0346     		mov	r3, r0
+ 452:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_isbroadcast(ipaddr, netif) ||
+ 626              		.loc 1 452 0 discriminator 2
+ 627 002a 002B     		cmp	r3, #0
+ 628 002c 05D1     		bne	.L38
+ 454:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_ismulticast(ipaddr)) {
+ 629              		.loc 1 454 0
+ 630 002e BB68     		ldr	r3, [r7, #8]
+ 631 0030 1B68     		ldr	r3, [r3]
+ 632 0032 03F0F003 		and	r3, r3, #240
+ 453:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_isbroadcast(ipaddr, netif) ||
+ 633              		.loc 1 453 0
+ 634 0036 E02B     		cmp	r3, #224
+ 635 0038 02D1     		bne	.L39
+ 636              	.L38:
+ 455:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("update_arp_entry: will not add non-unicast IP addr
+ 456:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_ARG;
+ 637              		.loc 1 456 0
+ 638 003a 6FF00D03 		mvn	r3, #13
+ 639 003e 4AE0     		b	.L40
+ 640              	.L39:
+ 457:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 458:Libraries/lwip-1.4.0/netif/etharp.c ****   /* find or create ARP entry */
+ 459:Libraries/lwip-1.4.0/netif/etharp.c ****   i = find_entry(ipaddr, flags);
+ 641              		.loc 1 459 0
+ 642 0040 FB78     		ldrb	r3, [r7, #3]	@ zero_extendqisi2
+ 643 0042 1946     		mov	r1, r3
+ 644 0044 B868     		ldr	r0, [r7, #8]
+ 645 0046 FFF7FEFF 		bl	find_entry
+ 646 004a 0346     		mov	r3, r0
+ 647 004c FB75     		strb	r3, [r7, #23]
+ 460:Libraries/lwip-1.4.0/netif/etharp.c ****   /* bail out if no entry could be found */
+ 461:Libraries/lwip-1.4.0/netif/etharp.c ****   if (i < 0) {
+ 648              		.loc 1 461 0
+ 649 004e 97F91730 		ldrsb	r3, [r7, #23]
+ 650 0052 002B     		cmp	r3, #0
+ 651 0054 02DA     		bge	.L41
+ 462:Libraries/lwip-1.4.0/netif/etharp.c ****     return (err_t)i;
+ 652              		.loc 1 462 0
+ 653 0056 97F91730 		ldrsb	r3, [r7, #23]
+ 654 005a 3CE0     		b	.L40
+ 655              	.L41:
+ 463:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 464:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 465:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 466:Libraries/lwip-1.4.0/netif/etharp.c ****   if (flags & ETHARP_FLAG_STATIC_ENTRY) {
+ 467:Libraries/lwip-1.4.0/netif/etharp.c ****     /* record static type */
+ 468:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].static_entry = 1;
+ 469:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 470:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 471:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 472:Libraries/lwip-1.4.0/netif/etharp.c ****   /* mark it stable */
+ 473:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].state = ETHARP_STATE_STABLE;
+ 656              		.loc 1 473 0
+ 657 005c 97F91730 		ldrsb	r3, [r7, #23]
+ 658 0060 1F4A     		ldr	r2, .L43
+ 659 0062 1B01     		lsls	r3, r3, #4
+ 660 0064 1344     		add	r3, r3, r2
+ 661 0066 0E33     		adds	r3, r3, #14
+ 662 0068 0222     		movs	r2, #2
+ 663 006a 1A70     		strb	r2, [r3]
+ 474:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 475:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_SNMP
+ 476:Libraries/lwip-1.4.0/netif/etharp.c ****   /* record network interface */
+ 477:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].netif = netif;
+ 478:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_SNMP */
+ 479:Libraries/lwip-1.4.0/netif/etharp.c ****   /* insert in SNMP ARP index tree */
+ 480:Libraries/lwip-1.4.0/netif/etharp.c ****   snmp_insert_arpidx_tree(netif, &arp_table[i].ipaddr);
+ 481:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 482:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("update_arp_entry: updating stable entry %"S16_F"\n",
+ 483:Libraries/lwip-1.4.0/netif/etharp.c ****   /* update address */
+ 484:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR32_COPY(&arp_table[i].ethaddr, ethaddr);
+ 664              		.loc 1 484 0
+ 665 006c 97F91730 		ldrsb	r3, [r7, #23]
+ 666 0070 1B01     		lsls	r3, r3, #4
+ 667 0072 0833     		adds	r3, r3, #8
+ 668 0074 1A4A     		ldr	r2, .L43
+ 669 0076 1344     		add	r3, r3, r2
+ 670 0078 0622     		movs	r2, #6
+ 671 007a 7968     		ldr	r1, [r7, #4]
+ 672 007c 1846     		mov	r0, r3
+ 673 007e FFF7FEFF 		bl	memcpy
+ 485:Libraries/lwip-1.4.0/netif/etharp.c ****   /* reset time stamp */
+ 486:Libraries/lwip-1.4.0/netif/etharp.c ****   arp_table[i].ctime = 0;
+ 674              		.loc 1 486 0
+ 675 0082 97F91730 		ldrsb	r3, [r7, #23]
+ 676 0086 164A     		ldr	r2, .L43
+ 677 0088 1B01     		lsls	r3, r3, #4
+ 678 008a 1344     		add	r3, r3, r2
+ 679 008c 0F33     		adds	r3, r3, #15
+ 680 008e 0022     		movs	r2, #0
+ 681 0090 1A70     		strb	r2, [r3]
+ 487:Libraries/lwip-1.4.0/netif/etharp.c ****   /* this is where we will send out queued packets! */
+ 488:Libraries/lwip-1.4.0/netif/etharp.c **** #if ARP_QUEUEING
+ 489:Libraries/lwip-1.4.0/netif/etharp.c ****   while (arp_table[i].q != NULL) {
+ 490:Libraries/lwip-1.4.0/netif/etharp.c ****     struct pbuf *p;
+ 491:Libraries/lwip-1.4.0/netif/etharp.c ****     /* remember remainder of queue */
+ 492:Libraries/lwip-1.4.0/netif/etharp.c ****     struct etharp_q_entry *q = arp_table[i].q;
+ 493:Libraries/lwip-1.4.0/netif/etharp.c ****     /* pop first item off the queue */
+ 494:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].q = q->next;
+ 495:Libraries/lwip-1.4.0/netif/etharp.c ****     /* get the packet pointer */
+ 496:Libraries/lwip-1.4.0/netif/etharp.c ****     p = q->p;
+ 497:Libraries/lwip-1.4.0/netif/etharp.c ****     /* now queue entry can be freed */
+ 498:Libraries/lwip-1.4.0/netif/etharp.c ****     memp_free(MEMP_ARP_QUEUE, q);
+ 499:Libraries/lwip-1.4.0/netif/etharp.c **** #else /* ARP_QUEUEING */
+ 500:Libraries/lwip-1.4.0/netif/etharp.c ****   if (arp_table[i].q != NULL) {
+ 682              		.loc 1 500 0
+ 683 0092 97F91730 		ldrsb	r3, [r7, #23]
+ 684 0096 124A     		ldr	r2, .L43
+ 685 0098 1B01     		lsls	r3, r3, #4
+ 686 009a 1344     		add	r3, r3, r2
+ 687 009c 1B68     		ldr	r3, [r3]
+ 688 009e 002B     		cmp	r3, #0
+ 689 00a0 18D0     		beq	.L42
+ 690              	.LBB4:
+ 501:Libraries/lwip-1.4.0/netif/etharp.c ****     struct pbuf *p = arp_table[i].q;
+ 691              		.loc 1 501 0
+ 692 00a2 97F91730 		ldrsb	r3, [r7, #23]
+ 693 00a6 0E4A     		ldr	r2, .L43
+ 694 00a8 1B01     		lsls	r3, r3, #4
+ 695 00aa 1344     		add	r3, r3, r2
+ 696 00ac 1B68     		ldr	r3, [r3]
+ 697 00ae 3B61     		str	r3, [r7, #16]
+ 502:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].q = NULL;
+ 698              		.loc 1 502 0
+ 699 00b0 97F91730 		ldrsb	r3, [r7, #23]
+ 700 00b4 0A4A     		ldr	r2, .L43
+ 701 00b6 1B01     		lsls	r3, r3, #4
+ 702 00b8 1344     		add	r3, r3, r2
+ 703 00ba 0022     		movs	r2, #0
+ 704 00bc 1A60     		str	r2, [r3]
+ 503:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ARP_QUEUEING */
+ 504:Libraries/lwip-1.4.0/netif/etharp.c ****     /* send the queued IP packet */
+ 505:Libraries/lwip-1.4.0/netif/etharp.c ****     etharp_send_ip(netif, p, (struct eth_addr*)(netif->hwaddr), ethaddr);
+ 705              		.loc 1 505 0
+ 706 00be FB68     		ldr	r3, [r7, #12]
+ 707 00c0 03F12302 		add	r2, r3, #35
+ 708 00c4 7B68     		ldr	r3, [r7, #4]
+ 709 00c6 3969     		ldr	r1, [r7, #16]
+ 710 00c8 F868     		ldr	r0, [r7, #12]
+ 711 00ca FFF7FEFF 		bl	etharp_send_ip
+ 506:Libraries/lwip-1.4.0/netif/etharp.c ****     /* free the queued IP packet */
+ 507:Libraries/lwip-1.4.0/netif/etharp.c ****     pbuf_free(p);
+ 712              		.loc 1 507 0
+ 713 00ce 3869     		ldr	r0, [r7, #16]
+ 714 00d0 FFF7FEFF 		bl	pbuf_free
+ 715              	.L42:
+ 716              	.LBE4:
+ 508:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 509:Libraries/lwip-1.4.0/netif/etharp.c ****   return ERR_OK;
+ 717              		.loc 1 509 0
+ 718 00d4 0023     		movs	r3, #0
+ 719              	.L40:
+ 510:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 720              		.loc 1 510 0
+ 721 00d6 1846     		mov	r0, r3
+ 722 00d8 1837     		adds	r7, r7, #24
+ 723              		.cfi_def_cfa_offset 8
+ 724 00da BD46     		mov	sp, r7
+ 725              		.cfi_def_cfa_register 13
+ 726              		@ sp needed
+ 727 00dc 80BD     		pop	{r7, pc}
+ 728              	.L44:
+ 729 00de 00BF     		.align	2
+ 730              	.L43:
+ 731 00e0 00000000 		.word	arp_table
+ 732              		.cfi_endproc
+ 733              	.LFE21:
+ 735              		.section	.text.etharp_find_addr,"ax",%progbits
+ 736              		.align	2
+ 737              		.global	etharp_find_addr
+ 738              		.thumb
+ 739              		.thumb_func
+ 741              	etharp_find_addr:
+ 742              	.LFB22:
+ 511:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 512:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_STATIC_ENTRIES
+ 513:Libraries/lwip-1.4.0/netif/etharp.c **** /** Add a new static entry to the ARP table. If an entry exists for the
+ 514:Libraries/lwip-1.4.0/netif/etharp.c ****  * specified IP address, this entry is overwritten.
+ 515:Libraries/lwip-1.4.0/netif/etharp.c ****  * If packets are queued for the specified IP address, they are sent out.
+ 516:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 517:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr IP address for the new static entry
+ 518:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ethaddr ethernet address for the new static entry
+ 519:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return @see return values of etharp_add_static_entry
+ 520:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 521:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+ 522:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_add_static_entry(ip_addr_t *ipaddr, struct eth_addr *ethaddr)
+ 523:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 524:Libraries/lwip-1.4.0/netif/etharp.c ****   struct netif *netif;
+ 525:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_add_static_entry: %"U16_F".%"U16_F".%"U16_F".
+ 526:Libraries/lwip-1.4.0/netif/etharp.c ****     ip4_addr1_16(ipaddr), ip4_addr2_16(ipaddr), ip4_addr3_16(ipaddr), ip4_addr4_16(ipaddr),
+ 527:Libraries/lwip-1.4.0/netif/etharp.c ****     ethaddr->addr[0], ethaddr->addr[1], ethaddr->addr[2],
+ 528:Libraries/lwip-1.4.0/netif/etharp.c ****     ethaddr->addr[3], ethaddr->addr[4], ethaddr->addr[5]));
+ 529:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 530:Libraries/lwip-1.4.0/netif/etharp.c ****   netif = ip_route(ipaddr);
+ 531:Libraries/lwip-1.4.0/netif/etharp.c ****   if (netif == NULL) {
+ 532:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_RTE;
+ 533:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 534:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 535:Libraries/lwip-1.4.0/netif/etharp.c ****   return update_arp_entry(netif, ipaddr, ethaddr, ETHARP_FLAG_TRY_HARD | ETHARP_FLAG_STATIC_ENTRY);
+ 536:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 537:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 538:Libraries/lwip-1.4.0/netif/etharp.c **** /** Remove a static entry from the ARP table previously added with a call to
+ 539:Libraries/lwip-1.4.0/netif/etharp.c ****  * etharp_add_static_entry.
+ 540:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 541:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr IP address of the static entry to remove
+ 542:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return ERR_OK: entry removed
+ 543:Libraries/lwip-1.4.0/netif/etharp.c ****  *         ERR_MEM: entry wasn't found
+ 544:Libraries/lwip-1.4.0/netif/etharp.c ****  *         ERR_ARG: entry wasn't a static entry but a dynamic one
+ 545:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 546:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+ 547:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_remove_static_entry(ip_addr_t *ipaddr)
+ 548:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 549:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t i;
+ 550:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_remove_static_entry: %"U16_F".%"U16_F".%"U16_
+ 551:Libraries/lwip-1.4.0/netif/etharp.c ****     ip4_addr1_16(ipaddr), ip4_addr2_16(ipaddr), ip4_addr3_16(ipaddr), ip4_addr4_16(ipaddr)));
+ 552:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 553:Libraries/lwip-1.4.0/netif/etharp.c ****   /* find or create ARP entry */
+ 554:Libraries/lwip-1.4.0/netif/etharp.c ****   i = find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY);
+ 555:Libraries/lwip-1.4.0/netif/etharp.c ****   /* bail out if no entry could be found */
+ 556:Libraries/lwip-1.4.0/netif/etharp.c ****   if (i < 0) {
+ 557:Libraries/lwip-1.4.0/netif/etharp.c ****     return (err_t)i;
+ 558:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 559:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 560:Libraries/lwip-1.4.0/netif/etharp.c ****   if ((arp_table[i].state != ETHARP_STATE_STABLE) ||
+ 561:Libraries/lwip-1.4.0/netif/etharp.c ****     (arp_table[i].static_entry == 0)) {
+ 562:Libraries/lwip-1.4.0/netif/etharp.c ****     /* entry wasn't a static entry, cannot remove it */
+ 563:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_ARG;
+ 564:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 565:Libraries/lwip-1.4.0/netif/etharp.c ****   /* entry found, free it */
+ 566:Libraries/lwip-1.4.0/netif/etharp.c ****   free_entry(i);
+ 567:Libraries/lwip-1.4.0/netif/etharp.c ****   return ERR_OK;
+ 568:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 569:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_STATIC_ENTRIES */
+ 570:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 571:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 572:Libraries/lwip-1.4.0/netif/etharp.c ****  * Finds (stable) ethernet/IP address pair from ARP table
+ 573:Libraries/lwip-1.4.0/netif/etharp.c ****  * using interface and IP address index.
+ 574:Libraries/lwip-1.4.0/netif/etharp.c ****  * @note the addresses in the ARP table are in network order!
+ 575:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 576:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif points to interface index
+ 577:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr points to the (network order) IP address index
+ 578:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param eth_ret points to return pointer
+ 579:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ip_ret points to return pointer
+ 580:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return table index if found, -1 otherwise
+ 581:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 582:Libraries/lwip-1.4.0/netif/etharp.c **** s8_t
+ 583:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_find_addr(struct netif *netif, ip_addr_t *ipaddr,
+ 584:Libraries/lwip-1.4.0/netif/etharp.c ****          struct eth_addr **eth_ret, ip_addr_t **ip_ret)
+ 585:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 743              		.loc 1 585 0
+ 744              		.cfi_startproc
+ 745              		@ args = 0, pretend = 0, frame = 24
+ 746              		@ frame_needed = 1, uses_anonymous_args = 0
+ 747 0000 80B5     		push	{r7, lr}
+ 748              		.cfi_def_cfa_offset 8
+ 749              		.cfi_offset 7, -8
+ 750              		.cfi_offset 14, -4
+ 751 0002 86B0     		sub	sp, sp, #24
+ 752              		.cfi_def_cfa_offset 32
+ 753 0004 00AF     		add	r7, sp, #0
+ 754              		.cfi_def_cfa_register 7
+ 755 0006 F860     		str	r0, [r7, #12]
+ 756 0008 B960     		str	r1, [r7, #8]
+ 757 000a 7A60     		str	r2, [r7, #4]
+ 758 000c 3B60     		str	r3, [r7]
+ 586:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t i;
+ 587:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 588:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("eth_ret != NULL && ip_ret != NULL",
+ 589:Libraries/lwip-1.4.0/netif/etharp.c ****     eth_ret != NULL && ip_ret != NULL);
+ 590:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 591:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_UNUSED_ARG(netif);
+ 592:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 593:Libraries/lwip-1.4.0/netif/etharp.c ****   i = find_entry(ipaddr, ETHARP_FLAG_FIND_ONLY);
+ 759              		.loc 1 593 0
+ 760 000e 0221     		movs	r1, #2
+ 761 0010 B868     		ldr	r0, [r7, #8]
+ 762 0012 FFF7FEFF 		bl	find_entry
+ 763 0016 0346     		mov	r3, r0
+ 764 0018 FB75     		strb	r3, [r7, #23]
+ 594:Libraries/lwip-1.4.0/netif/etharp.c ****   if((i >= 0) && arp_table[i].state == ETHARP_STATE_STABLE) {
+ 765              		.loc 1 594 0
+ 766 001a 97F91730 		ldrsb	r3, [r7, #23]
+ 767 001e 002B     		cmp	r3, #0
+ 768 0020 1BDB     		blt	.L46
+ 769              		.loc 1 594 0 is_stmt 0 discriminator 1
+ 770 0022 97F91730 		ldrsb	r3, [r7, #23]
+ 771 0026 104A     		ldr	r2, .L48
+ 772 0028 1B01     		lsls	r3, r3, #4
+ 773 002a 1344     		add	r3, r3, r2
+ 774 002c 0E33     		adds	r3, r3, #14
+ 775 002e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 776 0030 022B     		cmp	r3, #2
+ 777 0032 12D1     		bne	.L46
+ 595:Libraries/lwip-1.4.0/netif/etharp.c ****       *eth_ret = &arp_table[i].ethaddr;
+ 778              		.loc 1 595 0 is_stmt 1
+ 779 0034 97F91730 		ldrsb	r3, [r7, #23]
+ 780 0038 1B01     		lsls	r3, r3, #4
+ 781 003a 0833     		adds	r3, r3, #8
+ 782 003c 0A4A     		ldr	r2, .L48
+ 783 003e 1A44     		add	r2, r2, r3
+ 784 0040 7B68     		ldr	r3, [r7, #4]
+ 785 0042 1A60     		str	r2, [r3]
+ 596:Libraries/lwip-1.4.0/netif/etharp.c ****       *ip_ret = &arp_table[i].ipaddr;
+ 786              		.loc 1 596 0
+ 787 0044 97F91730 		ldrsb	r3, [r7, #23]
+ 788 0048 1B01     		lsls	r3, r3, #4
+ 789 004a 074A     		ldr	r2, .L48
+ 790 004c 1344     		add	r3, r3, r2
+ 791 004e 1A1D     		adds	r2, r3, #4
+ 792 0050 3B68     		ldr	r3, [r7]
+ 793 0052 1A60     		str	r2, [r3]
+ 597:Libraries/lwip-1.4.0/netif/etharp.c ****       return i;
+ 794              		.loc 1 597 0
+ 795 0054 97F91730 		ldrsb	r3, [r7, #23]
+ 796 0058 01E0     		b	.L47
+ 797              	.L46:
+ 598:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 599:Libraries/lwip-1.4.0/netif/etharp.c ****   return -1;
+ 798              		.loc 1 599 0
+ 799 005a 4FF0FF33 		mov	r3, #-1
+ 800              	.L47:
+ 600:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 801              		.loc 1 600 0
+ 802 005e 1846     		mov	r0, r3
+ 803 0060 1837     		adds	r7, r7, #24
+ 804              		.cfi_def_cfa_offset 8
+ 805 0062 BD46     		mov	sp, r7
+ 806              		.cfi_def_cfa_register 13
+ 807              		@ sp needed
+ 808 0064 80BD     		pop	{r7, pc}
+ 809              	.L49:
+ 810 0066 00BF     		.align	2
+ 811              	.L48:
+ 812 0068 00000000 		.word	arp_table
+ 813              		.cfi_endproc
+ 814              	.LFE22:
+ 816              		.section	.text.etharp_arp_input,"ax",%progbits
+ 817              		.align	2
+ 818              		.thumb
+ 819              		.thumb_func
+ 821              	etharp_arp_input:
+ 822              	.LFB23:
+ 601:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 602:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_TRUST_IP_MAC
+ 603:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 604:Libraries/lwip-1.4.0/netif/etharp.c ****  * Updates the ARP table using the given IP packet.
+ 605:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 606:Libraries/lwip-1.4.0/netif/etharp.c ****  * Uses the incoming IP packet's source address to update the
+ 607:Libraries/lwip-1.4.0/netif/etharp.c ****  * ARP cache for the local network. The function does not alter
+ 608:Libraries/lwip-1.4.0/netif/etharp.c ****  * or free the packet. This function must be called before the
+ 609:Libraries/lwip-1.4.0/netif/etharp.c ****  * packet p is passed to the IP layer.
+ 610:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 611:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif The lwIP network interface on which the IP packet pbuf arrived.
+ 612:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param p The IP packet that arrived on netif.
+ 613:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 614:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return NULL
+ 615:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 616:Libraries/lwip-1.4.0/netif/etharp.c ****  * @see pbuf_free()
+ 617:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 618:Libraries/lwip-1.4.0/netif/etharp.c **** static void
+ 619:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_ip_input(struct netif *netif, struct pbuf *p)
+ 620:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 621:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_hdr *ethhdr;
+ 622:Libraries/lwip-1.4.0/netif/etharp.c ****   struct ip_hdr *iphdr;
+ 623:Libraries/lwip-1.4.0/netif/etharp.c ****   ip_addr_t iphdr_src;
+ 624:Libraries/lwip-1.4.0/netif/etharp.c ****   xprintf("ip_input\n");
+ 625:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ERROR("netif != NULL", (netif != NULL), return;);
+ 626:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 627:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Only insert an entry if the source IP address of the
+ 628:Libraries/lwip-1.4.0/netif/etharp.c ****      incoming IP packet comes from a host on the local network. */
+ 629:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr = (struct eth_hdr *)p->payload;
+ 630:Libraries/lwip-1.4.0/netif/etharp.c ****   iphdr = (struct ip_hdr *)((u8_t*)ethhdr + SIZEOF_ETH_HDR);
+ 631:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_VLAN
+ 632:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+ 633:Libraries/lwip-1.4.0/netif/etharp.c ****     iphdr = (struct ip_hdr *)((u8_t*)ethhdr + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR);
+ 634:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 635:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_VLAN */
+ 636:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 637:Libraries/lwip-1.4.0/netif/etharp.c ****   ip_addr_copy(iphdr_src, iphdr->src);
+ 638:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 639:Libraries/lwip-1.4.0/netif/etharp.c ****   /* source is not on the local network? */
+ 640:Libraries/lwip-1.4.0/netif/etharp.c ****   if (!ip_addr_netcmp(&iphdr_src, &(netif->ip_addr), &(netif->netmask))) {
+ 641:Libraries/lwip-1.4.0/netif/etharp.c ****     /* do nothing */
+ 642:Libraries/lwip-1.4.0/netif/etharp.c ****     return;
+ 643:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 644:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 645:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_ip_input: updating ETHARP table.\n"));
+ 646:Libraries/lwip-1.4.0/netif/etharp.c ****   /* update the source IP address in the cache, if present */
+ 647:Libraries/lwip-1.4.0/netif/etharp.c ****   /* @todo We could use ETHARP_FLAG_TRY_HARD if we think we are going to talk
+ 648:Libraries/lwip-1.4.0/netif/etharp.c ****    * back soon (for example, if the destination IP address is ours. */
+ 649:Libraries/lwip-1.4.0/netif/etharp.c ****   update_arp_entry(netif, &iphdr_src, &(ethhdr->src), ETHARP_FLAG_FIND_ONLY);
+ 650:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 651:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_TRUST_IP_MAC */
+ 652:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 653:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 654:Libraries/lwip-1.4.0/netif/etharp.c ****  * Responds to ARP requests to us. Upon ARP replies to us, add entry to cache  
+ 655:Libraries/lwip-1.4.0/netif/etharp.c ****  * send out queued IP packets. Updates cache with snooped address pairs.
+ 656:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 657:Libraries/lwip-1.4.0/netif/etharp.c ****  * Should be called for incoming ARP packets. The pbuf in the argument
+ 658:Libraries/lwip-1.4.0/netif/etharp.c ****  * is freed by this function.
+ 659:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 660:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif The lwIP network interface on which the ARP packet pbuf arrived.
+ 661:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ethaddr Ethernet address of netif.
+ 662:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param p The ARP packet that arrived on netif. Is freed by this function.
+ 663:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 664:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return NULL
+ 665:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 666:Libraries/lwip-1.4.0/netif/etharp.c ****  * @see pbuf_free()
+ 667:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 668:Libraries/lwip-1.4.0/netif/etharp.c **** static void
+ 669:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_arp_input(struct netif *netif, struct eth_addr *ethaddr, struct pbuf *p)
+ 670:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 823              		.loc 1 670 0
+ 824              		.cfi_startproc
+ 825              		@ args = 0, pretend = 0, frame = 40
+ 826              		@ frame_needed = 1, uses_anonymous_args = 0
+ 827 0000 80B5     		push	{r7, lr}
+ 828              		.cfi_def_cfa_offset 8
+ 829              		.cfi_offset 7, -8
+ 830              		.cfi_offset 14, -4
+ 831 0002 8AB0     		sub	sp, sp, #40
+ 832              		.cfi_def_cfa_offset 48
+ 833 0004 00AF     		add	r7, sp, #0
+ 834              		.cfi_def_cfa_register 7
+ 835 0006 F860     		str	r0, [r7, #12]
+ 836 0008 B960     		str	r1, [r7, #8]
+ 837 000a 7A60     		str	r2, [r7, #4]
+ 671:Libraries/lwip-1.4.0/netif/etharp.c ****   struct etharp_hdr *hdr;
+ 672:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_hdr *ethhdr;
+ 673:Libraries/lwip-1.4.0/netif/etharp.c ****   /* these are aligned properly, whereas the ARP header fields might not be */
+ 674:Libraries/lwip-1.4.0/netif/etharp.c ****   ip_addr_t sipaddr, dipaddr;
+ 675:Libraries/lwip-1.4.0/netif/etharp.c ****   u8_t for_us;
+ 676:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+ 677:Libraries/lwip-1.4.0/netif/etharp.c ****   const u8_t * ethdst_hwaddr;
+ 678:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+ 679:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 680:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ERROR("netif != NULL", (netif != NULL), return;);
+ 838              		.loc 1 680 0
+ 839 000c FB68     		ldr	r3, [r7, #12]
+ 840 000e 002B     		cmp	r3, #0
+ 841 0010 00F0D680 		beq	.L69
+ 681:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 682:Libraries/lwip-1.4.0/netif/etharp.c ****   /* drop short ARP packets: we have to check for p->len instead of p->tot_len here
+ 683:Libraries/lwip-1.4.0/netif/etharp.c ****      since a struct etharp_hdr is pointed to p->payload, so it musn't be chained! */
+ 684:Libraries/lwip-1.4.0/netif/etharp.c ****   if (p->len < SIZEOF_ETHARP_PACKET) {
+ 842              		.loc 1 684 0
+ 843 0014 7B68     		ldr	r3, [r7, #4]
+ 844 0016 5B89     		ldrh	r3, [r3, #10]
+ 845 0018 2B2B     		cmp	r3, #43
+ 846 001a 0FD8     		bhi	.L53
+ 685:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_WARNING,
+ 686:Libraries/lwip-1.4.0/netif/etharp.c ****       ("etharp_arp_input: packet dropped, too short (%"S16_F"/%"S16_F")\n", p->tot_len,
+ 687:Libraries/lwip-1.4.0/netif/etharp.c ****       (s16_t)SIZEOF_ETHARP_PACKET));
+ 688:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.lenerr);
+ 847              		.loc 1 688 0
+ 848 001c 6A4B     		ldr	r3, .L71
+ 849 001e 5B8C     		ldrh	r3, [r3, #34]
+ 850 0020 0133     		adds	r3, r3, #1
+ 851 0022 9AB2     		uxth	r2, r3
+ 852 0024 684B     		ldr	r3, .L71
+ 853 0026 5A84     		strh	r2, [r3, #34]	@ movhi
+ 689:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.drop);
+ 854              		.loc 1 689 0
+ 855 0028 674B     		ldr	r3, .L71
+ 856 002a DB8B     		ldrh	r3, [r3, #30]
+ 857 002c 0133     		adds	r3, r3, #1
+ 858 002e 9AB2     		uxth	r2, r3
+ 859 0030 654B     		ldr	r3, .L71
+ 860 0032 DA83     		strh	r2, [r3, #30]	@ movhi
+ 690:Libraries/lwip-1.4.0/netif/etharp.c ****     pbuf_free(p);
+ 861              		.loc 1 690 0
+ 862 0034 7868     		ldr	r0, [r7, #4]
+ 863 0036 FFF7FEFF 		bl	pbuf_free
+ 691:Libraries/lwip-1.4.0/netif/etharp.c ****     return;
+ 864              		.loc 1 691 0
+ 865 003a C2E0     		b	.L50
+ 866              	.L53:
+ 692:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 693:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 694:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr = (struct eth_hdr *)p->payload;
+ 867              		.loc 1 694 0
+ 868 003c 7B68     		ldr	r3, [r7, #4]
+ 869 003e 5B68     		ldr	r3, [r3, #4]
+ 870 0040 3B62     		str	r3, [r7, #32]
+ 695:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr = (struct etharp_hdr *)((u8_t*)ethhdr + SIZEOF_ETH_HDR);
+ 871              		.loc 1 695 0
+ 872 0042 3B6A     		ldr	r3, [r7, #32]
+ 873 0044 1033     		adds	r3, r3, #16
+ 874 0046 FB61     		str	r3, [r7, #28]
+ 696:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_VLAN
+ 697:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ethhdr->type == PP_HTONS(ETHTYPE_VLAN)) {
+ 698:Libraries/lwip-1.4.0/netif/etharp.c ****     hdr = (struct etharp_hdr *)(((u8_t*)ethhdr) + SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR);
+ 699:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 700:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_VLAN */
+ 701:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 702:Libraries/lwip-1.4.0/netif/etharp.c ****   /* RFC 826 "Packet Reception": */
+ 703:Libraries/lwip-1.4.0/netif/etharp.c ****   if ((hdr->hwtype != PP_HTONS(HWTYPE_ETHERNET)) ||
+ 875              		.loc 1 703 0
+ 876 0048 FB69     		ldr	r3, [r7, #28]
+ 877 004a 1B88     		ldrh	r3, [r3]	@ unaligned
+ 878 004c 9BB2     		uxth	r3, r3
+ 879 004e B3F5807F 		cmp	r3, #256
+ 880 0052 0CD1     		bne	.L54
+ 704:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->hwlen != ETHARP_HWADDR_LEN) ||
+ 881              		.loc 1 704 0 discriminator 1
+ 882 0054 FB69     		ldr	r3, [r7, #28]
+ 883 0056 1B79     		ldrb	r3, [r3, #4]	@ zero_extendqisi2
+ 703:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->hwlen != ETHARP_HWADDR_LEN) ||
+ 884              		.loc 1 703 0 discriminator 1
+ 885 0058 062B     		cmp	r3, #6
+ 886 005a 08D1     		bne	.L54
+ 705:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->protolen != sizeof(ip_addr_t)) ||
+ 887              		.loc 1 705 0
+ 888 005c FB69     		ldr	r3, [r7, #28]
+ 889 005e 5B79     		ldrb	r3, [r3, #5]	@ zero_extendqisi2
+ 704:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->hwlen != ETHARP_HWADDR_LEN) ||
+ 890              		.loc 1 704 0
+ 891 0060 042B     		cmp	r3, #4
+ 892 0062 04D1     		bne	.L54
+ 706:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->proto != PP_HTONS(ETHTYPE_IP)))  {
+ 893              		.loc 1 706 0
+ 894 0064 FB69     		ldr	r3, [r7, #28]
+ 895 0066 5B88     		ldrh	r3, [r3, #2]	@ unaligned
+ 896 0068 9BB2     		uxth	r3, r3
+ 705:Libraries/lwip-1.4.0/netif/etharp.c ****       (hdr->protolen != sizeof(ip_addr_t)) ||
+ 897              		.loc 1 705 0
+ 898 006a 082B     		cmp	r3, #8
+ 899 006c 0FD0     		beq	.L55
+ 900              	.L54:
+ 707:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_WARNING,
+ 708:Libraries/lwip-1.4.0/netif/etharp.c ****       ("etharp_arp_input: packet dropped, wrong hw type, hwlen, proto, protolen or ethernet type (%
+ 709:Libraries/lwip-1.4.0/netif/etharp.c ****       hdr->hwtype, hdr->hwlen, hdr->proto, hdr->protolen));
+ 710:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.proterr);
+ 901              		.loc 1 710 0
+ 902 006e 564B     		ldr	r3, .L71
+ 903 0070 1B8D     		ldrh	r3, [r3, #40]
+ 904 0072 0133     		adds	r3, r3, #1
+ 905 0074 9AB2     		uxth	r2, r3
+ 906 0076 544B     		ldr	r3, .L71
+ 907 0078 1A85     		strh	r2, [r3, #40]	@ movhi
+ 711:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.drop);
+ 908              		.loc 1 711 0
+ 909 007a 534B     		ldr	r3, .L71
+ 910 007c DB8B     		ldrh	r3, [r3, #30]
+ 911 007e 0133     		adds	r3, r3, #1
+ 912 0080 9AB2     		uxth	r2, r3
+ 913 0082 514B     		ldr	r3, .L71
+ 914 0084 DA83     		strh	r2, [r3, #30]	@ movhi
+ 712:Libraries/lwip-1.4.0/netif/etharp.c ****     pbuf_free(p);
+ 915              		.loc 1 712 0
+ 916 0086 7868     		ldr	r0, [r7, #4]
+ 917 0088 FFF7FEFF 		bl	pbuf_free
+ 713:Libraries/lwip-1.4.0/netif/etharp.c ****     return;
+ 918              		.loc 1 713 0
+ 919 008c 99E0     		b	.L50
+ 920              	.L55:
+ 714:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 715:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHARP_STATS_INC(etharp.recv);
+ 921              		.loc 1 715 0
+ 922 008e 4E4B     		ldr	r3, .L71
+ 923 0090 5B8B     		ldrh	r3, [r3, #26]
+ 924 0092 0133     		adds	r3, r3, #1
+ 925 0094 9AB2     		uxth	r2, r3
+ 926 0096 4C4B     		ldr	r3, .L71
+ 927 0098 5A83     		strh	r2, [r3, #26]	@ movhi
+ 716:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 717:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+ 718:Libraries/lwip-1.4.0/netif/etharp.c ****   /* We have to check if a host already has configured our random
+ 719:Libraries/lwip-1.4.0/netif/etharp.c ****    * created link local address and continously check if there is
+ 720:Libraries/lwip-1.4.0/netif/etharp.c ****    * a host with this IP-address so we can detect collisions */
+ 721:Libraries/lwip-1.4.0/netif/etharp.c ****   autoip_arp_reply(netif, hdr);
+ 722:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+ 723:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 724:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Copy struct ip_addr2 to aligned ip_addr, to support compilers without
+ 725:Libraries/lwip-1.4.0/netif/etharp.c ****    * structure packing (not using structure copy which breaks strict-aliasing rules). */
+ 726:Libraries/lwip-1.4.0/netif/etharp.c ****   IPADDR2_COPY(&sipaddr, &hdr->sipaddr);
+ 928              		.loc 1 726 0
+ 929 009a FB69     		ldr	r3, [r7, #28]
+ 930 009c 03F10E01 		add	r1, r3, #14
+ 931 00a0 07F11803 		add	r3, r7, #24
+ 932 00a4 0422     		movs	r2, #4
+ 933 00a6 1846     		mov	r0, r3
+ 934 00a8 FFF7FEFF 		bl	memcpy
+ 727:Libraries/lwip-1.4.0/netif/etharp.c ****   IPADDR2_COPY(&dipaddr, &hdr->dipaddr);
+ 935              		.loc 1 727 0
+ 936 00ac FB69     		ldr	r3, [r7, #28]
+ 937 00ae 03F11801 		add	r1, r3, #24
+ 938 00b2 07F11403 		add	r3, r7, #20
+ 939 00b6 0422     		movs	r2, #4
+ 940 00b8 1846     		mov	r0, r3
+ 941 00ba FFF7FEFF 		bl	memcpy
+ 728:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 729:Libraries/lwip-1.4.0/netif/etharp.c ****   /* this interface is not configured? */
+ 730:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ip_addr_isany(&netif->ip_addr)) {
+ 942              		.loc 1 730 0
+ 943 00be FB68     		ldr	r3, [r7, #12]
+ 944 00c0 0433     		adds	r3, r3, #4
+ 945 00c2 002B     		cmp	r3, #0
+ 946 00c4 03D0     		beq	.L56
+ 947              		.loc 1 730 0 is_stmt 0 discriminator 1
+ 948 00c6 FB68     		ldr	r3, [r7, #12]
+ 949 00c8 5B68     		ldr	r3, [r3, #4]
+ 950 00ca 002B     		cmp	r3, #0
+ 951 00cc 03D1     		bne	.L57
+ 952              	.L56:
+ 731:Libraries/lwip-1.4.0/netif/etharp.c ****     for_us = 0;
+ 953              		.loc 1 731 0 is_stmt 1
+ 954 00ce 0023     		movs	r3, #0
+ 955 00d0 87F82730 		strb	r3, [r7, #39]
+ 956 00d4 09E0     		b	.L58
+ 957              	.L57:
+ 732:Libraries/lwip-1.4.0/netif/etharp.c ****   } else {
+ 733:Libraries/lwip-1.4.0/netif/etharp.c ****     /* ARP packet directed to us? */
+ 734:Libraries/lwip-1.4.0/netif/etharp.c ****     for_us = (u8_t)ip_addr_cmp(&dipaddr, &(netif->ip_addr));
+ 958              		.loc 1 734 0
+ 959 00d6 7A69     		ldr	r2, [r7, #20]
+ 960 00d8 FB68     		ldr	r3, [r7, #12]
+ 961 00da 5B68     		ldr	r3, [r3, #4]
+ 962 00dc 9A42     		cmp	r2, r3
+ 963 00de 0CBF     		ite	eq
+ 964 00e0 0123     		moveq	r3, #1
+ 965 00e2 0023     		movne	r3, #0
+ 966 00e4 DBB2     		uxtb	r3, r3
+ 967 00e6 87F82730 		strb	r3, [r7, #39]
+ 968              	.L58:
+ 735:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 736:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 737:Libraries/lwip-1.4.0/netif/etharp.c ****   /* ARP message directed to us?
+ 738:Libraries/lwip-1.4.0/netif/etharp.c ****       -> add IP address in ARP cache; assume requester wants to talk to us,
+ 739:Libraries/lwip-1.4.0/netif/etharp.c ****          can result in directly sending the queued packets for this host.
+ 740:Libraries/lwip-1.4.0/netif/etharp.c ****      ARP message not directed to us?
+ 741:Libraries/lwip-1.4.0/netif/etharp.c ****       ->  update the source IP address in the cache, if present */
+ 742:Libraries/lwip-1.4.0/netif/etharp.c ****   update_arp_entry(netif, &sipaddr, &(hdr->shwaddr),
+ 969              		.loc 1 742 0
+ 970 00ea FB69     		ldr	r3, [r7, #28]
+ 971 00ec 03F10802 		add	r2, r3, #8
+ 972 00f0 97F82730 		ldrb	r3, [r7, #39]	@ zero_extendqisi2
+ 973 00f4 002B     		cmp	r3, #0
+ 974 00f6 01D0     		beq	.L59
+ 975              		.loc 1 742 0 is_stmt 0 discriminator 1
+ 976 00f8 0123     		movs	r3, #1
+ 977 00fa 00E0     		b	.L60
+ 978              	.L59:
+ 979              		.loc 1 742 0 discriminator 2
+ 980 00fc 0223     		movs	r3, #2
+ 981              	.L60:
+ 982              		.loc 1 742 0 discriminator 4
+ 983 00fe 07F11801 		add	r1, r7, #24
+ 984 0102 F868     		ldr	r0, [r7, #12]
+ 985 0104 FFF7FEFF 		bl	update_arp_entry
+ 743:Libraries/lwip-1.4.0/netif/etharp.c ****                    for_us ? ETHARP_FLAG_TRY_HARD : ETHARP_FLAG_FIND_ONLY);
+ 744:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 745:Libraries/lwip-1.4.0/netif/etharp.c ****   /* now act on the message itself */
+ 746:Libraries/lwip-1.4.0/netif/etharp.c ****   switch (hdr->opcode) {
+ 986              		.loc 1 746 0 is_stmt 1 discriminator 4
+ 987 0108 FB69     		ldr	r3, [r7, #28]
+ 988 010a DB88     		ldrh	r3, [r3, #6]	@ unaligned
+ 989 010c 9BB2     		uxth	r3, r3
+ 990 010e B3F5807F 		cmp	r3, #256
+ 991 0112 03D0     		beq	.L62
+ 992 0114 B3F5007F 		cmp	r3, #512
+ 993 0118 4DD0     		beq	.L70
+ 994              		.loc 1 746 0 is_stmt 0
+ 995 011a 45E0     		b	.L68
+ 996              	.L62:
+ 747:Libraries/lwip-1.4.0/netif/etharp.c ****   /* ARP request? */
+ 748:Libraries/lwip-1.4.0/netif/etharp.c ****   case PP_HTONS(ARP_REQUEST):
+ 749:Libraries/lwip-1.4.0/netif/etharp.c ****     /* ARP request. If it asked for our address, we send out a
+ 750:Libraries/lwip-1.4.0/netif/etharp.c ****      * reply. In any case, we time-stamp any existing ARP entry,
+ 751:Libraries/lwip-1.4.0/netif/etharp.c ****      * and possiby send out an IP packet that was queued on it. */
+ 752:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 753:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF (ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: incoming ARP request\n"));
+ 754:Libraries/lwip-1.4.0/netif/etharp.c ****     /* ARP request for our address? */
+ 755:Libraries/lwip-1.4.0/netif/etharp.c ****     if (for_us) {
+ 997              		.loc 1 755 0 is_stmt 1
+ 998 011c 97F82730 		ldrb	r3, [r7, #39]	@ zero_extendqisi2
+ 999 0120 002B     		cmp	r3, #0
+ 1000 0122 3DD0     		beq	.L64
+ 756:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 757:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: replying to ARP request for ou
+ 758:Libraries/lwip-1.4.0/netif/etharp.c ****       /* Re-use pbuf to send ARP reply.
+ 759:Libraries/lwip-1.4.0/netif/etharp.c ****          Since we are re-using an existing pbuf, we can't call etharp_raw since
+ 760:Libraries/lwip-1.4.0/netif/etharp.c ****          that would allocate a new pbuf. */
+ 761:Libraries/lwip-1.4.0/netif/etharp.c ****       hdr->opcode = htons(ARP_REPLY);
+ 1001              		.loc 1 761 0
+ 1002 0124 0220     		movs	r0, #2
+ 1003 0126 FFF7FEFF 		bl	lwip_htons
+ 1004 012a 0346     		mov	r3, r0
+ 1005 012c 1A46     		mov	r2, r3
+ 1006 012e FB69     		ldr	r3, [r7, #28]
+ 1007 0130 DA80     		strh	r2, [r3, #6]	@ unaligned
+ 762:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 763:Libraries/lwip-1.4.0/netif/etharp.c ****       IPADDR2_COPY(&hdr->dipaddr, &hdr->sipaddr);
+ 1008              		.loc 1 763 0
+ 1009 0132 FB69     		ldr	r3, [r7, #28]
+ 1010 0134 03F11800 		add	r0, r3, #24
+ 1011 0138 FB69     		ldr	r3, [r7, #28]
+ 1012 013a 0E33     		adds	r3, r3, #14
+ 1013 013c 0422     		movs	r2, #4
+ 1014 013e 1946     		mov	r1, r3
+ 1015 0140 FFF7FEFF 		bl	memcpy
+ 764:Libraries/lwip-1.4.0/netif/etharp.c ****       IPADDR2_COPY(&hdr->sipaddr, &netif->ip_addr);
+ 1016              		.loc 1 764 0
+ 1017 0144 FB69     		ldr	r3, [r7, #28]
+ 1018 0146 03F10E00 		add	r0, r3, #14
+ 1019 014a FB68     		ldr	r3, [r7, #12]
+ 1020 014c 0433     		adds	r3, r3, #4
+ 1021 014e 0422     		movs	r2, #4
+ 1022 0150 1946     		mov	r1, r3
+ 1023 0152 FFF7FEFF 		bl	memcpy
+ 765:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 766:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_ASSERT("netif->hwaddr_len must be the same as ETHARP_HWADDR_LEN for etharp!",
+ 767:Libraries/lwip-1.4.0/netif/etharp.c ****                   (netif->hwaddr_len == ETHARP_HWADDR_LEN));
+ 768:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+ 769:Libraries/lwip-1.4.0/netif/etharp.c ****       /* If we are using Link-Local, all ARP packets that contain a Link-Local
+ 770:Libraries/lwip-1.4.0/netif/etharp.c ****        * 'sender IP address' MUST be sent using link-layer broadcast instead of
+ 771:Libraries/lwip-1.4.0/netif/etharp.c ****        * link-layer unicast. (See RFC3927 Section 2.5, last paragraph) */
+ 772:Libraries/lwip-1.4.0/netif/etharp.c ****       ethdst_hwaddr = ip_addr_islinklocal(&netif->ip_addr) ? (u8_t*)(ethbroadcast.addr) : hdr->shwa
+ 773:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+ 774:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 775:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHADDR16_COPY(&hdr->dhwaddr, &hdr->shwaddr);
+ 1024              		.loc 1 775 0
+ 1025 0156 FB69     		ldr	r3, [r7, #28]
+ 1026 0158 03F11200 		add	r0, r3, #18
+ 1027 015c FB69     		ldr	r3, [r7, #28]
+ 1028 015e 0833     		adds	r3, r3, #8
+ 1029 0160 0622     		movs	r2, #6
+ 1030 0162 1946     		mov	r1, r3
+ 1031 0164 FFF7FEFF 		bl	memcpy
+ 776:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+ 777:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHADDR16_COPY(&ethhdr->dest, ethdst_hwaddr);
+ 778:Libraries/lwip-1.4.0/netif/etharp.c **** #else  /* LWIP_AUTOIP */
+ 779:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHADDR16_COPY(&ethhdr->dest, &hdr->shwaddr);
+ 1032              		.loc 1 779 0
+ 1033 0168 3B6A     		ldr	r3, [r7, #32]
+ 1034 016a 981C     		adds	r0, r3, #2
+ 1035 016c FB69     		ldr	r3, [r7, #28]
+ 1036 016e 0833     		adds	r3, r3, #8
+ 1037 0170 0622     		movs	r2, #6
+ 1038 0172 1946     		mov	r1, r3
+ 1039 0174 FFF7FEFF 		bl	memcpy
+ 780:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+ 781:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHADDR16_COPY(&hdr->shwaddr, ethaddr);
+ 1040              		.loc 1 781 0
+ 1041 0178 FB69     		ldr	r3, [r7, #28]
+ 1042 017a 0833     		adds	r3, r3, #8
+ 1043 017c 0622     		movs	r2, #6
+ 1044 017e B968     		ldr	r1, [r7, #8]
+ 1045 0180 1846     		mov	r0, r3
+ 1046 0182 FFF7FEFF 		bl	memcpy
+ 782:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHADDR16_COPY(&ethhdr->src, ethaddr);
+ 1047              		.loc 1 782 0
+ 1048 0186 3B6A     		ldr	r3, [r7, #32]
+ 1049 0188 0833     		adds	r3, r3, #8
+ 1050 018a 0622     		movs	r2, #6
+ 1051 018c B968     		ldr	r1, [r7, #8]
+ 1052 018e 1846     		mov	r0, r3
+ 1053 0190 FFF7FEFF 		bl	memcpy
+ 783:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 784:Libraries/lwip-1.4.0/netif/etharp.c ****       /* hwtype, hwaddr_len, proto, protolen and the type in the ethernet header
+ 785:Libraries/lwip-1.4.0/netif/etharp.c ****          are already correct, we tested that before */
+ 786:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 787:Libraries/lwip-1.4.0/netif/etharp.c ****       /* return ARP reply */
+ 788:Libraries/lwip-1.4.0/netif/etharp.c ****       netif->linkoutput(netif, p);
+ 1054              		.loc 1 788 0
+ 1055 0194 FB68     		ldr	r3, [r7, #12]
+ 1056 0196 9B69     		ldr	r3, [r3, #24]
+ 1057 0198 7968     		ldr	r1, [r7, #4]
+ 1058 019a F868     		ldr	r0, [r7, #12]
+ 1059 019c 9847     		blx	r3
+ 789:Libraries/lwip-1.4.0/netif/etharp.c ****     /* we are not configured? */
+ 790:Libraries/lwip-1.4.0/netif/etharp.c ****     } else if (ip_addr_isany(&netif->ip_addr)) {
+ 791:Libraries/lwip-1.4.0/netif/etharp.c ****       /* { for_us == 0 and netif->ip_addr.addr == 0 } */
+ 792:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: we are unconfigured, ARP reque
+ 793:Libraries/lwip-1.4.0/netif/etharp.c ****     /* request was not directed to us */
+ 794:Libraries/lwip-1.4.0/netif/etharp.c ****     } else {
+ 795:Libraries/lwip-1.4.0/netif/etharp.c ****       /* { for_us == 0 and netif->ip_addr.addr != 0 } */
+ 796:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: ARP request was not for us.\n"
+ 797:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 798:Libraries/lwip-1.4.0/netif/etharp.c ****     break;
+ 1060              		.loc 1 798 0
+ 1061 019e 0BE0     		b	.L66
+ 1062              	.L64:
+ 790:Libraries/lwip-1.4.0/netif/etharp.c ****       /* { for_us == 0 and netif->ip_addr.addr == 0 } */
+ 1063              		.loc 1 790 0
+ 1064 01a0 FB68     		ldr	r3, [r7, #12]
+ 1065 01a2 0433     		adds	r3, r3, #4
+ 1066 01a4 002B     		cmp	r3, #0
+ 1067              		.loc 1 798 0
+ 1068 01a6 07E0     		b	.L66
+ 1069              	.L68:
+ 799:Libraries/lwip-1.4.0/netif/etharp.c ****   case PP_HTONS(ARP_REPLY):
+ 800:Libraries/lwip-1.4.0/netif/etharp.c ****     /* ARP reply. We already updated the ARP cache earlier. */
+ 801:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: incoming ARP reply\n"));
+ 802:Libraries/lwip-1.4.0/netif/etharp.c **** #if (LWIP_DHCP && DHCP_DOES_ARP_CHECK)
+ 803:Libraries/lwip-1.4.0/netif/etharp.c ****     /* DHCP wants to know about ARP replies from any host with an
+ 804:Libraries/lwip-1.4.0/netif/etharp.c ****      * IP address also offered to us by the DHCP server. We do not
+ 805:Libraries/lwip-1.4.0/netif/etharp.c ****      * want to take a duplicate IP address on a single network.
+ 806:Libraries/lwip-1.4.0/netif/etharp.c ****      * @todo How should we handle redundant (fail-over) interfaces? */
+ 807:Libraries/lwip-1.4.0/netif/etharp.c ****     dhcp_arp_reply(netif, &sipaddr);
+ 808:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* (LWIP_DHCP && DHCP_DOES_ARP_CHECK) */
+ 809:Libraries/lwip-1.4.0/netif/etharp.c ****     break;
+ 810:Libraries/lwip-1.4.0/netif/etharp.c ****   default:
+ 811:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_arp_input: ARP unknown opcode type %"S16_F"
+ 812:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.err);
+ 1070              		.loc 1 812 0
+ 1071 01a8 074B     		ldr	r3, .L71
+ 1072 01aa 9B8D     		ldrh	r3, [r3, #44]
+ 1073 01ac 0133     		adds	r3, r3, #1
+ 1074 01ae 9AB2     		uxth	r2, r3
+ 1075 01b0 054B     		ldr	r3, .L71
+ 1076 01b2 9A85     		strh	r2, [r3, #44]	@ movhi
+ 813:Libraries/lwip-1.4.0/netif/etharp.c ****     break;
+ 1077              		.loc 1 813 0
+ 1078 01b4 00E0     		b	.L66
+ 1079              	.L70:
+ 809:Libraries/lwip-1.4.0/netif/etharp.c ****   default:
+ 1080              		.loc 1 809 0
+ 1081 01b6 00BF     		nop
+ 1082              	.L66:
+ 814:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 815:Libraries/lwip-1.4.0/netif/etharp.c ****   /* free ARP packet */
+ 816:Libraries/lwip-1.4.0/netif/etharp.c ****   pbuf_free(p);
+ 1083              		.loc 1 816 0 discriminator 2
+ 1084 01b8 7868     		ldr	r0, [r7, #4]
+ 1085 01ba FFF7FEFF 		bl	pbuf_free
+ 1086 01be 00E0     		b	.L50
+ 1087              	.L69:
+ 680:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 1088              		.loc 1 680 0
+ 1089 01c0 00BF     		nop
+ 1090              	.L50:
+ 817:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 1091              		.loc 1 817 0
+ 1092 01c2 2837     		adds	r7, r7, #40
+ 1093              		.cfi_def_cfa_offset 8
+ 1094 01c4 BD46     		mov	sp, r7
+ 1095              		.cfi_def_cfa_register 13
+ 1096              		@ sp needed
+ 1097 01c6 80BD     		pop	{r7, pc}
+ 1098              	.L72:
+ 1099              		.align	2
+ 1100              	.L71:
+ 1101 01c8 00000000 		.word	lwip_stats
+ 1102              		.cfi_endproc
+ 1103              	.LFE23:
+ 1105              		.section	.text.etharp_output,"ax",%progbits
+ 1106              		.align	2
+ 1107              		.global	etharp_output
+ 1108              		.thumb
+ 1109              		.thumb_func
+ 1111              	etharp_output:
+ 1112              	.LFB24:
+ 818:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 819:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 820:Libraries/lwip-1.4.0/netif/etharp.c ****  * Resolve and fill-in Ethernet address header for outgoing IP packet.
+ 821:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 822:Libraries/lwip-1.4.0/netif/etharp.c ****  * For IP multicast and broadcast, corresponding Ethernet addresses
+ 823:Libraries/lwip-1.4.0/netif/etharp.c ****  * are selected and the packet is transmitted on the link.
+ 824:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 825:Libraries/lwip-1.4.0/netif/etharp.c ****  * For unicast addresses, the packet is submitted to etharp_query(). In
+ 826:Libraries/lwip-1.4.0/netif/etharp.c ****  * case the IP address is outside the local network, the IP address of
+ 827:Libraries/lwip-1.4.0/netif/etharp.c ****  * the gateway is used.
+ 828:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 829:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif The lwIP network interface which the IP packet will be sent on.
+ 830:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param q The pbuf(s) containing the IP packet to be sent.
+ 831:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr The IP address of the packet destination.
+ 832:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 833:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return
+ 834:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_RTE No route to destination (no gateway to external networks),
+ 835:Libraries/lwip-1.4.0/netif/etharp.c ****  * or the return type of either etharp_query() or etharp_send_ip().
+ 836:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 837:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+ 838:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_output(struct netif *netif, struct pbuf *q, ip_addr_t *ipaddr)
+ 839:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 1113              		.loc 1 839 0
+ 1114              		.cfi_startproc
+ 1115              		@ args = 0, pretend = 0, frame = 32
+ 1116              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1117 0000 80B5     		push	{r7, lr}
+ 1118              		.cfi_def_cfa_offset 8
+ 1119              		.cfi_offset 7, -8
+ 1120              		.cfi_offset 14, -4
+ 1121 0002 88B0     		sub	sp, sp, #32
+ 1122              		.cfi_def_cfa_offset 40
+ 1123 0004 00AF     		add	r7, sp, #0
+ 1124              		.cfi_def_cfa_register 7
+ 1125 0006 F860     		str	r0, [r7, #12]
+ 1126 0008 B960     		str	r1, [r7, #8]
+ 1127 000a 7A60     		str	r2, [r7, #4]
+ 840:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_addr *dest, mcastaddr;
+ 841:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 842:Libraries/lwip-1.4.0/netif/etharp.c ****   /* make room for Ethernet header - should not fail */
+ 843:Libraries/lwip-1.4.0/netif/etharp.c ****   if (pbuf_header(q, sizeof(struct eth_hdr)) != 0) {
+ 1128              		.loc 1 843 0
+ 1129 000c 1021     		movs	r1, #16
+ 1130 000e B868     		ldr	r0, [r7, #8]
+ 1131 0010 FFF7FEFF 		bl	pbuf_header
+ 1132 0014 0346     		mov	r3, r0
+ 1133 0016 002B     		cmp	r3, #0
+ 1134 0018 08D0     		beq	.L74
+ 844:Libraries/lwip-1.4.0/netif/etharp.c ****     /* bail out */
+ 845:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS,
+ 846:Libraries/lwip-1.4.0/netif/etharp.c ****       ("etharp_output: could not allocate room for header.\n"));
+ 847:Libraries/lwip-1.4.0/netif/etharp.c ****     LINK_STATS_INC(link.lenerr);
+ 1135              		.loc 1 847 0
+ 1136 001a 494B     		ldr	r3, .L83
+ 1137 001c 5B89     		ldrh	r3, [r3, #10]
+ 1138 001e 0133     		adds	r3, r3, #1
+ 1139 0020 9AB2     		uxth	r2, r3
+ 1140 0022 474B     		ldr	r3, .L83
+ 1141 0024 5A81     		strh	r2, [r3, #10]	@ movhi
+ 848:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_BUF;
+ 1142              		.loc 1 848 0
+ 1143 0026 6FF00103 		mvn	r3, #1
+ 1144 002a 84E0     		b	.L82
+ 1145              	.L74:
+ 849:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 850:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 851:Libraries/lwip-1.4.0/netif/etharp.c ****   /* assume unresolved Ethernet address */
+ 852:Libraries/lwip-1.4.0/netif/etharp.c ****   dest = NULL;
+ 1146              		.loc 1 852 0
+ 1147 002c 0023     		movs	r3, #0
+ 1148 002e FB61     		str	r3, [r7, #28]
+ 853:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Determine on destination hardware address. Broadcasts and multicasts
+ 854:Libraries/lwip-1.4.0/netif/etharp.c ****    * are special, other IP addresses are looked up in the ARP table. */
+ 855:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 856:Libraries/lwip-1.4.0/netif/etharp.c ****   /* broadcast destination IP address? */
+ 857:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ip_addr_isbroadcast(ipaddr, netif)) {
+ 1149              		.loc 1 857 0
+ 1150 0030 7B68     		ldr	r3, [r7, #4]
+ 1151 0032 1B68     		ldr	r3, [r3]
+ 1152 0034 F968     		ldr	r1, [r7, #12]
+ 1153 0036 1846     		mov	r0, r3
+ 1154 0038 FFF7FEFF 		bl	ip4_addr_isbroadcast
+ 1155 003c 0346     		mov	r3, r0
+ 1156 003e 002B     		cmp	r3, #0
+ 1157 0040 02D0     		beq	.L76
+ 858:Libraries/lwip-1.4.0/netif/etharp.c ****     /* broadcast on Ethernet also */
+ 859:Libraries/lwip-1.4.0/netif/etharp.c ****     dest = (struct eth_addr *)&ethbroadcast;
+ 1158              		.loc 1 859 0
+ 1159 0042 404B     		ldr	r3, .L83+4
+ 1160 0044 FB61     		str	r3, [r7, #28]
+ 1161 0046 6DE0     		b	.L77
+ 1162              	.L76:
+ 860:Libraries/lwip-1.4.0/netif/etharp.c ****   /* multicast destination IP address? */
+ 861:Libraries/lwip-1.4.0/netif/etharp.c ****   } else if (ip_addr_ismulticast(ipaddr)) {
+ 1163              		.loc 1 861 0
+ 1164 0048 7B68     		ldr	r3, [r7, #4]
+ 1165 004a 1B68     		ldr	r3, [r3]
+ 1166 004c 03F0F003 		and	r3, r3, #240
+ 1167 0050 E02B     		cmp	r3, #224
+ 1168 0052 16D1     		bne	.L78
+ 862:Libraries/lwip-1.4.0/netif/etharp.c ****     /* Hash IP multicast address to MAC address.*/
+ 863:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[0] = 0x01;
+ 1169              		.loc 1 863 0
+ 1170 0054 0123     		movs	r3, #1
+ 1171 0056 3B75     		strb	r3, [r7, #20]
+ 864:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[1] = 0x00;
+ 1172              		.loc 1 864 0
+ 1173 0058 0023     		movs	r3, #0
+ 1174 005a 7B75     		strb	r3, [r7, #21]
+ 865:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[2] = 0x5e;
+ 1175              		.loc 1 865 0
+ 1176 005c 5E23     		movs	r3, #94
+ 1177 005e BB75     		strb	r3, [r7, #22]
+ 866:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[3] = ip4_addr2(ipaddr) & 0x7f;
+ 1178              		.loc 1 866 0
+ 1179 0060 7B68     		ldr	r3, [r7, #4]
+ 1180 0062 0133     		adds	r3, r3, #1
+ 1181 0064 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1182 0066 03F07F03 		and	r3, r3, #127
+ 1183 006a DBB2     		uxtb	r3, r3
+ 1184 006c FB75     		strb	r3, [r7, #23]
+ 867:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[4] = ip4_addr3(ipaddr);
+ 1185              		.loc 1 867 0
+ 1186 006e 7B68     		ldr	r3, [r7, #4]
+ 1187 0070 9B78     		ldrb	r3, [r3, #2]	@ zero_extendqisi2
+ 1188 0072 3B76     		strb	r3, [r7, #24]
+ 868:Libraries/lwip-1.4.0/netif/etharp.c ****     mcastaddr.addr[5] = ip4_addr4(ipaddr);
+ 1189              		.loc 1 868 0
+ 1190 0074 7B68     		ldr	r3, [r7, #4]
+ 1191 0076 DB78     		ldrb	r3, [r3, #3]	@ zero_extendqisi2
+ 1192 0078 7B76     		strb	r3, [r7, #25]
+ 869:Libraries/lwip-1.4.0/netif/etharp.c ****     /* destination Ethernet address is multicast */
+ 870:Libraries/lwip-1.4.0/netif/etharp.c ****     dest = &mcastaddr;
+ 1193              		.loc 1 870 0
+ 1194 007a 07F11403 		add	r3, r7, #20
+ 1195 007e FB61     		str	r3, [r7, #28]
+ 1196 0080 50E0     		b	.L77
+ 1197              	.L78:
+ 871:Libraries/lwip-1.4.0/netif/etharp.c ****   /* unicast destination IP address? */
+ 872:Libraries/lwip-1.4.0/netif/etharp.c ****   } else {
+ 873:Libraries/lwip-1.4.0/netif/etharp.c ****     /* outside local network? */
+ 874:Libraries/lwip-1.4.0/netif/etharp.c ****     if (!ip_addr_netcmp(ipaddr, &(netif->ip_addr), &(netif->netmask)) &&
+ 1198              		.loc 1 874 0
+ 1199 0082 7B68     		ldr	r3, [r7, #4]
+ 1200 0084 1A68     		ldr	r2, [r3]
+ 1201 0086 FB68     		ldr	r3, [r7, #12]
+ 1202 0088 5B68     		ldr	r3, [r3, #4]
+ 1203 008a 5A40     		eors	r2, r2, r3
+ 1204 008c FB68     		ldr	r3, [r7, #12]
+ 1205 008e 9B68     		ldr	r3, [r3, #8]
+ 1206 0090 1340     		ands	r3, r3, r2
+ 1207 0092 002B     		cmp	r3, #0
+ 1208 0094 15D0     		beq	.L79
+ 875:Libraries/lwip-1.4.0/netif/etharp.c ****         !ip_addr_islinklocal(ipaddr)) {
+ 1209              		.loc 1 875 0 discriminator 1
+ 1210 0096 7B68     		ldr	r3, [r7, #4]
+ 1211 0098 1B68     		ldr	r3, [r3]
+ 1212 009a 9BB2     		uxth	r3, r3
+ 874:Libraries/lwip-1.4.0/netif/etharp.c ****         !ip_addr_islinklocal(ipaddr)) {
+ 1213              		.loc 1 874 0 discriminator 1
+ 1214 009c 4FF6A962 		movw	r2, #65193
+ 1215 00a0 9342     		cmp	r3, r2
+ 1216 00a2 0ED0     		beq	.L79
+ 876:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+ 877:Libraries/lwip-1.4.0/netif/etharp.c ****       struct ip_hdr *iphdr = (struct ip_hdr*)((u8_t*)q->payload +
+ 878:Libraries/lwip-1.4.0/netif/etharp.c ****         sizeof(struct eth_hdr));
+ 879:Libraries/lwip-1.4.0/netif/etharp.c ****       /* According to RFC 3297, chapter 2.6.2 (Forwarding Rules), a packet with
+ 880:Libraries/lwip-1.4.0/netif/etharp.c ****          a link-local source address must always be "directly to its destination
+ 881:Libraries/lwip-1.4.0/netif/etharp.c ****          on the same physical link. The host MUST NOT send the packet to any
+ 882:Libraries/lwip-1.4.0/netif/etharp.c ****          router for forwarding". */
+ 883:Libraries/lwip-1.4.0/netif/etharp.c ****       if (!ip_addr_islinklocal(&iphdr->src))
+ 884:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+ 885:Libraries/lwip-1.4.0/netif/etharp.c ****       {
+ 886:Libraries/lwip-1.4.0/netif/etharp.c ****         /* interface has default gateway? */
+ 887:Libraries/lwip-1.4.0/netif/etharp.c ****         if (!ip_addr_isany(&netif->gw)) {
+ 1217              		.loc 1 887 0
+ 1218 00a4 FB68     		ldr	r3, [r7, #12]
+ 1219 00a6 0C33     		adds	r3, r3, #12
+ 1220 00a8 002B     		cmp	r3, #0
+ 1221 00aa 07D0     		beq	.L80
+ 1222              		.loc 1 887 0 is_stmt 0 discriminator 1
+ 1223 00ac FB68     		ldr	r3, [r7, #12]
+ 1224 00ae DB68     		ldr	r3, [r3, #12]
+ 1225 00b0 002B     		cmp	r3, #0
+ 1226 00b2 03D0     		beq	.L80
+ 888:Libraries/lwip-1.4.0/netif/etharp.c ****           /* send to hardware address of default gateway IP address */
+ 889:Libraries/lwip-1.4.0/netif/etharp.c ****           ipaddr = &(netif->gw);
+ 1227              		.loc 1 889 0 is_stmt 1
+ 1228 00b4 FB68     		ldr	r3, [r7, #12]
+ 1229 00b6 0C33     		adds	r3, r3, #12
+ 1230 00b8 7B60     		str	r3, [r7, #4]
+ 1231 00ba 02E0     		b	.L79
+ 1232              	.L80:
+ 890:Libraries/lwip-1.4.0/netif/etharp.c ****         /* no default gateway available */
+ 891:Libraries/lwip-1.4.0/netif/etharp.c ****         } else {
+ 892:Libraries/lwip-1.4.0/netif/etharp.c ****           /* no route to destination error (default gateway missing) */
+ 893:Libraries/lwip-1.4.0/netif/etharp.c ****           return ERR_RTE;
+ 1233              		.loc 1 893 0
+ 1234 00bc 6FF00303 		mvn	r3, #3
+ 1235 00c0 39E0     		b	.L82
+ 1236              	.L79:
+ 894:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+ 895:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 896:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 897:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_NETIF_HWADDRHINT
+ 898:Libraries/lwip-1.4.0/netif/etharp.c ****     if (netif->addr_hint != NULL) {
+ 899:Libraries/lwip-1.4.0/netif/etharp.c ****       /* per-pcb cached entry was given */
+ 900:Libraries/lwip-1.4.0/netif/etharp.c ****       u8_t etharp_cached_entry = *(netif->addr_hint);
+ 901:Libraries/lwip-1.4.0/netif/etharp.c ****       if (etharp_cached_entry < ARP_TABLE_SIZE) {
+ 902:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_NETIF_HWADDRHINT */
+ 903:Libraries/lwip-1.4.0/netif/etharp.c ****         if ((arp_table[etharp_cached_entry].state == ETHARP_STATE_STABLE) &&
+ 1237              		.loc 1 903 0
+ 1238 00c2 214B     		ldr	r3, .L83+8
+ 1239 00c4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1240 00c6 214A     		ldr	r2, .L83+12
+ 1241 00c8 1B01     		lsls	r3, r3, #4
+ 1242 00ca 1344     		add	r3, r3, r2
+ 1243 00cc 0E33     		adds	r3, r3, #14
+ 1244 00ce 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1245 00d0 022B     		cmp	r3, #2
+ 1246 00d2 20D1     		bne	.L81
+ 904:Libraries/lwip-1.4.0/netif/etharp.c ****             (ip_addr_cmp(ipaddr, &arp_table[etharp_cached_entry].ipaddr))) {
+ 1247              		.loc 1 904 0 discriminator 1
+ 1248 00d4 7B68     		ldr	r3, [r7, #4]
+ 1249 00d6 1A68     		ldr	r2, [r3]
+ 1250 00d8 1B4B     		ldr	r3, .L83+8
+ 1251 00da 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1252 00dc 1B49     		ldr	r1, .L83+12
+ 1253 00de 1B01     		lsls	r3, r3, #4
+ 1254 00e0 0B44     		add	r3, r3, r1
+ 1255 00e2 0433     		adds	r3, r3, #4
+ 1256 00e4 1B68     		ldr	r3, [r3]
+ 903:Libraries/lwip-1.4.0/netif/etharp.c ****             (ip_addr_cmp(ipaddr, &arp_table[etharp_cached_entry].ipaddr))) {
+ 1257              		.loc 1 903 0 discriminator 1
+ 1258 00e6 9A42     		cmp	r2, r3
+ 1259 00e8 15D1     		bne	.L81
+ 905:Libraries/lwip-1.4.0/netif/etharp.c ****           /* the per-pcb-cached entry is stable and the right one! */
+ 906:Libraries/lwip-1.4.0/netif/etharp.c ****           ETHARP_STATS_INC(etharp.cachehit);
+ 1260              		.loc 1 906 0
+ 1261 00ea 154B     		ldr	r3, .L83
+ 1262 00ec DB8D     		ldrh	r3, [r3, #46]
+ 1263 00ee 0133     		adds	r3, r3, #1
+ 1264 00f0 9AB2     		uxth	r2, r3
+ 1265 00f2 134B     		ldr	r3, .L83
+ 1266 00f4 DA85     		strh	r2, [r3, #46]	@ movhi
+ 907:Libraries/lwip-1.4.0/netif/etharp.c ****           return etharp_send_ip(netif, q, (struct eth_addr*)(netif->hwaddr),
+ 1267              		.loc 1 907 0
+ 1268 00f6 FB68     		ldr	r3, [r7, #12]
+ 1269 00f8 03F12301 		add	r1, r3, #35
+ 908:Libraries/lwip-1.4.0/netif/etharp.c ****             &arp_table[etharp_cached_entry].ethaddr);
+ 1270              		.loc 1 908 0
+ 1271 00fc 124B     		ldr	r3, .L83+8
+ 1272 00fe 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 907:Libraries/lwip-1.4.0/netif/etharp.c ****           return etharp_send_ip(netif, q, (struct eth_addr*)(netif->hwaddr),
+ 1273              		.loc 1 907 0
+ 1274 0100 1B01     		lsls	r3, r3, #4
+ 1275 0102 0833     		adds	r3, r3, #8
+ 1276 0104 114A     		ldr	r2, .L83+12
+ 1277 0106 1344     		add	r3, r3, r2
+ 1278 0108 0A46     		mov	r2, r1
+ 1279 010a B968     		ldr	r1, [r7, #8]
+ 1280 010c F868     		ldr	r0, [r7, #12]
+ 1281 010e FFF7FEFF 		bl	etharp_send_ip
+ 1282 0112 0346     		mov	r3, r0
+ 1283 0114 0FE0     		b	.L82
+ 1284              	.L81:
+ 909:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+ 910:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_NETIF_HWADDRHINT
+ 911:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 912:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 913:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_NETIF_HWADDRHINT */
+ 914:Libraries/lwip-1.4.0/netif/etharp.c ****     /* queue on destination Ethernet address belonging to ipaddr */
+ 915:Libraries/lwip-1.4.0/netif/etharp.c ****     return etharp_query(netif, ipaddr, q);
+ 1285              		.loc 1 915 0
+ 1286 0116 BA68     		ldr	r2, [r7, #8]
+ 1287 0118 7968     		ldr	r1, [r7, #4]
+ 1288 011a F868     		ldr	r0, [r7, #12]
+ 1289 011c FFF7FEFF 		bl	etharp_query
+ 1290 0120 0346     		mov	r3, r0
+ 1291 0122 08E0     		b	.L82
+ 1292              	.L77:
+ 916:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 917:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 918:Libraries/lwip-1.4.0/netif/etharp.c ****   /* continuation for multicast/broadcast destinations */
+ 919:Libraries/lwip-1.4.0/netif/etharp.c ****   /* obtain source Ethernet address of the given interface */
+ 920:Libraries/lwip-1.4.0/netif/etharp.c ****   /* send packet directly on the link */
+ 921:Libraries/lwip-1.4.0/netif/etharp.c ****   return etharp_send_ip(netif, q, (struct eth_addr*)(netif->hwaddr), dest);
+ 1293              		.loc 1 921 0
+ 1294 0124 FB68     		ldr	r3, [r7, #12]
+ 1295 0126 03F12302 		add	r2, r3, #35
+ 1296 012a FB69     		ldr	r3, [r7, #28]
+ 1297 012c B968     		ldr	r1, [r7, #8]
+ 1298 012e F868     		ldr	r0, [r7, #12]
+ 1299 0130 FFF7FEFF 		bl	etharp_send_ip
+ 1300 0134 0346     		mov	r3, r0
+ 1301              	.L82:
+ 922:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 1302              		.loc 1 922 0 discriminator 1
+ 1303 0136 1846     		mov	r0, r3
+ 1304 0138 2037     		adds	r7, r7, #32
+ 1305              		.cfi_def_cfa_offset 8
+ 1306 013a BD46     		mov	sp, r7
+ 1307              		.cfi_def_cfa_register 13
+ 1308              		@ sp needed
+ 1309 013c 80BD     		pop	{r7, pc}
+ 1310              	.L84:
+ 1311 013e 00BF     		.align	2
+ 1312              	.L83:
+ 1313 0140 00000000 		.word	lwip_stats
+ 1314 0144 00000000 		.word	ethbroadcast
+ 1315 0148 00000000 		.word	etharp_cached_entry
+ 1316 014c 00000000 		.word	arp_table
+ 1317              		.cfi_endproc
+ 1318              	.LFE24:
+ 1320              		.section	.text.etharp_query,"ax",%progbits
+ 1321              		.align	2
+ 1322              		.global	etharp_query
+ 1323              		.thumb
+ 1324              		.thumb_func
+ 1326              	etharp_query:
+ 1327              	.LFB25:
+ 923:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 924:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+ 925:Libraries/lwip-1.4.0/netif/etharp.c ****  * Send an ARP request for the given IP address and/or queue a packet.
+ 926:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 927:Libraries/lwip-1.4.0/netif/etharp.c ****  * If the IP address was not yet in the cache, a pending ARP cache entry
+ 928:Libraries/lwip-1.4.0/netif/etharp.c ****  * is added and an ARP request is sent for the given address. The packet
+ 929:Libraries/lwip-1.4.0/netif/etharp.c ****  * is queued on this entry.
+ 930:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 931:Libraries/lwip-1.4.0/netif/etharp.c ****  * If the IP address was already pending in the cache, a new ARP request
+ 932:Libraries/lwip-1.4.0/netif/etharp.c ****  * is sent for the given address. The packet is queued on this entry.
+ 933:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 934:Libraries/lwip-1.4.0/netif/etharp.c ****  * If the IP address was already stable in the cache, and a packet is
+ 935:Libraries/lwip-1.4.0/netif/etharp.c ****  * given, it is directly sent and no ARP request is sent out. 
+ 936:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 937:Libraries/lwip-1.4.0/netif/etharp.c ****  * If the IP address was already stable in the cache, and no packet is
+ 938:Libraries/lwip-1.4.0/netif/etharp.c ****  * given, an ARP request is sent out.
+ 939:Libraries/lwip-1.4.0/netif/etharp.c ****  * 
+ 940:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif The lwIP network interface on which ipaddr
+ 941:Libraries/lwip-1.4.0/netif/etharp.c ****  * must be queried for.
+ 942:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr The IP address to be resolved.
+ 943:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param q If non-NULL, a pbuf that must be delivered to the IP address.
+ 944:Libraries/lwip-1.4.0/netif/etharp.c ****  * q is not freed by this function.
+ 945:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 946:Libraries/lwip-1.4.0/netif/etharp.c ****  * @note q must only be ONE packet, not a packet queue!
+ 947:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 948:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return
+ 949:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_BUF Could not make room for Ethernet header.
+ 950:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_MEM Hardware address unknown, and no more ARP entries available
+ 951:Libraries/lwip-1.4.0/netif/etharp.c ****  *   to query for address or queue the packet.
+ 952:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_MEM Could not queue packet due to memory shortage.
+ 953:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_RTE No route to destination (no gateway to external networks).
+ 954:Libraries/lwip-1.4.0/netif/etharp.c ****  * - ERR_ARG Non-unicast address given, those will not appear in ARP cache.
+ 955:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+ 956:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+ 957:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+ 958:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_query(struct netif *netif, ip_addr_t *ipaddr, struct pbuf *q)
+ 959:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 1328              		.loc 1 959 0
+ 1329              		.cfi_startproc
+ 1330              		@ args = 0, pretend = 0, frame = 40
+ 1331              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1332 0000 80B5     		push	{r7, lr}
+ 1333              		.cfi_def_cfa_offset 8
+ 1334              		.cfi_offset 7, -8
+ 1335              		.cfi_offset 14, -4
+ 1336 0002 8AB0     		sub	sp, sp, #40
+ 1337              		.cfi_def_cfa_offset 48
+ 1338 0004 00AF     		add	r7, sp, #0
+ 1339              		.cfi_def_cfa_register 7
+ 1340 0006 F860     		str	r0, [r7, #12]
+ 1341 0008 B960     		str	r1, [r7, #8]
+ 1342 000a 7A60     		str	r2, [r7, #4]
+ 960:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_addr * srcaddr = (struct eth_addr *)netif->hwaddr;
+ 1343              		.loc 1 960 0
+ 1344 000c FB68     		ldr	r3, [r7, #12]
+ 1345 000e 2333     		adds	r3, r3, #35
+ 1346 0010 BB61     		str	r3, [r7, #24]
+ 961:Libraries/lwip-1.4.0/netif/etharp.c ****   err_t result = ERR_MEM;
+ 1347              		.loc 1 961 0
+ 1348 0012 4FF0FF33 		mov	r3, #-1
+ 1349 0016 7B62     		str	r3, [r7, #36]
+ 962:Libraries/lwip-1.4.0/netif/etharp.c ****   s8_t i; /* ARP entry index */
+ 963:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 964:Libraries/lwip-1.4.0/netif/etharp.c ****   /* non-unicast address? */
+ 965:Libraries/lwip-1.4.0/netif/etharp.c ****   if (ip_addr_isbroadcast(ipaddr, netif) ||
+ 1350              		.loc 1 965 0
+ 1351 0018 BB68     		ldr	r3, [r7, #8]
+ 1352 001a 1B68     		ldr	r3, [r3]
+ 1353 001c F968     		ldr	r1, [r7, #12]
+ 1354 001e 1846     		mov	r0, r3
+ 1355 0020 FFF7FEFF 		bl	ip4_addr_isbroadcast
+ 1356 0024 0346     		mov	r3, r0
+ 1357 0026 002B     		cmp	r3, #0
+ 1358 0028 0CD1     		bne	.L86
+ 966:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_ismulticast(ipaddr) ||
+ 1359              		.loc 1 966 0 discriminator 1
+ 1360 002a BB68     		ldr	r3, [r7, #8]
+ 1361 002c 1B68     		ldr	r3, [r3]
+ 1362 002e 03F0F003 		and	r3, r3, #240
+ 965:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_ismulticast(ipaddr) ||
+ 1363              		.loc 1 965 0 discriminator 1
+ 1364 0032 E02B     		cmp	r3, #224
+ 1365 0034 06D0     		beq	.L86
+ 1366              		.loc 1 966 0
+ 1367 0036 BB68     		ldr	r3, [r7, #8]
+ 1368 0038 002B     		cmp	r3, #0
+ 1369 003a 03D0     		beq	.L86
+ 967:Libraries/lwip-1.4.0/netif/etharp.c ****       ip_addr_isany(ipaddr)) {
+ 1370              		.loc 1 967 0
+ 1371 003c BB68     		ldr	r3, [r7, #8]
+ 1372 003e 1B68     		ldr	r3, [r3]
+ 1373 0040 002B     		cmp	r3, #0
+ 1374 0042 02D1     		bne	.L87
+ 1375              	.L86:
+ 968:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: will not add non-unicast IP address 
+ 969:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_ARG;
+ 1376              		.loc 1 969 0
+ 1377 0044 6FF00D03 		mvn	r3, #13
+ 1378 0048 C5E0     		b	.L88
+ 1379              	.L87:
+ 970:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 971:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 972:Libraries/lwip-1.4.0/netif/etharp.c ****   /* find entry in ARP cache, ask to create entry if queueing packet */
+ 973:Libraries/lwip-1.4.0/netif/etharp.c ****   i = find_entry(ipaddr, ETHARP_FLAG_TRY_HARD);
+ 1380              		.loc 1 973 0
+ 1381 004a 0121     		movs	r1, #1
+ 1382 004c B868     		ldr	r0, [r7, #8]
+ 1383 004e FFF7FEFF 		bl	find_entry
+ 1384 0052 0346     		mov	r3, r0
+ 1385 0054 FB75     		strb	r3, [r7, #23]
+ 974:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 975:Libraries/lwip-1.4.0/netif/etharp.c ****   /* could not find or create entry? */
+ 976:Libraries/lwip-1.4.0/netif/etharp.c ****   if (i < 0) {
+ 1386              		.loc 1 976 0
+ 1387 0056 97F91730 		ldrsb	r3, [r7, #23]
+ 1388 005a 002B     		cmp	r3, #0
+ 1389 005c 0BDA     		bge	.L89
+ 977:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: could not create ARP entry\n"));
+ 978:Libraries/lwip-1.4.0/netif/etharp.c ****     if (q) {
+ 1390              		.loc 1 978 0
+ 1391 005e 7B68     		ldr	r3, [r7, #4]
+ 1392 0060 002B     		cmp	r3, #0
+ 1393 0062 05D0     		beq	.L90
+ 979:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: packet dropped\n"));
+ 980:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.memerr);
+ 1394              		.loc 1 980 0
+ 1395 0064 5E4B     		ldr	r3, .L107
+ 1396 0066 9B8C     		ldrh	r3, [r3, #36]
+ 1397 0068 0133     		adds	r3, r3, #1
+ 1398 006a 9AB2     		uxth	r2, r3
+ 1399 006c 5C4B     		ldr	r3, .L107
+ 1400 006e 9A84     		strh	r2, [r3, #36]	@ movhi
+ 1401              	.L90:
+ 981:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+ 982:Libraries/lwip-1.4.0/netif/etharp.c ****     return (err_t)i;
+ 1402              		.loc 1 982 0
+ 1403 0070 97F91730 		ldrsb	r3, [r7, #23]
+ 1404 0074 AFE0     		b	.L88
+ 1405              	.L89:
+ 983:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 984:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 985:Libraries/lwip-1.4.0/netif/etharp.c ****   /* mark a fresh entry as pending (we just sent a request) */
+ 986:Libraries/lwip-1.4.0/netif/etharp.c ****   if (arp_table[i].state == ETHARP_STATE_EMPTY) {
+ 1406              		.loc 1 986 0
+ 1407 0076 97F91730 		ldrsb	r3, [r7, #23]
+ 1408 007a 5A4A     		ldr	r2, .L107+4
+ 1409 007c 1B01     		lsls	r3, r3, #4
+ 1410 007e 1344     		add	r3, r3, r2
+ 1411 0080 0E33     		adds	r3, r3, #14
+ 1412 0082 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1413 0084 002B     		cmp	r3, #0
+ 1414 0086 07D1     		bne	.L91
+ 987:Libraries/lwip-1.4.0/netif/etharp.c ****     arp_table[i].state = ETHARP_STATE_PENDING;
+ 1415              		.loc 1 987 0
+ 1416 0088 97F91730 		ldrsb	r3, [r7, #23]
+ 1417 008c 554A     		ldr	r2, .L107+4
+ 1418 008e 1B01     		lsls	r3, r3, #4
+ 1419 0090 1344     		add	r3, r3, r2
+ 1420 0092 0E33     		adds	r3, r3, #14
+ 1421 0094 0122     		movs	r2, #1
+ 1422 0096 1A70     		strb	r2, [r3]
+ 1423              	.L91:
+ 988:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+ 989:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 990:Libraries/lwip-1.4.0/netif/etharp.c ****   /* { i is either a STABLE or (new or existing) PENDING entry } */
+ 991:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("arp_table[i].state == PENDING or STABLE",
+ 1424              		.loc 1 991 0
+ 1425 0098 97F91730 		ldrsb	r3, [r7, #23]
+ 1426 009c 514A     		ldr	r2, .L107+4
+ 1427 009e 1B01     		lsls	r3, r3, #4
+ 1428 00a0 1344     		add	r3, r3, r2
+ 1429 00a2 0E33     		adds	r3, r3, #14
+ 1430 00a4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1431 00a6 012B     		cmp	r3, #1
+ 992:Libraries/lwip-1.4.0/netif/etharp.c ****   ((arp_table[i].state == ETHARP_STATE_PENDING) ||
+ 993:Libraries/lwip-1.4.0/netif/etharp.c ****    (arp_table[i].state == ETHARP_STATE_STABLE)));
+ 994:Libraries/lwip-1.4.0/netif/etharp.c **** 
+ 995:Libraries/lwip-1.4.0/netif/etharp.c ****   /* do we have a pending entry? or an implicit query request? */
+ 996:Libraries/lwip-1.4.0/netif/etharp.c ****   if ((arp_table[i].state == ETHARP_STATE_PENDING) || (q == NULL)) {
+ 1432              		.loc 1 996 0
+ 1433 00a8 97F91730 		ldrsb	r3, [r7, #23]
+ 1434 00ac 4D4A     		ldr	r2, .L107+4
+ 1435 00ae 1B01     		lsls	r3, r3, #4
+ 1436 00b0 1344     		add	r3, r3, r2
+ 1437 00b2 0E33     		adds	r3, r3, #14
+ 1438 00b4 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1439 00b6 012B     		cmp	r3, #1
+ 1440 00b8 02D0     		beq	.L93
+ 1441              		.loc 1 996 0 is_stmt 0 discriminator 1
+ 1442 00ba 7B68     		ldr	r3, [r7, #4]
+ 1443 00bc 002B     		cmp	r3, #0
+ 1444 00be 09D1     		bne	.L94
+ 1445              	.L93:
+ 997:Libraries/lwip-1.4.0/netif/etharp.c ****     /* try to resolve it; send out ARP request */
+ 998:Libraries/lwip-1.4.0/netif/etharp.c ****     result = etharp_request(netif, ipaddr);
+ 1446              		.loc 1 998 0 is_stmt 1
+ 1447 00c0 B968     		ldr	r1, [r7, #8]
+ 1448 00c2 F868     		ldr	r0, [r7, #12]
+ 1449 00c4 FFF7FEFF 		bl	etharp_request
+ 1450 00c8 7862     		str	r0, [r7, #36]
+ 999:Libraries/lwip-1.4.0/netif/etharp.c ****     if (result != ERR_OK) {
+1000:Libraries/lwip-1.4.0/netif/etharp.c ****       /* ARP request couldn't be sent */
+1001:Libraries/lwip-1.4.0/netif/etharp.c ****       /* We don't re-send arp request in etharp_tmr, but we still queue packets,
+1002:Libraries/lwip-1.4.0/netif/etharp.c ****          since this failure could be temporary, and the next packet calling
+1003:Libraries/lwip-1.4.0/netif/etharp.c ****          etharp_query again could lead to sending the queued packets. */
+1004:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1005:Libraries/lwip-1.4.0/netif/etharp.c ****     if (q == NULL) {
+ 1451              		.loc 1 1005 0
+ 1452 00ca 7B68     		ldr	r3, [r7, #4]
+ 1453 00cc 002B     		cmp	r3, #0
+ 1454 00ce 01D1     		bne	.L94
+1006:Libraries/lwip-1.4.0/netif/etharp.c ****       return result;
+ 1455              		.loc 1 1006 0
+ 1456 00d0 7B6A     		ldr	r3, [r7, #36]
+ 1457 00d2 80E0     		b	.L88
+ 1458              	.L94:
+1007:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1008:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1009:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1010:Libraries/lwip-1.4.0/netif/etharp.c ****   /* packet given? */
+1011:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("q != NULL", q != NULL);
+1012:Libraries/lwip-1.4.0/netif/etharp.c ****   /* stable entry? */
+1013:Libraries/lwip-1.4.0/netif/etharp.c ****   if (arp_table[i].state == ETHARP_STATE_STABLE) {
+ 1459              		.loc 1 1013 0
+ 1460 00d4 97F91730 		ldrsb	r3, [r7, #23]
+ 1461 00d8 424A     		ldr	r2, .L107+4
+ 1462 00da 1B01     		lsls	r3, r3, #4
+ 1463 00dc 1344     		add	r3, r3, r2
+ 1464 00de 0E33     		adds	r3, r3, #14
+ 1465 00e0 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1466 00e2 022B     		cmp	r3, #2
+ 1467 00e4 0FD1     		bne	.L95
+1014:Libraries/lwip-1.4.0/netif/etharp.c ****     /* we have a valid IP->Ethernet address mapping */
+1015:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_SET_HINT(netif, i);
+ 1468              		.loc 1 1015 0
+ 1469 00e6 FA7D     		ldrb	r2, [r7, #23]	@ zero_extendqisi2
+ 1470 00e8 3F4B     		ldr	r3, .L107+8
+ 1471 00ea 1A70     		strb	r2, [r3]
+1016:Libraries/lwip-1.4.0/netif/etharp.c ****     /* send the packet */
+1017:Libraries/lwip-1.4.0/netif/etharp.c ****     result = etharp_send_ip(netif, q, srcaddr, &(arp_table[i].ethaddr));
+ 1472              		.loc 1 1017 0
+ 1473 00ec 97F91730 		ldrsb	r3, [r7, #23]
+ 1474 00f0 1B01     		lsls	r3, r3, #4
+ 1475 00f2 0833     		adds	r3, r3, #8
+ 1476 00f4 3B4A     		ldr	r2, .L107+4
+ 1477 00f6 1344     		add	r3, r3, r2
+ 1478 00f8 BA69     		ldr	r2, [r7, #24]
+ 1479 00fa 7968     		ldr	r1, [r7, #4]
+ 1480 00fc F868     		ldr	r0, [r7, #12]
+ 1481 00fe FFF7FEFF 		bl	etharp_send_ip
+ 1482 0102 7862     		str	r0, [r7, #36]
+ 1483 0104 66E0     		b	.L96
+ 1484              	.L95:
+1018:Libraries/lwip-1.4.0/netif/etharp.c ****   /* pending entry? (either just created or already pending */
+1019:Libraries/lwip-1.4.0/netif/etharp.c ****   } else if (arp_table[i].state == ETHARP_STATE_PENDING) {
+ 1485              		.loc 1 1019 0
+ 1486 0106 97F91730 		ldrsb	r3, [r7, #23]
+ 1487 010a 364A     		ldr	r2, .L107+4
+ 1488 010c 1B01     		lsls	r3, r3, #4
+ 1489 010e 1344     		add	r3, r3, r2
+ 1490 0110 0E33     		adds	r3, r3, #14
+ 1491 0112 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1492 0114 012B     		cmp	r3, #1
+ 1493 0116 5DD1     		bne	.L96
+ 1494              	.LBB5:
+1020:Libraries/lwip-1.4.0/netif/etharp.c ****     /* entry is still pending, queue the given packet 'q' */
+1021:Libraries/lwip-1.4.0/netif/etharp.c ****     struct pbuf *p;
+1022:Libraries/lwip-1.4.0/netif/etharp.c ****     int copy_needed = 0;
+ 1495              		.loc 1 1022 0
+ 1496 0118 0023     		movs	r3, #0
+ 1497 011a FB61     		str	r3, [r7, #28]
+1023:Libraries/lwip-1.4.0/netif/etharp.c ****     /* IF q includes a PBUF_REF, PBUF_POOL or PBUF_RAM, we have no choice but
+1024:Libraries/lwip-1.4.0/netif/etharp.c ****      * to copy the whole queue into a new PBUF_RAM (see bug #11400) 
+1025:Libraries/lwip-1.4.0/netif/etharp.c ****      * PBUF_ROMs can be left as they are, since ROM must not get changed. */
+1026:Libraries/lwip-1.4.0/netif/etharp.c ****     p = q;
+ 1498              		.loc 1 1026 0
+ 1499 011c 7B68     		ldr	r3, [r7, #4]
+ 1500 011e 3B62     		str	r3, [r7, #32]
+1027:Libraries/lwip-1.4.0/netif/etharp.c ****     while (p) {
+ 1501              		.loc 1 1027 0
+ 1502 0120 0EE0     		b	.L97
+ 1503              	.L101:
+1028:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_ASSERT("no packet queues allowed!", (p->len != p->tot_len) || (p->next == 0));
+ 1504              		.loc 1 1028 0
+ 1505 0122 3B6A     		ldr	r3, [r7, #32]
+ 1506 0124 5A89     		ldrh	r2, [r3, #10]
+ 1507 0126 3B6A     		ldr	r3, [r7, #32]
+ 1508 0128 1B89     		ldrh	r3, [r3, #8]
+ 1509 012a 9A42     		cmp	r2, r3
+1029:Libraries/lwip-1.4.0/netif/etharp.c ****       if(p->type != PBUF_ROM) {
+ 1510              		.loc 1 1029 0
+ 1511 012c 3B6A     		ldr	r3, [r7, #32]
+ 1512 012e 1B7B     		ldrb	r3, [r3, #12]	@ zero_extendqisi2
+ 1513 0130 012B     		cmp	r3, #1
+ 1514 0132 02D0     		beq	.L99
+1030:Libraries/lwip-1.4.0/netif/etharp.c ****         copy_needed = 1;
+ 1515              		.loc 1 1030 0
+ 1516 0134 0123     		movs	r3, #1
+ 1517 0136 FB61     		str	r3, [r7, #28]
+1031:Libraries/lwip-1.4.0/netif/etharp.c ****         break;
+ 1518              		.loc 1 1031 0
+ 1519 0138 05E0     		b	.L100
+ 1520              	.L99:
+1032:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1033:Libraries/lwip-1.4.0/netif/etharp.c ****       p = p->next;
+ 1521              		.loc 1 1033 0
+ 1522 013a 3B6A     		ldr	r3, [r7, #32]
+ 1523 013c 1B68     		ldr	r3, [r3]
+ 1524 013e 3B62     		str	r3, [r7, #32]
+ 1525              	.L97:
+1027:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_ASSERT("no packet queues allowed!", (p->len != p->tot_len) || (p->next == 0));
+ 1526              		.loc 1 1027 0
+ 1527 0140 3B6A     		ldr	r3, [r7, #32]
+ 1528 0142 002B     		cmp	r3, #0
+ 1529 0144 EDD1     		bne	.L101
+ 1530              	.L100:
+1034:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1035:Libraries/lwip-1.4.0/netif/etharp.c ****     if(copy_needed) {
+ 1531              		.loc 1 1035 0
+ 1532 0146 FB69     		ldr	r3, [r7, #28]
+ 1533 0148 002B     		cmp	r3, #0
+ 1534 014a 17D0     		beq	.L102
+1036:Libraries/lwip-1.4.0/netif/etharp.c ****       /* copy the whole packet into new pbufs */
+1037:Libraries/lwip-1.4.0/netif/etharp.c ****       p = pbuf_alloc(PBUF_RAW, p->tot_len, PBUF_RAM);
+ 1535              		.loc 1 1037 0
+ 1536 014c 3B6A     		ldr	r3, [r7, #32]
+ 1537 014e 1B89     		ldrh	r3, [r3, #8]
+ 1538 0150 0022     		movs	r2, #0
+ 1539 0152 1946     		mov	r1, r3
+ 1540 0154 0320     		movs	r0, #3
+ 1541 0156 FFF7FEFF 		bl	pbuf_alloc
+ 1542 015a 3862     		str	r0, [r7, #32]
+1038:Libraries/lwip-1.4.0/netif/etharp.c ****       if(p != NULL) {
+ 1543              		.loc 1 1038 0
+ 1544 015c 3B6A     		ldr	r3, [r7, #32]
+ 1545 015e 002B     		cmp	r3, #0
+ 1546 0160 11D0     		beq	.L104
+1039:Libraries/lwip-1.4.0/netif/etharp.c ****         if (pbuf_copy(p, q) != ERR_OK) {
+ 1547              		.loc 1 1039 0
+ 1548 0162 7968     		ldr	r1, [r7, #4]
+ 1549 0164 386A     		ldr	r0, [r7, #32]
+ 1550 0166 FFF7FEFF 		bl	pbuf_copy
+ 1551 016a 0346     		mov	r3, r0
+ 1552 016c 002B     		cmp	r3, #0
+ 1553 016e 0AD0     		beq	.L104
+1040:Libraries/lwip-1.4.0/netif/etharp.c ****           pbuf_free(p);
+ 1554              		.loc 1 1040 0
+ 1555 0170 386A     		ldr	r0, [r7, #32]
+ 1556 0172 FFF7FEFF 		bl	pbuf_free
+1041:Libraries/lwip-1.4.0/netif/etharp.c ****           p = NULL;
+ 1557              		.loc 1 1041 0
+ 1558 0176 0023     		movs	r3, #0
+ 1559 0178 3B62     		str	r3, [r7, #32]
+ 1560 017a 04E0     		b	.L104
+ 1561              	.L102:
+1042:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+1043:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1044:Libraries/lwip-1.4.0/netif/etharp.c ****     } else {
+1045:Libraries/lwip-1.4.0/netif/etharp.c ****       /* referencing the old pbuf is enough */
+1046:Libraries/lwip-1.4.0/netif/etharp.c ****       p = q;
+ 1562              		.loc 1 1046 0
+ 1563 017c 7B68     		ldr	r3, [r7, #4]
+ 1564 017e 3B62     		str	r3, [r7, #32]
+1047:Libraries/lwip-1.4.0/netif/etharp.c ****       pbuf_ref(p);
+ 1565              		.loc 1 1047 0
+ 1566 0180 386A     		ldr	r0, [r7, #32]
+ 1567 0182 FFF7FEFF 		bl	pbuf_ref
+ 1568              	.L104:
+1048:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1049:Libraries/lwip-1.4.0/netif/etharp.c ****     /* packet could be taken over? */
+1050:Libraries/lwip-1.4.0/netif/etharp.c ****     if (p != NULL) {
+ 1569              		.loc 1 1050 0
+ 1570 0186 3B6A     		ldr	r3, [r7, #32]
+ 1571 0188 002B     		cmp	r3, #0
+ 1572 018a 1AD0     		beq	.L105
+1051:Libraries/lwip-1.4.0/netif/etharp.c ****       /* queue packet ... */
+1052:Libraries/lwip-1.4.0/netif/etharp.c **** #if ARP_QUEUEING
+1053:Libraries/lwip-1.4.0/netif/etharp.c ****       struct etharp_q_entry *new_entry;
+1054:Libraries/lwip-1.4.0/netif/etharp.c ****       /* allocate a new arp queue entry */
+1055:Libraries/lwip-1.4.0/netif/etharp.c ****       new_entry = (struct etharp_q_entry *)memp_malloc(MEMP_ARP_QUEUE);
+1056:Libraries/lwip-1.4.0/netif/etharp.c ****       if (new_entry != NULL) {
+1057:Libraries/lwip-1.4.0/netif/etharp.c ****         new_entry->next = 0;
+1058:Libraries/lwip-1.4.0/netif/etharp.c ****         new_entry->p = p;
+1059:Libraries/lwip-1.4.0/netif/etharp.c ****         if(arp_table[i].q != NULL) {
+1060:Libraries/lwip-1.4.0/netif/etharp.c ****           /* queue was already existent, append the new entry to the end */
+1061:Libraries/lwip-1.4.0/netif/etharp.c ****           struct etharp_q_entry *r;
+1062:Libraries/lwip-1.4.0/netif/etharp.c ****           r = arp_table[i].q;
+1063:Libraries/lwip-1.4.0/netif/etharp.c ****           while (r->next != NULL) {
+1064:Libraries/lwip-1.4.0/netif/etharp.c ****             r = r->next;
+1065:Libraries/lwip-1.4.0/netif/etharp.c ****           }
+1066:Libraries/lwip-1.4.0/netif/etharp.c ****           r->next = new_entry;
+1067:Libraries/lwip-1.4.0/netif/etharp.c ****         } else {
+1068:Libraries/lwip-1.4.0/netif/etharp.c ****           /* queue did not exist, first item in queue */
+1069:Libraries/lwip-1.4.0/netif/etharp.c ****           arp_table[i].q = new_entry;
+1070:Libraries/lwip-1.4.0/netif/etharp.c ****         }
+1071:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: queued packet %p on ARP entry %"
+1072:Libraries/lwip-1.4.0/netif/etharp.c ****         result = ERR_OK;
+1073:Libraries/lwip-1.4.0/netif/etharp.c ****       } else {
+1074:Libraries/lwip-1.4.0/netif/etharp.c ****         /* the pool MEMP_ARP_QUEUE is empty */
+1075:Libraries/lwip-1.4.0/netif/etharp.c ****         pbuf_free(p);
+1076:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: could not queue a copy of PBUF_R
+1077:Libraries/lwip-1.4.0/netif/etharp.c ****         result = ERR_MEM;
+1078:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1079:Libraries/lwip-1.4.0/netif/etharp.c **** #else /* ARP_QUEUEING */
+1080:Libraries/lwip-1.4.0/netif/etharp.c ****       /* always queue one packet per ARP request only, freeing a previously queued packet */
+1081:Libraries/lwip-1.4.0/netif/etharp.c ****       if (arp_table[i].q != NULL) {
+ 1573              		.loc 1 1081 0
+ 1574 018c 97F91730 		ldrsb	r3, [r7, #23]
+ 1575 0190 144A     		ldr	r2, .L107+4
+ 1576 0192 1B01     		lsls	r3, r3, #4
+ 1577 0194 1344     		add	r3, r3, r2
+ 1578 0196 1B68     		ldr	r3, [r3]
+ 1579 0198 002B     		cmp	r3, #0
+ 1580 019a 08D0     		beq	.L106
+1082:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: dropped previously queued packet
+1083:Libraries/lwip-1.4.0/netif/etharp.c ****         pbuf_free(arp_table[i].q);
+ 1581              		.loc 1 1083 0
+ 1582 019c 97F91730 		ldrsb	r3, [r7, #23]
+ 1583 01a0 104A     		ldr	r2, .L107+4
+ 1584 01a2 1B01     		lsls	r3, r3, #4
+ 1585 01a4 1344     		add	r3, r3, r2
+ 1586 01a6 1B68     		ldr	r3, [r3]
+ 1587 01a8 1846     		mov	r0, r3
+ 1588 01aa FFF7FEFF 		bl	pbuf_free
+ 1589              	.L106:
+1084:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1085:Libraries/lwip-1.4.0/netif/etharp.c ****       arp_table[i].q = p;
+ 1590              		.loc 1 1085 0
+ 1591 01ae 97F91730 		ldrsb	r3, [r7, #23]
+ 1592 01b2 0C4A     		ldr	r2, .L107+4
+ 1593 01b4 1B01     		lsls	r3, r3, #4
+ 1594 01b6 1344     		add	r3, r3, r2
+ 1595 01b8 3A6A     		ldr	r2, [r7, #32]
+ 1596 01ba 1A60     		str	r2, [r3]
+1086:Libraries/lwip-1.4.0/netif/etharp.c ****       result = ERR_OK;
+ 1597              		.loc 1 1086 0
+ 1598 01bc 0023     		movs	r3, #0
+ 1599 01be 7B62     		str	r3, [r7, #36]
+ 1600 01c0 08E0     		b	.L96
+ 1601              	.L105:
+1087:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: queued packet %p on ARP entry %"S1
+1088:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ARP_QUEUEING */
+1089:Libraries/lwip-1.4.0/netif/etharp.c ****     } else {
+1090:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.memerr);
+ 1602              		.loc 1 1090 0
+ 1603 01c2 074B     		ldr	r3, .L107
+ 1604 01c4 9B8C     		ldrh	r3, [r3, #36]
+ 1605 01c6 0133     		adds	r3, r3, #1
+ 1606 01c8 9AB2     		uxth	r2, r3
+ 1607 01ca 054B     		ldr	r3, .L107
+ 1608 01cc 9A84     		strh	r2, [r3, #36]	@ movhi
+1091:Libraries/lwip-1.4.0/netif/etharp.c ****       LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_query: could not queue a copy of PBUF_REF
+1092:Libraries/lwip-1.4.0/netif/etharp.c ****       result = ERR_MEM;
+ 1609              		.loc 1 1092 0
+ 1610 01ce 4FF0FF33 		mov	r3, #-1
+ 1611 01d2 7B62     		str	r3, [r7, #36]
+ 1612              	.L96:
+ 1613              	.LBE5:
+1093:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1094:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1095:Libraries/lwip-1.4.0/netif/etharp.c ****   return result;
+ 1614              		.loc 1 1095 0
+ 1615 01d4 7B6A     		ldr	r3, [r7, #36]
+ 1616              	.L88:
+1096:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 1617              		.loc 1 1096 0
+ 1618 01d6 1846     		mov	r0, r3
+ 1619 01d8 2837     		adds	r7, r7, #40
+ 1620              		.cfi_def_cfa_offset 8
+ 1621 01da BD46     		mov	sp, r7
+ 1622              		.cfi_def_cfa_register 13
+ 1623              		@ sp needed
+ 1624 01dc 80BD     		pop	{r7, pc}
+ 1625              	.L108:
+ 1626 01de 00BF     		.align	2
+ 1627              	.L107:
+ 1628 01e0 00000000 		.word	lwip_stats
+ 1629 01e4 00000000 		.word	arp_table
+ 1630 01e8 00000000 		.word	etharp_cached_entry
+ 1631              		.cfi_endproc
+ 1632              	.LFE25:
+ 1634              		.section	.text.etharp_raw,"ax",%progbits
+ 1635              		.align	2
+ 1636              		.thumb
+ 1637              		.thumb_func
+ 1639              	etharp_raw:
+ 1640              	.LFB26:
+1097:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1098:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+1099:Libraries/lwip-1.4.0/netif/etharp.c ****  * Send a raw ARP packet (opcode and all addresses can be modified)
+1100:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+1101:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif the lwip network interface on which to send the ARP packet
+1102:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ethsrc_addr the source MAC address for the ethernet header
+1103:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ethdst_addr the destination MAC address for the ethernet header
+1104:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param hwsrc_addr the source MAC address for the ARP protocol header
+1105:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipsrc_addr the source IP address for the ARP protocol header
+1106:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param hwdst_addr the destination MAC address for the ARP protocol header
+1107:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipdst_addr the destination IP address for the ARP protocol header
+1108:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param opcode the type of the ARP packet
+1109:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return ERR_OK if the ARP packet has been sent
+1110:Libraries/lwip-1.4.0/netif/etharp.c ****  *         ERR_MEM if the ARP packet couldn't be allocated
+1111:Libraries/lwip-1.4.0/netif/etharp.c ****  *         any other err_t on failure
+1112:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+1113:Libraries/lwip-1.4.0/netif/etharp.c **** #if !LWIP_AUTOIP
+1114:Libraries/lwip-1.4.0/netif/etharp.c **** static
+1115:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+1116:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+1117:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_raw(struct netif *netif, const struct eth_addr *ethsrc_addr,
+1118:Libraries/lwip-1.4.0/netif/etharp.c ****            const struct eth_addr *ethdst_addr,
+1119:Libraries/lwip-1.4.0/netif/etharp.c ****            const struct eth_addr *hwsrc_addr, const ip_addr_t *ipsrc_addr,
+1120:Libraries/lwip-1.4.0/netif/etharp.c ****            const struct eth_addr *hwdst_addr, const ip_addr_t *ipdst_addr,
+1121:Libraries/lwip-1.4.0/netif/etharp.c ****            const u16_t opcode)
+1122:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 1641              		.loc 1 1122 0
+ 1642              		.cfi_startproc
+ 1643              		@ args = 16, pretend = 0, frame = 32
+ 1644              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1645 0000 80B5     		push	{r7, lr}
+ 1646              		.cfi_def_cfa_offset 8
+ 1647              		.cfi_offset 7, -8
+ 1648              		.cfi_offset 14, -4
+ 1649 0002 88B0     		sub	sp, sp, #32
+ 1650              		.cfi_def_cfa_offset 40
+ 1651 0004 00AF     		add	r7, sp, #0
+ 1652              		.cfi_def_cfa_register 7
+ 1653 0006 F860     		str	r0, [r7, #12]
+ 1654 0008 B960     		str	r1, [r7, #8]
+ 1655 000a 7A60     		str	r2, [r7, #4]
+ 1656 000c 3B60     		str	r3, [r7]
+1123:Libraries/lwip-1.4.0/netif/etharp.c ****   struct pbuf *p;
+1124:Libraries/lwip-1.4.0/netif/etharp.c ****   err_t result = ERR_OK;
+ 1657              		.loc 1 1124 0
+ 1658 000e 0023     		movs	r3, #0
+ 1659 0010 FB61     		str	r3, [r7, #28]
+1125:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_hdr *ethhdr;
+1126:Libraries/lwip-1.4.0/netif/etharp.c ****   struct etharp_hdr *hdr;
+1127:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+1128:Libraries/lwip-1.4.0/netif/etharp.c ****   const u8_t * ethdst_hwaddr;
+1129:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+1130:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1131:Libraries/lwip-1.4.0/netif/etharp.c ****   /* allocate a pbuf for the outgoing ARP request packet */
+1132:Libraries/lwip-1.4.0/netif/etharp.c ****   p = pbuf_alloc(PBUF_RAW, SIZEOF_ETHARP_PACKET, PBUF_RAM);
+ 1660              		.loc 1 1132 0
+ 1661 0012 0022     		movs	r2, #0
+ 1662 0014 2C21     		movs	r1, #44
+ 1663 0016 0320     		movs	r0, #3
+ 1664 0018 FFF7FEFF 		bl	pbuf_alloc
+ 1665 001c B861     		str	r0, [r7, #24]
+1133:Libraries/lwip-1.4.0/netif/etharp.c ****   /* could allocate a pbuf for an ARP request? */
+1134:Libraries/lwip-1.4.0/netif/etharp.c ****   if (p == NULL) {
+ 1666              		.loc 1 1134 0
+ 1667 001e BB69     		ldr	r3, [r7, #24]
+ 1668 0020 002B     		cmp	r3, #0
+ 1669 0022 08D1     		bne	.L110
+1135:Libraries/lwip-1.4.0/netif/etharp.c ****     LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_LEVEL_SERIOUS,
+1136:Libraries/lwip-1.4.0/netif/etharp.c ****       ("etharp_raw: could not allocate pbuf for ARP request.\n"));
+1137:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.memerr);
+ 1670              		.loc 1 1137 0
+ 1671 0024 394B     		ldr	r3, .L112
+ 1672 0026 9B8C     		ldrh	r3, [r3, #36]
+ 1673 0028 0133     		adds	r3, r3, #1
+ 1674 002a 9AB2     		uxth	r2, r3
+ 1675 002c 374B     		ldr	r3, .L112
+ 1676 002e 9A84     		strh	r2, [r3, #36]	@ movhi
+1138:Libraries/lwip-1.4.0/netif/etharp.c ****     return ERR_MEM;
+ 1677              		.loc 1 1138 0
+ 1678 0030 4FF0FF33 		mov	r3, #-1
+ 1679 0034 66E0     		b	.L111
+ 1680              	.L110:
+1139:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1140:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("check that first pbuf can hold struct etharp_hdr",
+1141:Libraries/lwip-1.4.0/netif/etharp.c ****               (p->len >= SIZEOF_ETHARP_PACKET));
+1142:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1143:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr = (struct eth_hdr *)p->payload;
+ 1681              		.loc 1 1143 0
+ 1682 0036 BB69     		ldr	r3, [r7, #24]
+ 1683 0038 5B68     		ldr	r3, [r3, #4]
+ 1684 003a 7B61     		str	r3, [r7, #20]
+1144:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr = (struct etharp_hdr *)((u8_t*)ethhdr + SIZEOF_ETH_HDR);
+ 1685              		.loc 1 1144 0
+ 1686 003c 7B69     		ldr	r3, [r7, #20]
+ 1687 003e 1033     		adds	r3, r3, #16
+ 1688 0040 3B61     		str	r3, [r7, #16]
+1145:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_raw: sending raw ARP packet.\n"));
+1146:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr->opcode = htons(opcode);
+ 1689              		.loc 1 1146 0
+ 1690 0042 BB8E     		ldrh	r3, [r7, #52]
+ 1691 0044 1846     		mov	r0, r3
+ 1692 0046 FFF7FEFF 		bl	lwip_htons
+ 1693 004a 0346     		mov	r3, r0
+ 1694 004c 1A46     		mov	r2, r3
+ 1695 004e 3B69     		ldr	r3, [r7, #16]
+ 1696 0050 DA80     		strh	r2, [r3, #6]	@ unaligned
+1147:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1148:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_ASSERT("netif->hwaddr_len must be the same as ETHARP_HWADDR_LEN for etharp!",
+1149:Libraries/lwip-1.4.0/netif/etharp.c ****               (netif->hwaddr_len == ETHARP_HWADDR_LEN));
+1150:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+1151:Libraries/lwip-1.4.0/netif/etharp.c ****   /* If we are using Link-Local, all ARP packets that contain a Link-Local
+1152:Libraries/lwip-1.4.0/netif/etharp.c ****    * 'sender IP address' MUST be sent using link-layer broadcast instead of
+1153:Libraries/lwip-1.4.0/netif/etharp.c ****    * link-layer unicast. (See RFC3927 Section 2.5, last paragraph) */
+1154:Libraries/lwip-1.4.0/netif/etharp.c ****   ethdst_hwaddr = ip_addr_islinklocal(ipsrc_addr) ? (u8_t*)(ethbroadcast.addr) : ethdst_addr->addr;
+1155:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+1156:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Write the ARP MAC-Addresses */
+1157:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&hdr->shwaddr, hwsrc_addr);
+ 1697              		.loc 1 1157 0
+ 1698 0052 3B69     		ldr	r3, [r7, #16]
+ 1699 0054 0833     		adds	r3, r3, #8
+ 1700 0056 0622     		movs	r2, #6
+ 1701 0058 3968     		ldr	r1, [r7]
+ 1702 005a 1846     		mov	r0, r3
+ 1703 005c FFF7FEFF 		bl	memcpy
+1158:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&hdr->dhwaddr, hwdst_addr);
+ 1704              		.loc 1 1158 0
+ 1705 0060 3B69     		ldr	r3, [r7, #16]
+ 1706 0062 1233     		adds	r3, r3, #18
+ 1707 0064 0622     		movs	r2, #6
+ 1708 0066 F96A     		ldr	r1, [r7, #44]
+ 1709 0068 1846     		mov	r0, r3
+ 1710 006a FFF7FEFF 		bl	memcpy
+1159:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Write the Ethernet MAC-Addresses */
+1160:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_AUTOIP
+1161:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&ethhdr->dest, ethdst_hwaddr);
+1162:Libraries/lwip-1.4.0/netif/etharp.c **** #else  /* LWIP_AUTOIP */
+1163:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&ethhdr->dest, ethdst_addr);
+ 1711              		.loc 1 1163 0
+ 1712 006e 7B69     		ldr	r3, [r7, #20]
+ 1713 0070 0233     		adds	r3, r3, #2
+ 1714 0072 0622     		movs	r2, #6
+ 1715 0074 7968     		ldr	r1, [r7, #4]
+ 1716 0076 1846     		mov	r0, r3
+ 1717 0078 FFF7FEFF 		bl	memcpy
+1164:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_AUTOIP */
+1165:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHADDR16_COPY(&ethhdr->src, ethsrc_addr);
+ 1718              		.loc 1 1165 0
+ 1719 007c 7B69     		ldr	r3, [r7, #20]
+ 1720 007e 0833     		adds	r3, r3, #8
+ 1721 0080 0622     		movs	r2, #6
+ 1722 0082 B968     		ldr	r1, [r7, #8]
+ 1723 0084 1846     		mov	r0, r3
+ 1724 0086 FFF7FEFF 		bl	memcpy
+1166:Libraries/lwip-1.4.0/netif/etharp.c ****   /* Copy struct ip_addr2 to aligned ip_addr, to support compilers without
+1167:Libraries/lwip-1.4.0/netif/etharp.c ****    * structure packing. */ 
+1168:Libraries/lwip-1.4.0/netif/etharp.c ****   IPADDR2_COPY(&hdr->sipaddr, ipsrc_addr);
+ 1725              		.loc 1 1168 0
+ 1726 008a 3B69     		ldr	r3, [r7, #16]
+ 1727 008c 0E33     		adds	r3, r3, #14
+ 1728 008e 0422     		movs	r2, #4
+ 1729 0090 B96A     		ldr	r1, [r7, #40]
+ 1730 0092 1846     		mov	r0, r3
+ 1731 0094 FFF7FEFF 		bl	memcpy
+1169:Libraries/lwip-1.4.0/netif/etharp.c ****   IPADDR2_COPY(&hdr->dipaddr, ipdst_addr);
+ 1732              		.loc 1 1169 0
+ 1733 0098 3B69     		ldr	r3, [r7, #16]
+ 1734 009a 1833     		adds	r3, r3, #24
+ 1735 009c 0422     		movs	r2, #4
+ 1736 009e 396B     		ldr	r1, [r7, #48]
+ 1737 00a0 1846     		mov	r0, r3
+ 1738 00a2 FFF7FEFF 		bl	memcpy
+1170:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1171:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr->hwtype = PP_HTONS(HWTYPE_ETHERNET);
+ 1739              		.loc 1 1171 0
+ 1740 00a6 3B69     		ldr	r3, [r7, #16]
+ 1741 00a8 0022     		movs	r2, #0
+ 1742 00aa 1A70     		strb	r2, [r3]
+ 1743 00ac 0022     		movs	r2, #0
+ 1744 00ae 42F00102 		orr	r2, r2, #1
+ 1745 00b2 5A70     		strb	r2, [r3, #1]
+1172:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr->proto = PP_HTONS(ETHTYPE_IP);
+ 1746              		.loc 1 1172 0
+ 1747 00b4 3B69     		ldr	r3, [r7, #16]
+ 1748 00b6 0022     		movs	r2, #0
+ 1749 00b8 42F00802 		orr	r2, r2, #8
+ 1750 00bc 9A70     		strb	r2, [r3, #2]
+ 1751 00be 0022     		movs	r2, #0
+ 1752 00c0 DA70     		strb	r2, [r3, #3]
+1173:Libraries/lwip-1.4.0/netif/etharp.c ****   /* set hwlen and protolen */
+1174:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr->hwlen = ETHARP_HWADDR_LEN;
+ 1753              		.loc 1 1174 0
+ 1754 00c2 3B69     		ldr	r3, [r7, #16]
+ 1755 00c4 0622     		movs	r2, #6
+ 1756 00c6 1A71     		strb	r2, [r3, #4]
+1175:Libraries/lwip-1.4.0/netif/etharp.c ****   hdr->protolen = sizeof(ip_addr_t);
+ 1757              		.loc 1 1175 0
+ 1758 00c8 3B69     		ldr	r3, [r7, #16]
+ 1759 00ca 0422     		movs	r2, #4
+ 1760 00cc 5A71     		strb	r2, [r3, #5]
+1176:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1177:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr->type = PP_HTONS(ETHTYPE_ARP);
+ 1761              		.loc 1 1177 0
+ 1762 00ce 7B69     		ldr	r3, [r7, #20]
+ 1763 00d0 0022     		movs	r2, #0
+ 1764 00d2 42F00802 		orr	r2, r2, #8
+ 1765 00d6 9A73     		strb	r2, [r3, #14]
+ 1766 00d8 0022     		movs	r2, #0
+ 1767 00da 42F00602 		orr	r2, r2, #6
+ 1768 00de DA73     		strb	r2, [r3, #15]
+1178:Libraries/lwip-1.4.0/netif/etharp.c ****   /* send ARP query */
+1179:Libraries/lwip-1.4.0/netif/etharp.c ****   result = netif->linkoutput(netif, p);
+ 1769              		.loc 1 1179 0
+ 1770 00e0 FB68     		ldr	r3, [r7, #12]
+ 1771 00e2 9B69     		ldr	r3, [r3, #24]
+ 1772 00e4 B969     		ldr	r1, [r7, #24]
+ 1773 00e6 F868     		ldr	r0, [r7, #12]
+ 1774 00e8 9847     		blx	r3
+ 1775 00ea F861     		str	r0, [r7, #28]
+1180:Libraries/lwip-1.4.0/netif/etharp.c ****   ETHARP_STATS_INC(etharp.xmit);
+ 1776              		.loc 1 1180 0
+ 1777 00ec 074B     		ldr	r3, .L112
+ 1778 00ee 1B8B     		ldrh	r3, [r3, #24]
+ 1779 00f0 0133     		adds	r3, r3, #1
+ 1780 00f2 9AB2     		uxth	r2, r3
+ 1781 00f4 054B     		ldr	r3, .L112
+ 1782 00f6 1A83     		strh	r2, [r3, #24]	@ movhi
+1181:Libraries/lwip-1.4.0/netif/etharp.c ****   /* free ARP query packet */
+1182:Libraries/lwip-1.4.0/netif/etharp.c ****   pbuf_free(p);
+ 1783              		.loc 1 1182 0
+ 1784 00f8 B869     		ldr	r0, [r7, #24]
+ 1785 00fa FFF7FEFF 		bl	pbuf_free
+1183:Libraries/lwip-1.4.0/netif/etharp.c ****   p = NULL;
+ 1786              		.loc 1 1183 0
+ 1787 00fe 0023     		movs	r3, #0
+ 1788 0100 BB61     		str	r3, [r7, #24]
+1184:Libraries/lwip-1.4.0/netif/etharp.c ****   /* could not allocate pbuf for ARP request */
+1185:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1186:Libraries/lwip-1.4.0/netif/etharp.c ****   return result;
+ 1789              		.loc 1 1186 0
+ 1790 0102 FB69     		ldr	r3, [r7, #28]
+ 1791              	.L111:
+1187:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 1792              		.loc 1 1187 0
+ 1793 0104 1846     		mov	r0, r3
+ 1794 0106 2037     		adds	r7, r7, #32
+ 1795              		.cfi_def_cfa_offset 8
+ 1796 0108 BD46     		mov	sp, r7
+ 1797              		.cfi_def_cfa_register 13
+ 1798              		@ sp needed
+ 1799 010a 80BD     		pop	{r7, pc}
+ 1800              	.L113:
+ 1801              		.align	2
+ 1802              	.L112:
+ 1803 010c 00000000 		.word	lwip_stats
+ 1804              		.cfi_endproc
+ 1805              	.LFE26:
+ 1807              		.section	.text.etharp_request,"ax",%progbits
+ 1808              		.align	2
+ 1809              		.global	etharp_request
+ 1810              		.thumb
+ 1811              		.thumb_func
+ 1813              	etharp_request:
+ 1814              	.LFB27:
+1188:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1189:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+1190:Libraries/lwip-1.4.0/netif/etharp.c ****  * Send an ARP request packet asking for ipaddr.
+1191:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+1192:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif the lwip network interface on which to send the request
+1193:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param ipaddr the IP address for which to ask
+1194:Libraries/lwip-1.4.0/netif/etharp.c ****  * @return ERR_OK if the request has been sent
+1195:Libraries/lwip-1.4.0/netif/etharp.c ****  *         ERR_MEM if the ARP packet couldn't be allocated
+1196:Libraries/lwip-1.4.0/netif/etharp.c ****  *         any other err_t on failure
+1197:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+1198:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+1199:Libraries/lwip-1.4.0/netif/etharp.c **** etharp_request(struct netif *netif, ip_addr_t *ipaddr)
+1200:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 1815              		.loc 1 1200 0
+ 1816              		.cfi_startproc
+ 1817              		@ args = 0, pretend = 0, frame = 8
+ 1818              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1819 0000 80B5     		push	{r7, lr}
+ 1820              		.cfi_def_cfa_offset 8
+ 1821              		.cfi_offset 7, -8
+ 1822              		.cfi_offset 14, -4
+ 1823 0002 86B0     		sub	sp, sp, #24
+ 1824              		.cfi_def_cfa_offset 32
+ 1825 0004 04AF     		add	r7, sp, #16
+ 1826              		.cfi_def_cfa 7, 16
+ 1827 0006 7860     		str	r0, [r7, #4]
+ 1828 0008 3960     		str	r1, [r7]
+1201:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE, ("etharp_request: sending ARP request.\n"));
+1202:Libraries/lwip-1.4.0/netif/etharp.c ****   return etharp_raw(netif, (struct eth_addr *)netif->hwaddr, &ethbroadcast,
+ 1829              		.loc 1 1202 0
+ 1830 000a 7B68     		ldr	r3, [r7, #4]
+ 1831 000c 03F12301 		add	r1, r3, #35
+1203:Libraries/lwip-1.4.0/netif/etharp.c ****                     (struct eth_addr *)netif->hwaddr, &netif->ip_addr, &ethzero,
+ 1832              		.loc 1 1203 0
+ 1833 0010 7B68     		ldr	r3, [r7, #4]
+ 1834 0012 03F12300 		add	r0, r3, #35
+ 1835 0016 7B68     		ldr	r3, [r7, #4]
+ 1836 0018 0433     		adds	r3, r3, #4
+1202:Libraries/lwip-1.4.0/netif/etharp.c ****                     (struct eth_addr *)netif->hwaddr, &netif->ip_addr, &ethzero,
+ 1837              		.loc 1 1202 0
+ 1838 001a 0122     		movs	r2, #1
+ 1839 001c 0392     		str	r2, [sp, #12]
+ 1840 001e 3A68     		ldr	r2, [r7]
+ 1841 0020 0292     		str	r2, [sp, #8]
+ 1842 0022 064A     		ldr	r2, .L116
+ 1843 0024 0192     		str	r2, [sp, #4]
+ 1844 0026 0093     		str	r3, [sp]
+ 1845 0028 0346     		mov	r3, r0
+ 1846 002a 054A     		ldr	r2, .L116+4
+ 1847 002c 7868     		ldr	r0, [r7, #4]
+ 1848 002e FFF7FEFF 		bl	etharp_raw
+ 1849 0032 0346     		mov	r3, r0
+1204:Libraries/lwip-1.4.0/netif/etharp.c ****                     ipaddr, ARP_REQUEST);
+1205:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 1850              		.loc 1 1205 0
+ 1851 0034 1846     		mov	r0, r3
+ 1852 0036 0837     		adds	r7, r7, #8
+ 1853              		.cfi_def_cfa_offset 8
+ 1854 0038 BD46     		mov	sp, r7
+ 1855              		.cfi_def_cfa_register 13
+ 1856              		@ sp needed
+ 1857 003a 80BD     		pop	{r7, pc}
+ 1858              	.L117:
+ 1859              		.align	2
+ 1860              	.L116:
+ 1861 003c 00000000 		.word	ethzero
+ 1862 0040 00000000 		.word	ethbroadcast
+ 1863              		.cfi_endproc
+ 1864              	.LFE27:
+ 1866              		.section	.text.ethernet_input,"ax",%progbits
+ 1867              		.align	2
+ 1868              		.global	ethernet_input
+ 1869              		.thumb
+ 1870              		.thumb_func
+ 1872              	ethernet_input:
+ 1873              	.LFB28:
+1206:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_ARP */
+1207:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1208:Libraries/lwip-1.4.0/netif/etharp.c **** /**
+1209:Libraries/lwip-1.4.0/netif/etharp.c ****  * Process received ethernet frames. Using this function instead of directly
+1210:Libraries/lwip-1.4.0/netif/etharp.c ****  * calling ip_input and passing ARP frames through etharp in ethernetif_input,
+1211:Libraries/lwip-1.4.0/netif/etharp.c ****  * the ARP cache is protected from concurrent access.
+1212:Libraries/lwip-1.4.0/netif/etharp.c ****  *
+1213:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param p the recevied packet, p->payload pointing to the ethernet header
+1214:Libraries/lwip-1.4.0/netif/etharp.c ****  * @param netif the network interface on which the packet was received
+1215:Libraries/lwip-1.4.0/netif/etharp.c ****  */
+1216:Libraries/lwip-1.4.0/netif/etharp.c **** err_t
+1217:Libraries/lwip-1.4.0/netif/etharp.c **** ethernet_input(struct pbuf *p, struct netif *netif)
+1218:Libraries/lwip-1.4.0/netif/etharp.c **** {
+ 1874              		.loc 1 1218 0
+ 1875              		.cfi_startproc
+ 1876              		@ args = 0, pretend = 0, frame = 24
+ 1877              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1878 0000 80B5     		push	{r7, lr}
+ 1879              		.cfi_def_cfa_offset 8
+ 1880              		.cfi_offset 7, -8
+ 1881              		.cfi_offset 14, -4
+ 1882 0002 86B0     		sub	sp, sp, #24
+ 1883              		.cfi_def_cfa_offset 32
+ 1884 0004 00AF     		add	r7, sp, #0
+ 1885              		.cfi_def_cfa_register 7
+ 1886 0006 7860     		str	r0, [r7, #4]
+ 1887 0008 3960     		str	r1, [r7]
+1219:Libraries/lwip-1.4.0/netif/etharp.c ****   struct eth_hdr* ethhdr;
+1220:Libraries/lwip-1.4.0/netif/etharp.c ****   u16_t type;
+1221:Libraries/lwip-1.4.0/netif/etharp.c ****   s16_t ip_hdr_offset = SIZEOF_ETH_HDR;
+ 1888              		.loc 1 1221 0
+ 1889 000a 1023     		movs	r3, #16
+ 1890 000c FB82     		strh	r3, [r7, #22]	@ movhi
+1222:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1223:Libraries/lwip-1.4.0/netif/etharp.c ****   if (p->len <= SIZEOF_ETH_HDR) {
+ 1891              		.loc 1 1223 0
+ 1892 000e 7B68     		ldr	r3, [r7, #4]
+ 1893 0010 5B89     		ldrh	r3, [r3, #10]
+ 1894 0012 102B     		cmp	r3, #16
+ 1895 0014 0CD8     		bhi	.L119
+1224:Libraries/lwip-1.4.0/netif/etharp.c ****     /* a packet with only an ethernet header (or less) is not valid for us */
+1225:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.proterr);
+ 1896              		.loc 1 1225 0
+ 1897 0016 2F4B     		ldr	r3, .L133
+ 1898 0018 1B8D     		ldrh	r3, [r3, #40]
+ 1899 001a 0133     		adds	r3, r3, #1
+ 1900 001c 9AB2     		uxth	r2, r3
+ 1901 001e 2D4B     		ldr	r3, .L133
+ 1902 0020 1A85     		strh	r2, [r3, #40]	@ movhi
+1226:Libraries/lwip-1.4.0/netif/etharp.c ****     ETHARP_STATS_INC(etharp.drop);
+ 1903              		.loc 1 1226 0
+ 1904 0022 2C4B     		ldr	r3, .L133
+ 1905 0024 DB8B     		ldrh	r3, [r3, #30]
+ 1906 0026 0133     		adds	r3, r3, #1
+ 1907 0028 9AB2     		uxth	r2, r3
+ 1908 002a 2A4B     		ldr	r3, .L133
+ 1909 002c DA83     		strh	r2, [r3, #30]	@ movhi
+1227:Libraries/lwip-1.4.0/netif/etharp.c ****     goto free_and_return;
+ 1910              		.loc 1 1227 0
+ 1911 002e 49E0     		b	.L120
+ 1912              	.L119:
+1228:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1229:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1230:Libraries/lwip-1.4.0/netif/etharp.c ****   /* points to packet payload, which starts with an Ethernet header */
+1231:Libraries/lwip-1.4.0/netif/etharp.c ****   ethhdr = (struct eth_hdr *)p->payload;
+ 1913              		.loc 1 1231 0
+ 1914 0030 7B68     		ldr	r3, [r7, #4]
+ 1915 0032 5B68     		ldr	r3, [r3, #4]
+ 1916 0034 3B61     		str	r3, [r7, #16]
+1232:Libraries/lwip-1.4.0/netif/etharp.c ****   LWIP_DEBUGF(ETHARP_DEBUG | LWIP_DBG_TRACE,
+1233:Libraries/lwip-1.4.0/netif/etharp.c ****     ("ethernet_input: dest:%"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F":%"X8_F", src:%"X8_F":%"X8_F":%"X
+1234:Libraries/lwip-1.4.0/netif/etharp.c ****      (unsigned)ethhdr->dest.addr[0], (unsigned)ethhdr->dest.addr[1], (unsigned)ethhdr->dest.addr[2]
+1235:Libraries/lwip-1.4.0/netif/etharp.c ****      (unsigned)ethhdr->dest.addr[3], (unsigned)ethhdr->dest.addr[4], (unsigned)ethhdr->dest.addr[5]
+1236:Libraries/lwip-1.4.0/netif/etharp.c ****      (unsigned)ethhdr->src.addr[0], (unsigned)ethhdr->src.addr[1], (unsigned)ethhdr->src.addr[2],
+1237:Libraries/lwip-1.4.0/netif/etharp.c ****      (unsigned)ethhdr->src.addr[3], (unsigned)ethhdr->src.addr[4], (unsigned)ethhdr->src.addr[5],
+1238:Libraries/lwip-1.4.0/netif/etharp.c ****      (unsigned)htons(ethhdr->type)));
+1239:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1240:Libraries/lwip-1.4.0/netif/etharp.c ****   type = ethhdr->type;
+ 1917              		.loc 1 1240 0
+ 1918 0036 3B69     		ldr	r3, [r7, #16]
+ 1919 0038 9A7B     		ldrb	r2, [r3, #14]	@ zero_extendqisi2
+ 1920 003a DB7B     		ldrb	r3, [r3, #15]	@ zero_extendqisi2
+ 1921 003c 1B02     		lsls	r3, r3, #8
+ 1922 003e 1343     		orrs	r3, r3, r2
+ 1923 0040 FB81     		strh	r3, [r7, #14]	@ movhi
+1241:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_SUPPORT_VLAN
+1242:Libraries/lwip-1.4.0/netif/etharp.c ****   if (type == PP_HTONS(ETHTYPE_VLAN)) {
+1243:Libraries/lwip-1.4.0/netif/etharp.c ****     struct eth_vlan_hdr *vlan = (struct eth_vlan_hdr*)(((char*)ethhdr) + SIZEOF_ETH_HDR);
+1244:Libraries/lwip-1.4.0/netif/etharp.c ****     if (p->len <= SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR) {
+1245:Libraries/lwip-1.4.0/netif/etharp.c ****       /* a packet with only an ethernet/vlan header (or less) is not valid for us */
+1246:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.proterr);
+1247:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.drop);
+1248:Libraries/lwip-1.4.0/netif/etharp.c ****       goto free_and_return;
+1249:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1250:Libraries/lwip-1.4.0/netif/etharp.c **** #ifdef ETHARP_VLAN_CHECK /* if not, allow all VLANs */
+1251:Libraries/lwip-1.4.0/netif/etharp.c ****     if (VLAN_ID(vlan) != ETHARP_VLAN_CHECK) {
+1252:Libraries/lwip-1.4.0/netif/etharp.c ****       /* silently ignore this packet: not for our VLAN */
+1253:Libraries/lwip-1.4.0/netif/etharp.c ****       pbuf_free(p);
+1254:Libraries/lwip-1.4.0/netif/etharp.c ****       return ERR_OK;
+1255:Libraries/lwip-1.4.0/netif/etharp.c ****     }
+1256:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_VLAN_CHECK */
+1257:Libraries/lwip-1.4.0/netif/etharp.c ****     type = vlan->tpid;
+1258:Libraries/lwip-1.4.0/netif/etharp.c ****     ip_hdr_offset = SIZEOF_ETH_HDR + SIZEOF_VLAN_HDR;
+1259:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1260:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_SUPPORT_VLAN */
+1261:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1262:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_ARP_FILTER_NETIF
+1263:Libraries/lwip-1.4.0/netif/etharp.c ****   netif = LWIP_ARP_FILTER_NETIF_FN(p, netif, htons(type));
+1264:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_ARP_FILTER_NETIF*/
+1265:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1266:Libraries/lwip-1.4.0/netif/etharp.c ****   switch (type) {
+ 1924              		.loc 1 1266 0
+ 1925 0042 FB89     		ldrh	r3, [r7, #14]
+ 1926 0044 082B     		cmp	r3, #8
+ 1927 0046 03D0     		beq	.L122
+ 1928 0048 B3F5C16F 		cmp	r3, #1544
+ 1929 004c 17D0     		beq	.L123
+ 1930 004e 25E0     		b	.L129
+ 1931              	.L122:
+1267:Libraries/lwip-1.4.0/netif/etharp.c **** #if LWIP_ARP
+1268:Libraries/lwip-1.4.0/netif/etharp.c ****     /* IP packet? */
+1269:Libraries/lwip-1.4.0/netif/etharp.c ****     case PP_HTONS(ETHTYPE_IP):
+1270:Libraries/lwip-1.4.0/netif/etharp.c ****       if (!(netif->flags & NETIF_FLAG_ETHARP)) {
+ 1932              		.loc 1 1270 0
+ 1933 0050 3B68     		ldr	r3, [r7]
+ 1934 0052 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 1935 0056 03F02003 		and	r3, r3, #32
+ 1936 005a 002B     		cmp	r3, #0
+ 1937 005c 2DD0     		beq	.L130
+1271:Libraries/lwip-1.4.0/netif/etharp.c ****         goto free_and_return;
+1272:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1273:Libraries/lwip-1.4.0/netif/etharp.c **** #if ETHARP_TRUST_IP_MAC
+1274:Libraries/lwip-1.4.0/netif/etharp.c ****       /* update ARP table */
+1275:Libraries/lwip-1.4.0/netif/etharp.c ****       etharp_ip_input(netif, p);
+1276:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* ETHARP_TRUST_IP_MAC */
+1277:Libraries/lwip-1.4.0/netif/etharp.c ****       /* skip Ethernet header */
+1278:Libraries/lwip-1.4.0/netif/etharp.c ****       if(pbuf_header(p, -ip_hdr_offset)) {
+ 1938              		.loc 1 1278 0
+ 1939 005e FB8A     		ldrh	r3, [r7, #22]
+ 1940 0060 5B42     		negs	r3, r3
+ 1941 0062 9BB2     		uxth	r3, r3
+ 1942 0064 1BB2     		sxth	r3, r3
+ 1943 0066 1946     		mov	r1, r3
+ 1944 0068 7868     		ldr	r0, [r7, #4]
+ 1945 006a FFF7FEFF 		bl	pbuf_header
+ 1946 006e 0346     		mov	r3, r0
+ 1947 0070 002B     		cmp	r3, #0
+ 1948 0072 24D1     		bne	.L131
+1279:Libraries/lwip-1.4.0/netif/etharp.c ****         LWIP_ASSERT("Can't move over header in packet", 0);
+1280:Libraries/lwip-1.4.0/netif/etharp.c ****         goto free_and_return;
+1281:Libraries/lwip-1.4.0/netif/etharp.c ****       } else {
+1282:Libraries/lwip-1.4.0/netif/etharp.c ****         /* pass to IP layer */
+1283:Libraries/lwip-1.4.0/netif/etharp.c ****         ip_input(p, netif);
+ 1949              		.loc 1 1283 0
+ 1950 0074 3968     		ldr	r1, [r7]
+ 1951 0076 7868     		ldr	r0, [r7, #4]
+ 1952 0078 FFF7FEFF 		bl	ip_input
+1284:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1285:Libraries/lwip-1.4.0/netif/etharp.c ****       break;
+ 1953              		.loc 1 1285 0
+ 1954 007c 1BE0     		b	.L126
+ 1955              	.L123:
+1286:Libraries/lwip-1.4.0/netif/etharp.c ****       
+1287:Libraries/lwip-1.4.0/netif/etharp.c ****     case PP_HTONS(ETHTYPE_ARP):
+1288:Libraries/lwip-1.4.0/netif/etharp.c ****       if (!(netif->flags & NETIF_FLAG_ETHARP)) {
+ 1956              		.loc 1 1288 0
+ 1957 007e 3B68     		ldr	r3, [r7]
+ 1958 0080 93F82930 		ldrb	r3, [r3, #41]	@ zero_extendqisi2
+ 1959 0084 03F02003 		and	r3, r3, #32
+ 1960 0088 002B     		cmp	r3, #0
+ 1961 008a 1AD0     		beq	.L132
+1289:Libraries/lwip-1.4.0/netif/etharp.c ****         goto free_and_return;
+1290:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+1291:Libraries/lwip-1.4.0/netif/etharp.c ****       /* pass p to ARP module */
+1292:Libraries/lwip-1.4.0/netif/etharp.c ****       etharp_arp_input(netif, (struct eth_addr*)(netif->hwaddr), p);
+ 1962              		.loc 1 1292 0
+ 1963 008c 3B68     		ldr	r3, [r7]
+ 1964 008e 2333     		adds	r3, r3, #35
+ 1965 0090 7A68     		ldr	r2, [r7, #4]
+ 1966 0092 1946     		mov	r1, r3
+ 1967 0094 3868     		ldr	r0, [r7]
+ 1968 0096 FFF7FEFF 		bl	etharp_arp_input
+1293:Libraries/lwip-1.4.0/netif/etharp.c ****       break;
+ 1969              		.loc 1 1293 0
+ 1970 009a 0CE0     		b	.L126
+ 1971              	.L129:
+1294:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* LWIP_ARP */
+1295:Libraries/lwip-1.4.0/netif/etharp.c **** #if PPPOE_SUPPORT
+1296:Libraries/lwip-1.4.0/netif/etharp.c ****     case PP_HTONS(ETHTYPE_PPPOEDISC): /* PPP Over Ethernet Discovery Stage */
+1297:Libraries/lwip-1.4.0/netif/etharp.c ****       pppoe_disc_input(netif, p);
+1298:Libraries/lwip-1.4.0/netif/etharp.c ****       break;
+1299:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1300:Libraries/lwip-1.4.0/netif/etharp.c ****     case PP_HTONS(ETHTYPE_PPPOE): /* PPP Over Ethernet Session Stage */
+1301:Libraries/lwip-1.4.0/netif/etharp.c ****       pppoe_data_input(netif, p);
+1302:Libraries/lwip-1.4.0/netif/etharp.c ****       break;
+1303:Libraries/lwip-1.4.0/netif/etharp.c **** #endif /* PPPOE_SUPPORT */
+1304:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1305:Libraries/lwip-1.4.0/netif/etharp.c ****     default:
+1306:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.proterr);
+ 1972              		.loc 1 1306 0
+ 1973 009c 0D4B     		ldr	r3, .L133
+ 1974 009e 1B8D     		ldrh	r3, [r3, #40]
+ 1975 00a0 0133     		adds	r3, r3, #1
+ 1976 00a2 9AB2     		uxth	r2, r3
+ 1977 00a4 0B4B     		ldr	r3, .L133
+ 1978 00a6 1A85     		strh	r2, [r3, #40]	@ movhi
+1307:Libraries/lwip-1.4.0/netif/etharp.c ****       ETHARP_STATS_INC(etharp.drop);
+ 1979              		.loc 1 1307 0
+ 1980 00a8 0A4B     		ldr	r3, .L133
+ 1981 00aa DB8B     		ldrh	r3, [r3, #30]
+ 1982 00ac 0133     		adds	r3, r3, #1
+ 1983 00ae 9AB2     		uxth	r2, r3
+ 1984 00b0 084B     		ldr	r3, .L133
+ 1985 00b2 DA83     		strh	r2, [r3, #30]	@ movhi
+1308:Libraries/lwip-1.4.0/netif/etharp.c ****       goto free_and_return;
+ 1986              		.loc 1 1308 0
+ 1987 00b4 06E0     		b	.L120
+ 1988              	.L126:
+1309:Libraries/lwip-1.4.0/netif/etharp.c ****   }
+1310:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1311:Libraries/lwip-1.4.0/netif/etharp.c ****   /* This means the pbuf is freed or consumed,
+1312:Libraries/lwip-1.4.0/netif/etharp.c ****      so the caller doesn't have to free it again */
+1313:Libraries/lwip-1.4.0/netif/etharp.c ****   return ERR_OK;
+ 1989              		.loc 1 1313 0
+ 1990 00b6 0023     		movs	r3, #0
+ 1991 00b8 08E0     		b	.L128
+ 1992              	.L130:
+1271:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 1993              		.loc 1 1271 0
+ 1994 00ba 00BF     		nop
+ 1995 00bc 02E0     		b	.L120
+ 1996              	.L131:
+1280:Libraries/lwip-1.4.0/netif/etharp.c ****       } else {
+ 1997              		.loc 1 1280 0
+ 1998 00be 00BF     		nop
+ 1999 00c0 00E0     		b	.L120
+ 2000              	.L132:
+1289:Libraries/lwip-1.4.0/netif/etharp.c ****       }
+ 2001              		.loc 1 1289 0
+ 2002 00c2 00BF     		nop
+ 2003              	.L120:
+1314:Libraries/lwip-1.4.0/netif/etharp.c **** 
+1315:Libraries/lwip-1.4.0/netif/etharp.c **** free_and_return:
+1316:Libraries/lwip-1.4.0/netif/etharp.c ****   pbuf_free(p);
+ 2004              		.loc 1 1316 0
+ 2005 00c4 7868     		ldr	r0, [r7, #4]
+ 2006 00c6 FFF7FEFF 		bl	pbuf_free
+1317:Libraries/lwip-1.4.0/netif/etharp.c ****   return ERR_OK;
+ 2007              		.loc 1 1317 0
+ 2008 00ca 0023     		movs	r3, #0
+ 2009              	.L128:
+1318:Libraries/lwip-1.4.0/netif/etharp.c **** }
+ 2010              		.loc 1 1318 0
+ 2011 00cc 1846     		mov	r0, r3
+ 2012 00ce 1837     		adds	r7, r7, #24
+ 2013              		.cfi_def_cfa_offset 8
+ 2014 00d0 BD46     		mov	sp, r7
+ 2015              		.cfi_def_cfa_register 13
+ 2016              		@ sp needed
+ 2017 00d2 80BD     		pop	{r7, pc}
+ 2018              	.L134:
+ 2019              		.align	2
+ 2020              	.L133:
+ 2021 00d4 00000000 		.word	lwip_stats
+ 2022              		.cfi_endproc
+ 2023              	.LFE28:
+ 2025              		.text
+ 2026              	.Letext0:
+ 2027              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\mach
+ 2028              		.file 3 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\arm-none-eabi\\include\\sys\
+ 2029              		.file 4 "./Libraries/lwip-1.4.0/arch/cc.h"
+ 2030              		.file 5 "./Libraries/lwip-1.4.0/include/ipv4/lwip/ip_addr.h"
+ 2031              		.file 6 "./Libraries/lwip-1.4.0/include/lwip/err.h"
+ 2032              		.file 7 "./Libraries/lwip-1.4.0/include/lwip/pbuf.h"
+ 2033              		.file 8 "./Libraries/lwip-1.4.0/include/lwip/netif.h"
+ 2034              		.file 9 "./Libraries/lwip-1.4.0/include/lwip/mem.h"
+ 2035              		.file 10 "./Libraries/lwip-1.4.0/include/lwip/memp.h"
+ 2036              		.file 11 "./Libraries/lwip-1.4.0/include/lwip/stats.h"
+ 2037              		.file 12 "./Libraries/lwip-1.4.0/include/netif/etharp.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 etharp.c
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:24     .rodata.ethbroadcast:00000000 ethbroadcast
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:21     .rodata.ethbroadcast:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:36     .rodata.ethzero:00000000 ethzero
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:33     .rodata.ethzero:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:39     .bss.arp_table:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:42     .bss.arp_table:00000000 arp_table
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:47     .bss.etharp_cached_entry:00000000 etharp_cached_entry
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:48     .bss.etharp_cached_entry:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:50     .text.free_entry:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:54     .text.free_entry:00000000 free_entry
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:113    .text.free_entry:00000048 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:118    .text.etharp_tmr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:123    .text.etharp_tmr:00000000 etharp_tmr
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:226    .text.etharp_tmr:00000088 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:231    .text.find_entry:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:235    .text.find_entry:00000000 find_entry
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:517    .text.find_entry:000001a8 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:522    .text.etharp_send_ip:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:526    .text.etharp_send_ip:00000000 etharp_send_ip
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:588    .text.update_arp_entry:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:592    .text.update_arp_entry:00000000 update_arp_entry
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:731    .text.update_arp_entry:000000e0 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:736    .text.etharp_find_addr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:741    .text.etharp_find_addr:00000000 etharp_find_addr
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:812    .text.etharp_find_addr:00000068 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:817    .text.etharp_arp_input:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:821    .text.etharp_arp_input:00000000 etharp_arp_input
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1101   .text.etharp_arp_input:000001c8 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1106   .text.etharp_output:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1111   .text.etharp_output:00000000 etharp_output
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1326   .text.etharp_query:00000000 etharp_query
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1313   .text.etharp_output:00000140 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1321   .text.etharp_query:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1813   .text.etharp_request:00000000 etharp_request
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1628   .text.etharp_query:000001e0 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1635   .text.etharp_raw:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1639   .text.etharp_raw:00000000 etharp_raw
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1803   .text.etharp_raw:0000010c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1808   .text.etharp_request:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1861   .text.etharp_request:0000003c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1867   .text.ethernet_input:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:1872   .text.ethernet_input:00000000 ethernet_input
+C:\Users\KHUSHA~1\AppData\Local\Temp\cc1Pbcf0.s:2021   .text.ethernet_input:000000d4 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+pbuf_free
+memcpy
+ip4_addr_isbroadcast
+lwip_htons
+lwip_stats
+pbuf_header
+pbuf_alloc
+pbuf_copy
+pbuf_ref
+ip_input

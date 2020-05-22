@@ -1,0 +1,1626 @@
+   1              		.syntax unified
+   2              		.cpu cortex-m3
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 6
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.thumb
+  14              		.syntax unified
+  15              		.file	"monitor.c"
+  16              		.text
+  17              	.Ltext0:
+  18              		.cfi_sections	.debug_frame
+  19              		.comm	xfunc_in,4,4
+  20              		.comm	xfunc_out,4,4
+  21              		.section	.text.xputc,"ax",%progbits
+  22              		.align	2
+  23              		.global	xputc
+  24              		.thumb
+  25              		.thumb_func
+  27              	xputc:
+  28              	.LFB0:
+  29              		.file 1 "monitor.c"
+   1:monitor.c     **** /*------------------------------------------------------------------------*/
+   2:monitor.c     **** /* Universal string handler for user console interface                    */
+   3:monitor.c     **** /*------------------------------------------------------------------------*/
+   4:monitor.c     **** /*
+   5:monitor.c     **** /  Copyright (C) 2010, ChaN, all right reserved.
+   6:monitor.c     **** /
+   7:monitor.c     **** / * This software is a free software and there is NO WARRANTY.
+   8:monitor.c     **** / * No restriction on use. You can use, modify and redistribute it for
+   9:monitor.c     **** /   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+  10:monitor.c     **** / * Redistributions of source code must retain the above copyright notice.
+  11:monitor.c     **** /
+  12:monitor.c     **** /-------------------------------------------------------------------------*/
+  13:monitor.c     **** 
+  14:monitor.c     **** #include <stdarg.h>
+  15:monitor.c     **** #include "monitor.h"
+  16:monitor.c     **** 
+  17:monitor.c     **** #if _USE_XFUNC_IN
+  18:monitor.c     **** unsigned char (*xfunc_in)(void);	/* Pointer to the input stream */
+  19:monitor.c     **** #endif
+  20:monitor.c     **** #if _USE_XFUNC_OUT
+  21:monitor.c     **** void (*xfunc_out)(unsigned char);	/* Pointer to the output stream */
+  22:monitor.c     **** #endif
+  23:monitor.c     **** 
+  24:monitor.c     **** 
+  25:monitor.c     **** 
+  26:monitor.c     **** #if _USE_XFUNC_OUT
+  27:monitor.c     **** /*----------------------------------------------*/
+  28:monitor.c     **** /* Put a character                              */
+  29:monitor.c     **** /*----------------------------------------------*/
+  30:monitor.c     **** 
+  31:monitor.c     **** void xputc (char c)
+  32:monitor.c     **** {
+  30              		.loc 1 32 0
+  31              		.cfi_startproc
+  32              		@ args = 0, pretend = 0, frame = 8
+  33              		@ frame_needed = 1, uses_anonymous_args = 0
+  34 0000 80B5     		push	{r7, lr}
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 7, -8
+  37              		.cfi_offset 14, -4
+  38 0002 82B0     		sub	sp, sp, #8
+  39              		.cfi_def_cfa_offset 16
+  40 0004 00AF     		add	r7, sp, #0
+  41              		.cfi_def_cfa_register 7
+  42 0006 0346     		mov	r3, r0
+  43 0008 FB71     		strb	r3, [r7, #7]
+  33:monitor.c     **** 	if (_CR_CRLF && c == '\n') xfunc_out('\r');		/* CR -> CRLF */
+  44              		.loc 1 33 0
+  45 000a FB79     		ldrb	r3, [r7, #7]	@ zero_extendqisi2
+  46 000c 0A2B     		cmp	r3, #10
+  47 000e 03D1     		bne	.L2
+  48              		.loc 1 33 0 is_stmt 0 discriminator 1
+  49 0010 064B     		ldr	r3, .L3
+  50 0012 1B68     		ldr	r3, [r3]
+  51 0014 0D20     		movs	r0, #13
+  52 0016 9847     		blx	r3
+  53              	.L2:
+  34:monitor.c     **** 	xfunc_out((unsigned char)c);
+  54              		.loc 1 34 0 is_stmt 1
+  55 0018 044B     		ldr	r3, .L3
+  56 001a 1B68     		ldr	r3, [r3]
+  57 001c FA79     		ldrb	r2, [r7, #7]	@ zero_extendqisi2
+  58 001e 1046     		mov	r0, r2
+  59 0020 9847     		blx	r3
+  35:monitor.c     **** }
+  60              		.loc 1 35 0
+  61 0022 00BF     		nop
+  62 0024 0837     		adds	r7, r7, #8
+  63              		.cfi_def_cfa_offset 8
+  64 0026 BD46     		mov	sp, r7
+  65              		.cfi_def_cfa_register 13
+  66              		@ sp needed
+  67 0028 80BD     		pop	{r7, pc}
+  68              	.L4:
+  69 002a 00BF     		.align	2
+  70              	.L3:
+  71 002c 00000000 		.word	xfunc_out
+  72              		.cfi_endproc
+  73              	.LFE0:
+  75              		.section	.text.xputs,"ax",%progbits
+  76              		.align	2
+  77              		.global	xputs
+  78              		.thumb
+  79              		.thumb_func
+  81              	xputs:
+  82              	.LFB1:
+  36:monitor.c     **** 
+  37:monitor.c     **** 
+  38:monitor.c     **** /*----------------------------------------------*/
+  39:monitor.c     **** /* Put a null-terminated string                 */
+  40:monitor.c     **** /*----------------------------------------------*/
+  41:monitor.c     **** 
+  42:monitor.c     **** void xputs (const char* str)
+  43:monitor.c     **** {
+  83              		.loc 1 43 0
+  84              		.cfi_startproc
+  85              		@ args = 0, pretend = 0, frame = 8
+  86              		@ frame_needed = 1, uses_anonymous_args = 0
+  87 0000 80B5     		push	{r7, lr}
+  88              		.cfi_def_cfa_offset 8
+  89              		.cfi_offset 7, -8
+  90              		.cfi_offset 14, -4
+  91 0002 82B0     		sub	sp, sp, #8
+  92              		.cfi_def_cfa_offset 16
+  93 0004 00AF     		add	r7, sp, #0
+  94              		.cfi_def_cfa_register 7
+  95 0006 7860     		str	r0, [r7, #4]
+  44:monitor.c     **** 	while (*str)
+  96              		.loc 1 44 0
+  97 0008 06E0     		b	.L6
+  98              	.L7:
+  45:monitor.c     **** 		xputc(*str++);
+  99              		.loc 1 45 0
+ 100 000a 7B68     		ldr	r3, [r7, #4]
+ 101 000c 5A1C     		adds	r2, r3, #1
+ 102 000e 7A60     		str	r2, [r7, #4]
+ 103 0010 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 104 0012 1846     		mov	r0, r3
+ 105 0014 FFF7FEFF 		bl	xputc
+ 106              	.L6:
+  44:monitor.c     **** 	while (*str)
+ 107              		.loc 1 44 0
+ 108 0018 7B68     		ldr	r3, [r7, #4]
+ 109 001a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 110 001c 002B     		cmp	r3, #0
+ 111 001e F4D1     		bne	.L7
+  46:monitor.c     **** }
+ 112              		.loc 1 46 0
+ 113 0020 00BF     		nop
+ 114 0022 0837     		adds	r7, r7, #8
+ 115              		.cfi_def_cfa_offset 8
+ 116 0024 BD46     		mov	sp, r7
+ 117              		.cfi_def_cfa_register 13
+ 118              		@ sp needed
+ 119 0026 80BD     		pop	{r7, pc}
+ 120              		.cfi_endproc
+ 121              	.LFE1:
+ 123              		.section	.text.xprintf,"ax",%progbits
+ 124              		.align	2
+ 125              		.global	xprintf
+ 126              		.thumb
+ 127              		.thumb_func
+ 129              	xprintf:
+ 130              	.LFB2:
+  47:monitor.c     **** 
+  48:monitor.c     **** 
+  49:monitor.c     **** /*----------------------------------------------*/
+  50:monitor.c     **** /* Formatted string output                      */
+  51:monitor.c     **** /*----------------------------------------------*/
+  52:monitor.c     **** /*  xprintf("%6d", -200);			"  -200"
+  53:monitor.c     ****     xprintf("%02u", 5);				"05"
+  54:monitor.c     ****     xprintf("%ld", 12345678L);		"12345678C"
+  55:monitor.c     ****     xprintf("%08LX", 0x123ABCUL);	"00123ABC"
+  56:monitor.c     ****     xprintf("%016b", 0x550F);		"0101010100001111"
+  57:monitor.c     ****     xprintf("%s", "String");		"String"
+  58:monitor.c     ****     xprintf("%c", 'a');				"a"
+  59:monitor.c     **** */
+  60:monitor.c     **** 
+  61:monitor.c     **** void xprintf (
+  62:monitor.c     **** 	const char*	str,	/* Pointer to the format string */
+  63:monitor.c     **** 	...					/* Optional arguments */
+  64:monitor.c     **** )
+  65:monitor.c     **** {
+ 131              		.loc 1 65 0
+ 132              		.cfi_startproc
+ 133              		@ args = 4, pretend = 16, frame = 48
+ 134              		@ frame_needed = 1, uses_anonymous_args = 1
+ 135 0000 0FB4     		push	{r0, r1, r2, r3}
+ 136              		.cfi_def_cfa_offset 16
+ 137              		.cfi_offset 0, -16
+ 138              		.cfi_offset 1, -12
+ 139              		.cfi_offset 2, -8
+ 140              		.cfi_offset 3, -4
+ 141 0002 80B5     		push	{r7, lr}
+ 142              		.cfi_def_cfa_offset 24
+ 143              		.cfi_offset 7, -24
+ 144              		.cfi_offset 14, -20
+ 145 0004 8CB0     		sub	sp, sp, #48
+ 146              		.cfi_def_cfa_offset 72
+ 147 0006 00AF     		add	r7, sp, #0
+ 148              		.cfi_def_cfa_register 7
+  66:monitor.c     **** 	va_list arp;
+  67:monitor.c     **** 	unsigned int r, i, w, f;
+  68:monitor.c     **** 	unsigned long val;
+  69:monitor.c     **** 	char s[16], c, d;
+  70:monitor.c     **** 
+  71:monitor.c     **** 
+  72:monitor.c     **** 	va_start(arp, str);
+ 149              		.loc 1 72 0
+ 150 0008 07F13C03 		add	r3, r7, #60
+ 151 000c 7B61     		str	r3, [r7, #20]
+  73:monitor.c     **** 
+  74:monitor.c     **** 	while ((c = *str++) != 0) {
+ 152              		.loc 1 74 0
+ 153 000e 23E1     		b	.L9
+ 154              	.L42:
+  75:monitor.c     **** 		if (c != '%') {
+ 155              		.loc 1 75 0
+ 156 0010 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 157 0012 252B     		cmp	r3, #37
+ 158 0014 04D0     		beq	.L10
+  76:monitor.c     **** 			xputc(c); continue;
+ 159              		.loc 1 76 0
+ 160 0016 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 161 0018 1846     		mov	r0, r3
+ 162 001a FFF7FEFF 		bl	xputc
+ 163 001e 1BE1     		b	.L9
+ 164              	.L10:
+  77:monitor.c     **** 		}
+  78:monitor.c     **** 		c = *str++;
+ 165              		.loc 1 78 0
+ 166 0020 BB6B     		ldr	r3, [r7, #56]
+ 167 0022 5A1C     		adds	r2, r3, #1
+ 168 0024 BA63     		str	r2, [r7, #56]
+ 169 0026 1B78     		ldrb	r3, [r3]
+ 170 0028 FB76     		strb	r3, [r7, #27]
+  79:monitor.c     **** 		f = 0;
+ 171              		.loc 1 79 0
+ 172 002a 0023     		movs	r3, #0
+ 173 002c 3B62     		str	r3, [r7, #32]
+  80:monitor.c     **** 		if (c == '0') {				/* Flag: '0' padded */
+ 174              		.loc 1 80 0
+ 175 002e FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 176 0030 302B     		cmp	r3, #48
+ 177 0032 06D1     		bne	.L11
+  81:monitor.c     **** 			f = 1; c = *str++;
+ 178              		.loc 1 81 0
+ 179 0034 0123     		movs	r3, #1
+ 180 0036 3B62     		str	r3, [r7, #32]
+ 181 0038 BB6B     		ldr	r3, [r7, #56]
+ 182 003a 5A1C     		adds	r2, r3, #1
+ 183 003c BA63     		str	r2, [r7, #56]
+ 184 003e 1B78     		ldrb	r3, [r3]
+ 185 0040 FB76     		strb	r3, [r7, #27]
+ 186              	.L11:
+  82:monitor.c     **** 		}
+  83:monitor.c     **** 		w = 0;
+ 187              		.loc 1 83 0
+ 188 0042 0023     		movs	r3, #0
+ 189 0044 7B62     		str	r3, [r7, #36]
+  84:monitor.c     **** 		while (c >= '0' && c <= '9') {	/* Minimum width */
+ 190              		.loc 1 84 0
+ 191 0046 0EE0     		b	.L12
+ 192              	.L14:
+  85:monitor.c     **** 			w = w * 10 + c - '0';
+ 193              		.loc 1 85 0
+ 194 0048 7A6A     		ldr	r2, [r7, #36]
+ 195 004a 1346     		mov	r3, r2
+ 196 004c 9B00     		lsls	r3, r3, #2
+ 197 004e 1344     		add	r3, r3, r2
+ 198 0050 5B00     		lsls	r3, r3, #1
+ 199 0052 1A46     		mov	r2, r3
+ 200 0054 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 201 0056 1344     		add	r3, r3, r2
+ 202 0058 303B     		subs	r3, r3, #48
+ 203 005a 7B62     		str	r3, [r7, #36]
+  86:monitor.c     **** 			c = *str++;
+ 204              		.loc 1 86 0
+ 205 005c BB6B     		ldr	r3, [r7, #56]
+ 206 005e 5A1C     		adds	r2, r3, #1
+ 207 0060 BA63     		str	r2, [r7, #56]
+ 208 0062 1B78     		ldrb	r3, [r3]
+ 209 0064 FB76     		strb	r3, [r7, #27]
+ 210              	.L12:
+  84:monitor.c     **** 		while (c >= '0' && c <= '9') {	/* Minimum width */
+ 211              		.loc 1 84 0
+ 212 0066 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 213 0068 2F2B     		cmp	r3, #47
+ 214 006a 02D9     		bls	.L13
+  84:monitor.c     **** 		while (c >= '0' && c <= '9') {	/* Minimum width */
+ 215              		.loc 1 84 0 is_stmt 0 discriminator 1
+ 216 006c FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 217 006e 392B     		cmp	r3, #57
+ 218 0070 EAD9     		bls	.L14
+ 219              	.L13:
+  87:monitor.c     **** 		}
+  88:monitor.c     **** 		if (c == 'l' || c == 'L') {	/* Prefix: Size is long int */
+ 220              		.loc 1 88 0 is_stmt 1
+ 221 0072 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 222 0074 6C2B     		cmp	r3, #108
+ 223 0076 02D0     		beq	.L15
+ 224              		.loc 1 88 0 is_stmt 0 discriminator 1
+ 225 0078 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 226 007a 4C2B     		cmp	r3, #76
+ 227 007c 08D1     		bne	.L16
+ 228              	.L15:
+  89:monitor.c     **** 			f |= 2; c = *str++;
+ 229              		.loc 1 89 0 is_stmt 1
+ 230 007e 3B6A     		ldr	r3, [r7, #32]
+ 231 0080 43F00203 		orr	r3, r3, #2
+ 232 0084 3B62     		str	r3, [r7, #32]
+ 233 0086 BB6B     		ldr	r3, [r7, #56]
+ 234 0088 5A1C     		adds	r2, r3, #1
+ 235 008a BA63     		str	r2, [r7, #56]
+ 236 008c 1B78     		ldrb	r3, [r3]
+ 237 008e FB76     		strb	r3, [r7, #27]
+ 238              	.L16:
+  90:monitor.c     **** 		}
+  91:monitor.c     **** 		if (!c) break;
+ 239              		.loc 1 91 0
+ 240 0090 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 241 0092 002B     		cmp	r3, #0
+ 242 0094 00F0EA80 		beq	.L43
+  92:monitor.c     **** 		d = c;
+ 243              		.loc 1 92 0
+ 244 0098 FB7E     		ldrb	r3, [r7, #27]
+ 245 009a BB76     		strb	r3, [r7, #26]
+  93:monitor.c     **** 		if (d >= 'a') d -= 0x20;
+ 246              		.loc 1 93 0
+ 247 009c BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 248 009e 602B     		cmp	r3, #96
+ 249 00a0 02D9     		bls	.L19
+ 250              		.loc 1 93 0 is_stmt 0 discriminator 1
+ 251 00a2 BB7E     		ldrb	r3, [r7, #26]
+ 252 00a4 203B     		subs	r3, r3, #32
+ 253 00a6 BB76     		strb	r3, [r7, #26]
+ 254              	.L19:
+  94:monitor.c     **** 		switch (d) {				/* Type is... */
+ 255              		.loc 1 94 0 is_stmt 1
+ 256 00a8 BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 257 00aa 423B     		subs	r3, r3, #66
+ 258 00ac 162B     		cmp	r3, #22
+ 259 00ae 4ED8     		bhi	.L20
+ 260 00b0 01A2     		adr	r2, .L22
+ 261 00b2 52F823F0 		ldr	pc, [r2, r3, lsl #2]
+ 262 00b6 00BF     		.p2align 2
+ 263              	.L22:
+ 264 00b8 37010000 		.word	.L21+1
+ 265 00bc 25010000 		.word	.L23+1
+ 266 00c0 43010000 		.word	.L24+1
+ 267 00c4 4F010000 		.word	.L20+1
+ 268 00c8 4F010000 		.word	.L20+1
+ 269 00cc 4F010000 		.word	.L20+1
+ 270 00d0 4F010000 		.word	.L20+1
+ 271 00d4 4F010000 		.word	.L20+1
+ 272 00d8 4F010000 		.word	.L20+1
+ 273 00dc 4F010000 		.word	.L20+1
+ 274 00e0 4F010000 		.word	.L20+1
+ 275 00e4 4F010000 		.word	.L20+1
+ 276 00e8 4F010000 		.word	.L20+1
+ 277 00ec 3D010000 		.word	.L25+1
+ 278 00f0 4F010000 		.word	.L20+1
+ 279 00f4 4F010000 		.word	.L20+1
+ 280 00f8 4F010000 		.word	.L20+1
+ 281 00fc 15010000 		.word	.L26+1
+ 282 0100 4F010000 		.word	.L20+1
+ 283 0104 43010000 		.word	.L24+1
+ 284 0108 4F010000 		.word	.L20+1
+ 285 010c 4F010000 		.word	.L20+1
+ 286 0110 49010000 		.word	.L27+1
+ 287              		.p2align 1
+ 288              	.L26:
+  95:monitor.c     **** 		case 'S' :					/* String */
+  96:monitor.c     **** 			xputs(va_arg(arp, char*)); continue;
+ 289              		.loc 1 96 0
+ 290 0114 7B69     		ldr	r3, [r7, #20]
+ 291 0116 1A1D     		adds	r2, r3, #4
+ 292 0118 7A61     		str	r2, [r7, #20]
+ 293 011a 1B68     		ldr	r3, [r3]
+ 294 011c 1846     		mov	r0, r3
+ 295 011e FFF7FEFF 		bl	xputs
+ 296 0122 99E0     		b	.L9
+ 297              	.L23:
+  97:monitor.c     **** 		case 'C' :					/* Character */
+  98:monitor.c     **** 			xputc((char)va_arg(arp, int)); continue;
+ 298              		.loc 1 98 0
+ 299 0124 7B69     		ldr	r3, [r7, #20]
+ 300 0126 1A1D     		adds	r2, r3, #4
+ 301 0128 7A61     		str	r2, [r7, #20]
+ 302 012a 1B68     		ldr	r3, [r3]
+ 303 012c DBB2     		uxtb	r3, r3
+ 304 012e 1846     		mov	r0, r3
+ 305 0130 FFF7FEFF 		bl	xputc
+ 306 0134 90E0     		b	.L9
+ 307              	.L21:
+  99:monitor.c     **** 		case 'B' :					/* Binary */
+ 100:monitor.c     **** 			r = 2; break;
+ 308              		.loc 1 100 0
+ 309 0136 0223     		movs	r3, #2
+ 310 0138 FB62     		str	r3, [r7, #44]
+ 311 013a 0DE0     		b	.L28
+ 312              	.L25:
+ 101:monitor.c     **** 		case 'O' :					/* Octal */
+ 102:monitor.c     **** 			r = 8; break;
+ 313              		.loc 1 102 0
+ 314 013c 0823     		movs	r3, #8
+ 315 013e FB62     		str	r3, [r7, #44]
+ 316 0140 0AE0     		b	.L28
+ 317              	.L24:
+ 103:monitor.c     **** 		case 'D' :					/* Signed decimal */
+ 104:monitor.c     **** 		case 'U' :					/* Unsigned decimal */
+ 105:monitor.c     **** 			r = 10; break;
+ 318              		.loc 1 105 0
+ 319 0142 0A23     		movs	r3, #10
+ 320 0144 FB62     		str	r3, [r7, #44]
+ 321 0146 07E0     		b	.L28
+ 322              	.L27:
+ 106:monitor.c     **** 		case 'X' :					/* Hexdecimal */
+ 107:monitor.c     **** 			r = 16; break;
+ 323              		.loc 1 107 0
+ 324 0148 1023     		movs	r3, #16
+ 325 014a FB62     		str	r3, [r7, #44]
+ 326 014c 04E0     		b	.L28
+ 327              	.L20:
+ 108:monitor.c     **** 		default:					/* Unknown */
+ 109:monitor.c     **** 			xputc(c); continue;
+ 328              		.loc 1 109 0
+ 329 014e FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 330 0150 1846     		mov	r0, r3
+ 331 0152 FFF7FEFF 		bl	xputc
+ 332 0156 7FE0     		b	.L9
+ 333              	.L28:
+ 110:monitor.c     **** 		}
+ 111:monitor.c     **** 
+ 112:monitor.c     **** 		/* Get an argument and put it in numeral */
+ 113:monitor.c     **** 		// mthomas val = (f & 2) ? va_arg(arp, long) : ((d == 'D') ? (long)va_arg(arp, int) : va_arg(arp,
+ 114:monitor.c     **** 		if (f & 2) {
+ 334              		.loc 1 114 0
+ 335 0158 3B6A     		ldr	r3, [r7, #32]
+ 336 015a 03F00203 		and	r3, r3, #2
+ 337 015e 002B     		cmp	r3, #0
+ 338 0160 05D0     		beq	.L29
+ 115:monitor.c     **** 			val = va_arg(arp, long);
+ 339              		.loc 1 115 0
+ 340 0162 7B69     		ldr	r3, [r7, #20]
+ 341 0164 1A1D     		adds	r2, r3, #4
+ 342 0166 7A61     		str	r2, [r7, #20]
+ 343 0168 1B68     		ldr	r3, [r3]
+ 344 016a FB61     		str	r3, [r7, #28]
+ 345 016c 0DE0     		b	.L30
+ 346              	.L29:
+ 116:monitor.c     **** 		} else {
+ 117:monitor.c     **** 			if (d == 'D') {
+ 347              		.loc 1 117 0
+ 348 016e BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 349 0170 442B     		cmp	r3, #68
+ 350 0172 05D1     		bne	.L31
+ 118:monitor.c     **** 				val = (long)va_arg(arp, int);
+ 351              		.loc 1 118 0
+ 352 0174 7B69     		ldr	r3, [r7, #20]
+ 353 0176 1A1D     		adds	r2, r3, #4
+ 354 0178 7A61     		str	r2, [r7, #20]
+ 355 017a 1B68     		ldr	r3, [r3]
+ 356 017c FB61     		str	r3, [r7, #28]
+ 357 017e 04E0     		b	.L30
+ 358              	.L31:
+ 119:monitor.c     **** 			} else {
+ 120:monitor.c     **** 				val =va_arg(arp, unsigned int);
+ 359              		.loc 1 120 0
+ 360 0180 7B69     		ldr	r3, [r7, #20]
+ 361 0182 1A1D     		adds	r2, r3, #4
+ 362 0184 7A61     		str	r2, [r7, #20]
+ 363 0186 1B68     		ldr	r3, [r3]
+ 364 0188 FB61     		str	r3, [r7, #28]
+ 365              	.L30:
+ 121:monitor.c     **** 			}
+ 122:monitor.c     **** 		}
+ 123:monitor.c     **** 		if (d == 'D' && (val & 0x80000000)) {
+ 366              		.loc 1 123 0
+ 367 018a BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 368 018c 442B     		cmp	r3, #68
+ 369 018e 09D1     		bne	.L32
+ 370              		.loc 1 123 0 is_stmt 0 discriminator 1
+ 371 0190 FB69     		ldr	r3, [r7, #28]
+ 372 0192 002B     		cmp	r3, #0
+ 373 0194 06DA     		bge	.L32
+ 124:monitor.c     **** 			val = 0 - val;
+ 374              		.loc 1 124 0 is_stmt 1
+ 375 0196 FB69     		ldr	r3, [r7, #28]
+ 376 0198 5B42     		negs	r3, r3
+ 377 019a FB61     		str	r3, [r7, #28]
+ 125:monitor.c     **** 			f |= 4;
+ 378              		.loc 1 125 0
+ 379 019c 3B6A     		ldr	r3, [r7, #32]
+ 380 019e 43F00403 		orr	r3, r3, #4
+ 381 01a2 3B62     		str	r3, [r7, #32]
+ 382              	.L32:
+ 126:monitor.c     **** 		}
+ 127:monitor.c     **** 		i = 0;
+ 383              		.loc 1 127 0
+ 384 01a4 0023     		movs	r3, #0
+ 385 01a6 BB62     		str	r3, [r7, #40]
+ 386              	.L35:
+ 128:monitor.c     **** 		do {
+ 129:monitor.c     **** 			d = (char)(val % r); val /= r;
+ 387              		.loc 1 129 0
+ 388 01a8 FB69     		ldr	r3, [r7, #28]
+ 389 01aa FA6A     		ldr	r2, [r7, #44]
+ 390 01ac B3FBF2F2 		udiv	r2, r3, r2
+ 391 01b0 F96A     		ldr	r1, [r7, #44]
+ 392 01b2 01FB02F2 		mul	r2, r1, r2
+ 393 01b6 9B1A     		subs	r3, r3, r2
+ 394 01b8 BB76     		strb	r3, [r7, #26]
+ 395 01ba FA69     		ldr	r2, [r7, #28]
+ 396 01bc FB6A     		ldr	r3, [r7, #44]
+ 397 01be B2FBF3F3 		udiv	r3, r2, r3
+ 398 01c2 FB61     		str	r3, [r7, #28]
+ 130:monitor.c     **** 			if (d > 9) {
+ 399              		.loc 1 130 0
+ 400 01c4 BB7E     		ldrb	r3, [r7, #26]	@ zero_extendqisi2
+ 401 01c6 092B     		cmp	r3, #9
+ 402 01c8 08D9     		bls	.L33
+ 131:monitor.c     **** 				d += 7;
+ 403              		.loc 1 131 0
+ 404 01ca BB7E     		ldrb	r3, [r7, #26]
+ 405 01cc 0733     		adds	r3, r3, #7
+ 406 01ce BB76     		strb	r3, [r7, #26]
+ 132:monitor.c     **** 				if (c == 'x') d += 0x20;
+ 407              		.loc 1 132 0
+ 408 01d0 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 409 01d2 782B     		cmp	r3, #120
+ 410 01d4 02D1     		bne	.L33
+ 411              		.loc 1 132 0 is_stmt 0 discriminator 1
+ 412 01d6 BB7E     		ldrb	r3, [r7, #26]
+ 413 01d8 2033     		adds	r3, r3, #32
+ 414 01da BB76     		strb	r3, [r7, #26]
+ 415              	.L33:
+ 133:monitor.c     **** 			}
+ 134:monitor.c     **** 			s[i++] = d + '0';
+ 416              		.loc 1 134 0 is_stmt 1
+ 417 01dc BB6A     		ldr	r3, [r7, #40]
+ 418 01de 5A1C     		adds	r2, r3, #1
+ 419 01e0 BA62     		str	r2, [r7, #40]
+ 420 01e2 BA7E     		ldrb	r2, [r7, #26]
+ 421 01e4 3032     		adds	r2, r2, #48
+ 422 01e6 D2B2     		uxtb	r2, r2
+ 423 01e8 07F13001 		add	r1, r7, #48
+ 424 01ec 0B44     		add	r3, r3, r1
+ 425 01ee 03F82C2C 		strb	r2, [r3, #-44]
+ 135:monitor.c     **** 		} while (val && i < sizeof(s));
+ 426              		.loc 1 135 0
+ 427 01f2 FB69     		ldr	r3, [r7, #28]
+ 428 01f4 002B     		cmp	r3, #0
+ 429 01f6 02D0     		beq	.L34
+ 430              		.loc 1 135 0 is_stmt 0 discriminator 1
+ 431 01f8 BB6A     		ldr	r3, [r7, #40]
+ 432 01fa 0F2B     		cmp	r3, #15
+ 433 01fc D4D9     		bls	.L35
+ 434              	.L34:
+ 136:monitor.c     **** 		if (f & 4) s[i++] = '-';
+ 435              		.loc 1 136 0 is_stmt 1
+ 436 01fe 3B6A     		ldr	r3, [r7, #32]
+ 437 0200 03F00403 		and	r3, r3, #4
+ 438 0204 002B     		cmp	r3, #0
+ 439 0206 14D0     		beq	.L37
+ 440              		.loc 1 136 0 is_stmt 0 discriminator 1
+ 441 0208 BB6A     		ldr	r3, [r7, #40]
+ 442 020a 5A1C     		adds	r2, r3, #1
+ 443 020c BA62     		str	r2, [r7, #40]
+ 444 020e 07F13002 		add	r2, r7, #48
+ 445 0212 1344     		add	r3, r3, r2
+ 446 0214 2D22     		movs	r2, #45
+ 447 0216 03F82C2C 		strb	r2, [r3, #-44]
+ 137:monitor.c     **** 		while (i < w--) xputc((f & 1) ? '0' : ' ');
+ 448              		.loc 1 137 0 is_stmt 1 discriminator 1
+ 449 021a 0AE0     		b	.L37
+ 450              	.L40:
+ 451              		.loc 1 137 0 is_stmt 0 discriminator 6
+ 452 021c 3B6A     		ldr	r3, [r7, #32]
+ 453 021e 03F00103 		and	r3, r3, #1
+ 454 0222 002B     		cmp	r3, #0
+ 455 0224 01D0     		beq	.L38
+ 456              		.loc 1 137 0 discriminator 1
+ 457 0226 3023     		movs	r3, #48
+ 458 0228 00E0     		b	.L39
+ 459              	.L38:
+ 460              		.loc 1 137 0 discriminator 2
+ 461 022a 2023     		movs	r3, #32
+ 462              	.L39:
+ 463              		.loc 1 137 0 discriminator 4
+ 464 022c 1846     		mov	r0, r3
+ 465 022e FFF7FEFF 		bl	xputc
+ 466              	.L37:
+ 467              		.loc 1 137 0 discriminator 5
+ 468 0232 7B6A     		ldr	r3, [r7, #36]
+ 469 0234 5A1E     		subs	r2, r3, #1
+ 470 0236 7A62     		str	r2, [r7, #36]
+ 471 0238 BA6A     		ldr	r2, [r7, #40]
+ 472 023a 9342     		cmp	r3, r2
+ 473 023c EED8     		bhi	.L40
+ 474              	.L41:
+ 138:monitor.c     **** 		do xputc(s[--i]); while(i);
+ 475              		.loc 1 138 0 is_stmt 1 discriminator 1
+ 476 023e BB6A     		ldr	r3, [r7, #40]
+ 477 0240 013B     		subs	r3, r3, #1
+ 478 0242 BB62     		str	r3, [r7, #40]
+ 479 0244 3A1D     		adds	r2, r7, #4
+ 480 0246 BB6A     		ldr	r3, [r7, #40]
+ 481 0248 1344     		add	r3, r3, r2
+ 482 024a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 483 024c 1846     		mov	r0, r3
+ 484 024e FFF7FEFF 		bl	xputc
+ 485 0252 BB6A     		ldr	r3, [r7, #40]
+ 486 0254 002B     		cmp	r3, #0
+ 487 0256 F2D1     		bne	.L41
+ 488              	.L9:
+  74:monitor.c     **** 		if (c != '%') {
+ 489              		.loc 1 74 0
+ 490 0258 BB6B     		ldr	r3, [r7, #56]
+ 491 025a 5A1C     		adds	r2, r3, #1
+ 492 025c BA63     		str	r2, [r7, #56]
+ 493 025e 1B78     		ldrb	r3, [r3]
+ 494 0260 FB76     		strb	r3, [r7, #27]
+ 495 0262 FB7E     		ldrb	r3, [r7, #27]	@ zero_extendqisi2
+ 496 0264 002B     		cmp	r3, #0
+ 497 0266 7FF4D3AE 		bne	.L42
+ 139:monitor.c     **** 	}
+ 140:monitor.c     **** 
+ 141:monitor.c     **** 	va_end(arp);
+ 142:monitor.c     **** }
+ 498              		.loc 1 142 0
+ 499 026a 00E0     		b	.L18
+ 500              	.L43:
+  91:monitor.c     **** 		d = c;
+ 501              		.loc 1 91 0
+ 502 026c 00BF     		nop
+ 503              	.L18:
+ 504              		.loc 1 142 0
+ 505 026e 00BF     		nop
+ 506 0270 3037     		adds	r7, r7, #48
+ 507              		.cfi_def_cfa_offset 24
+ 508 0272 BD46     		mov	sp, r7
+ 509              		.cfi_def_cfa_register 13
+ 510              		@ sp needed
+ 511 0274 BDE88040 		pop	{r7, lr}
+ 512              		.cfi_restore 14
+ 513              		.cfi_restore 7
+ 514              		.cfi_def_cfa_offset 16
+ 515 0278 04B0     		add	sp, sp, #16
+ 516              		.cfi_restore 3
+ 517              		.cfi_restore 2
+ 518              		.cfi_restore 1
+ 519              		.cfi_restore 0
+ 520              		.cfi_def_cfa_offset 0
+ 521 027a 7047     		bx	lr
+ 522              		.cfi_endproc
+ 523              	.LFE2:
+ 525              		.section	.rodata
+ 526              		.align	2
+ 527              	.LC0:
+ 528 0000 2530386C 		.ascii	"%08lX \000"
+ 528      582000
+ 529 0007 00       		.align	2
+ 530              	.LC1:
+ 531 0008 20253032 		.ascii	" %02X\000"
+ 531      5800
+ 532              		.section	.text.put_dump,"ax",%progbits
+ 533              		.align	2
+ 534              		.global	put_dump
+ 535              		.thumb
+ 536              		.thumb_func
+ 538              	put_dump:
+ 539              	.LFB3:
+ 143:monitor.c     **** 
+ 144:monitor.c     **** 
+ 145:monitor.c     **** /*----------------------------------------------*/
+ 146:monitor.c     **** /* Dump a block of byte array                   */
+ 147:monitor.c     **** /*----------------------------------------------*/
+ 148:monitor.c     **** 
+ 149:monitor.c     **** void put_dump (
+ 150:monitor.c     **** 	const void* buff,		/* Pointer to the byte array to be dumped */
+ 151:monitor.c     **** 	unsigned long addr,		/* Heading address value */
+ 152:monitor.c     **** 	int cnt					/* Number of bytes to be dumped */
+ 153:monitor.c     **** )
+ 154:monitor.c     **** {
+ 540              		.loc 1 154 0
+ 541              		.cfi_startproc
+ 542              		@ args = 0, pretend = 0, frame = 24
+ 543              		@ frame_needed = 1, uses_anonymous_args = 0
+ 544 0000 80B5     		push	{r7, lr}
+ 545              		.cfi_def_cfa_offset 8
+ 546              		.cfi_offset 7, -8
+ 547              		.cfi_offset 14, -4
+ 548 0002 86B0     		sub	sp, sp, #24
+ 549              		.cfi_def_cfa_offset 32
+ 550 0004 00AF     		add	r7, sp, #0
+ 551              		.cfi_def_cfa_register 7
+ 552 0006 F860     		str	r0, [r7, #12]
+ 553 0008 B960     		str	r1, [r7, #8]
+ 554 000a 7A60     		str	r2, [r7, #4]
+ 155:monitor.c     **** 	int i;
+ 156:monitor.c     **** 	const unsigned char *p = buff;
+ 555              		.loc 1 156 0
+ 556 000c FB68     		ldr	r3, [r7, #12]
+ 557 000e 3B61     		str	r3, [r7, #16]
+ 157:monitor.c     **** 
+ 158:monitor.c     **** 
+ 159:monitor.c     **** 	xprintf("%08lX ", addr);		/* address */
+ 558              		.loc 1 159 0
+ 559 0010 B968     		ldr	r1, [r7, #8]
+ 560 0012 1F48     		ldr	r0, .L51
+ 561 0014 FFF7FEFF 		bl	xprintf
+ 160:monitor.c     **** 
+ 161:monitor.c     **** 	for (i = 0; i < cnt; i++)		/* data (hexdecimal) */
+ 562              		.loc 1 161 0
+ 563 0018 0023     		movs	r3, #0
+ 564 001a 7B61     		str	r3, [r7, #20]
+ 565 001c 0AE0     		b	.L45
+ 566              	.L46:
+ 162:monitor.c     **** 		xprintf(" %02X", p[i]);
+ 567              		.loc 1 162 0 discriminator 3
+ 568 001e 7B69     		ldr	r3, [r7, #20]
+ 569 0020 3A69     		ldr	r2, [r7, #16]
+ 570 0022 1344     		add	r3, r3, r2
+ 571 0024 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 572 0026 1946     		mov	r1, r3
+ 573 0028 1A48     		ldr	r0, .L51+4
+ 574 002a FFF7FEFF 		bl	xprintf
+ 161:monitor.c     **** 		xprintf(" %02X", p[i]);
+ 575              		.loc 1 161 0 discriminator 3
+ 576 002e 7B69     		ldr	r3, [r7, #20]
+ 577 0030 0133     		adds	r3, r3, #1
+ 578 0032 7B61     		str	r3, [r7, #20]
+ 579              	.L45:
+ 161:monitor.c     **** 		xprintf(" %02X", p[i]);
+ 580              		.loc 1 161 0 is_stmt 0 discriminator 1
+ 581 0034 7A69     		ldr	r2, [r7, #20]
+ 582 0036 7B68     		ldr	r3, [r7, #4]
+ 583 0038 9A42     		cmp	r2, r3
+ 584 003a F0DB     		blt	.L46
+ 163:monitor.c     **** 
+ 164:monitor.c     **** 	xputc(' ');
+ 585              		.loc 1 164 0 is_stmt 1
+ 586 003c 2020     		movs	r0, #32
+ 587 003e FFF7FEFF 		bl	xputc
+ 165:monitor.c     **** 	for (i = 0; i < cnt; i++)		/* data (ascii) */
+ 588              		.loc 1 165 0
+ 589 0042 0023     		movs	r3, #0
+ 590 0044 7B61     		str	r3, [r7, #20]
+ 591 0046 17E0     		b	.L47
+ 592              	.L50:
+ 166:monitor.c     **** 		xputc((p[i] >= ' ' && p[i] <= '~') ? p[i] : '.');
+ 593              		.loc 1 166 0
+ 594 0048 7B69     		ldr	r3, [r7, #20]
+ 595 004a 3A69     		ldr	r2, [r7, #16]
+ 596 004c 1344     		add	r3, r3, r2
+ 597 004e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 598 0050 1F2B     		cmp	r3, #31
+ 599 0052 0AD9     		bls	.L48
+ 600              		.loc 1 166 0 is_stmt 0 discriminator 1
+ 601 0054 7B69     		ldr	r3, [r7, #20]
+ 602 0056 3A69     		ldr	r2, [r7, #16]
+ 603 0058 1344     		add	r3, r3, r2
+ 604 005a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 605 005c 7E2B     		cmp	r3, #126
+ 606 005e 04D8     		bhi	.L48
+ 607              		.loc 1 166 0 discriminator 3
+ 608 0060 7B69     		ldr	r3, [r7, #20]
+ 609 0062 3A69     		ldr	r2, [r7, #16]
+ 610 0064 1344     		add	r3, r3, r2
+ 611 0066 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 612 0068 00E0     		b	.L49
+ 613              	.L48:
+ 614              		.loc 1 166 0 discriminator 4
+ 615 006a 2E23     		movs	r3, #46
+ 616              	.L49:
+ 617              		.loc 1 166 0 discriminator 6
+ 618 006c 1846     		mov	r0, r3
+ 619 006e FFF7FEFF 		bl	xputc
+ 165:monitor.c     **** 	for (i = 0; i < cnt; i++)		/* data (ascii) */
+ 620              		.loc 1 165 0 is_stmt 1 discriminator 6
+ 621 0072 7B69     		ldr	r3, [r7, #20]
+ 622 0074 0133     		adds	r3, r3, #1
+ 623 0076 7B61     		str	r3, [r7, #20]
+ 624              	.L47:
+ 165:monitor.c     **** 	for (i = 0; i < cnt; i++)		/* data (ascii) */
+ 625              		.loc 1 165 0 is_stmt 0 discriminator 2
+ 626 0078 7A69     		ldr	r2, [r7, #20]
+ 627 007a 7B68     		ldr	r3, [r7, #4]
+ 628 007c 9A42     		cmp	r2, r3
+ 629 007e E3DB     		blt	.L50
+ 167:monitor.c     **** 
+ 168:monitor.c     **** 	xputc('\n');
+ 630              		.loc 1 168 0 is_stmt 1
+ 631 0080 0A20     		movs	r0, #10
+ 632 0082 FFF7FEFF 		bl	xputc
+ 169:monitor.c     **** }
+ 633              		.loc 1 169 0
+ 634 0086 00BF     		nop
+ 635 0088 1837     		adds	r7, r7, #24
+ 636              		.cfi_def_cfa_offset 8
+ 637 008a BD46     		mov	sp, r7
+ 638              		.cfi_def_cfa_register 13
+ 639              		@ sp needed
+ 640 008c 80BD     		pop	{r7, pc}
+ 641              	.L52:
+ 642 008e 00BF     		.align	2
+ 643              	.L51:
+ 644 0090 00000000 		.word	.LC0
+ 645 0094 08000000 		.word	.LC1
+ 646              		.cfi_endproc
+ 647              	.LFE3:
+ 649              		.section	.text.xatoi,"ax",%progbits
+ 650              		.align	2
+ 651              		.global	xatoi
+ 652              		.thumb
+ 653              		.thumb_func
+ 655              	xatoi:
+ 656              	.LFB4:
+ 170:monitor.c     **** 
+ 171:monitor.c     **** #endif /* _USE_XFUNC_OUT */
+ 172:monitor.c     **** 
+ 173:monitor.c     **** 
+ 174:monitor.c     **** 
+ 175:monitor.c     **** #if _USE_XFUNC_IN
+ 176:monitor.c     **** /*----------------------------------------------*/
+ 177:monitor.c     **** /* Get a value of the string                    */
+ 178:monitor.c     **** /*----------------------------------------------*/
+ 179:monitor.c     **** /*	"123 -5   0x3ff 0b1111 0377  w "
+ 180:monitor.c     **** 	    ^                           1st call returns 123 and next ptr
+ 181:monitor.c     **** 	       ^                        2nd call returns -5 and next ptr
+ 182:monitor.c     ****                    ^                3rd call returns 1023 and next ptr
+ 183:monitor.c     ****                           ^         4th call returns 15 and next ptr
+ 184:monitor.c     ****                                ^    5th call returns 255 and next ptr
+ 185:monitor.c     ****                                   ^ 6th call fails and returns 0
+ 186:monitor.c     **** */
+ 187:monitor.c     **** 
+ 188:monitor.c     **** int xatoi (			/* 0:Failed, 1:Successful */
+ 189:monitor.c     **** 	char **str,		/* Pointer to pointer to the string */
+ 190:monitor.c     **** 	long *res		/* Pointer to the valiable to store the value */
+ 191:monitor.c     **** )
+ 192:monitor.c     **** {
+ 657              		.loc 1 192 0
+ 658              		.cfi_startproc
+ 659              		@ args = 0, pretend = 0, frame = 16
+ 660              		@ frame_needed = 1, uses_anonymous_args = 0
+ 661              		@ link register save eliminated.
+ 662 0000 80B4     		push	{r7}
+ 663              		.cfi_def_cfa_offset 4
+ 664              		.cfi_offset 7, -4
+ 665 0002 85B0     		sub	sp, sp, #20
+ 666              		.cfi_def_cfa_offset 24
+ 667 0004 00AF     		add	r7, sp, #0
+ 668              		.cfi_def_cfa_register 7
+ 669 0006 7860     		str	r0, [r7, #4]
+ 670 0008 3960     		str	r1, [r7]
+ 193:monitor.c     **** 	unsigned long val;
+ 194:monitor.c     **** 	unsigned char c, r, s = 0;
+ 671              		.loc 1 194 0
+ 672 000a 0023     		movs	r3, #0
+ 673 000c 7B72     		strb	r3, [r7, #9]
+ 195:monitor.c     **** 
+ 196:monitor.c     **** 
+ 197:monitor.c     **** 	*res = 0;
+ 674              		.loc 1 197 0
+ 675 000e 3B68     		ldr	r3, [r7]
+ 676 0010 0022     		movs	r2, #0
+ 677 0012 1A60     		str	r2, [r3]
+ 198:monitor.c     **** 
+ 199:monitor.c     **** 	while ((c = **str) == ' ') (*str)++;	/* Skip leading spaces */
+ 678              		.loc 1 199 0
+ 679 0014 04E0     		b	.L54
+ 680              	.L55:
+ 681              		.loc 1 199 0 is_stmt 0 discriminator 2
+ 682 0016 7B68     		ldr	r3, [r7, #4]
+ 683 0018 1B68     		ldr	r3, [r3]
+ 684 001a 5A1C     		adds	r2, r3, #1
+ 685 001c 7B68     		ldr	r3, [r7, #4]
+ 686 001e 1A60     		str	r2, [r3]
+ 687              	.L54:
+ 688              		.loc 1 199 0 discriminator 1
+ 689 0020 7B68     		ldr	r3, [r7, #4]
+ 690 0022 1B68     		ldr	r3, [r3]
+ 691 0024 1B78     		ldrb	r3, [r3]
+ 692 0026 FB72     		strb	r3, [r7, #11]
+ 693 0028 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 694 002a 202B     		cmp	r3, #32
+ 695 002c F3D0     		beq	.L55
+ 200:monitor.c     **** 
+ 201:monitor.c     **** 	if (c == '-') {		/* negative? */
+ 696              		.loc 1 201 0 is_stmt 1
+ 697 002e FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 698 0030 2D2B     		cmp	r3, #45
+ 699 0032 0AD1     		bne	.L56
+ 202:monitor.c     **** 		s = 1;
+ 700              		.loc 1 202 0
+ 701 0034 0123     		movs	r3, #1
+ 702 0036 7B72     		strb	r3, [r7, #9]
+ 203:monitor.c     **** 		c = *(++(*str));
+ 703              		.loc 1 203 0
+ 704 0038 7B68     		ldr	r3, [r7, #4]
+ 705 003a 1B68     		ldr	r3, [r3]
+ 706 003c 5A1C     		adds	r2, r3, #1
+ 707 003e 7B68     		ldr	r3, [r7, #4]
+ 708 0040 1A60     		str	r2, [r3]
+ 709 0042 7B68     		ldr	r3, [r7, #4]
+ 710 0044 1B68     		ldr	r3, [r3]
+ 711 0046 1B78     		ldrb	r3, [r3]
+ 712 0048 FB72     		strb	r3, [r7, #11]
+ 713              	.L56:
+ 204:monitor.c     **** 	}
+ 205:monitor.c     **** 
+ 206:monitor.c     **** 	if (c == '0') {
+ 714              		.loc 1 206 0
+ 715 004a FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 716 004c 302B     		cmp	r3, #48
+ 717 004e 35D1     		bne	.L57
+ 207:monitor.c     **** 		c = *(++(*str));
+ 718              		.loc 1 207 0
+ 719 0050 7B68     		ldr	r3, [r7, #4]
+ 720 0052 1B68     		ldr	r3, [r3]
+ 721 0054 5A1C     		adds	r2, r3, #1
+ 722 0056 7B68     		ldr	r3, [r7, #4]
+ 723 0058 1A60     		str	r2, [r3]
+ 724 005a 7B68     		ldr	r3, [r7, #4]
+ 725 005c 1B68     		ldr	r3, [r3]
+ 726 005e 1B78     		ldrb	r3, [r3]
+ 727 0060 FB72     		strb	r3, [r7, #11]
+ 208:monitor.c     **** 		switch (c) {
+ 728              		.loc 1 208 0
+ 729 0062 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 730 0064 622B     		cmp	r3, #98
+ 731 0066 0DD0     		beq	.L59
+ 732 0068 782B     		cmp	r3, #120
+ 733 006a 17D1     		bne	.L75
+ 209:monitor.c     **** 		case 'x':		/* hexdecimal */
+ 210:monitor.c     **** 			r = 16; c = *(++(*str));
+ 734              		.loc 1 210 0
+ 735 006c 1023     		movs	r3, #16
+ 736 006e BB72     		strb	r3, [r7, #10]
+ 737 0070 7B68     		ldr	r3, [r7, #4]
+ 738 0072 1B68     		ldr	r3, [r3]
+ 739 0074 5A1C     		adds	r2, r3, #1
+ 740 0076 7B68     		ldr	r3, [r7, #4]
+ 741 0078 1A60     		str	r2, [r3]
+ 742 007a 7B68     		ldr	r3, [r7, #4]
+ 743 007c 1B68     		ldr	r3, [r3]
+ 744 007e 1B78     		ldrb	r3, [r3]
+ 745 0080 FB72     		strb	r3, [r7, #11]
+ 211:monitor.c     **** 			break;
+ 746              		.loc 1 211 0
+ 747 0082 25E0     		b	.L66
+ 748              	.L59:
+ 212:monitor.c     **** 		case 'b':		/* binary */
+ 213:monitor.c     **** 			r = 2; c = *(++(*str));
+ 749              		.loc 1 213 0
+ 750 0084 0223     		movs	r3, #2
+ 751 0086 BB72     		strb	r3, [r7, #10]
+ 752 0088 7B68     		ldr	r3, [r7, #4]
+ 753 008a 1B68     		ldr	r3, [r3]
+ 754 008c 5A1C     		adds	r2, r3, #1
+ 755 008e 7B68     		ldr	r3, [r7, #4]
+ 756 0090 1A60     		str	r2, [r3]
+ 757 0092 7B68     		ldr	r3, [r7, #4]
+ 758 0094 1B68     		ldr	r3, [r3]
+ 759 0096 1B78     		ldrb	r3, [r3]
+ 760 0098 FB72     		strb	r3, [r7, #11]
+ 214:monitor.c     **** 			break;
+ 761              		.loc 1 214 0
+ 762 009a 19E0     		b	.L66
+ 763              	.L75:
+ 215:monitor.c     **** 		default:
+ 216:monitor.c     **** 			if (c <= ' ') return 1;	/* single zero */
+ 764              		.loc 1 216 0
+ 765 009c FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 766 009e 202B     		cmp	r3, #32
+ 767 00a0 01D8     		bhi	.L62
+ 768              		.loc 1 216 0 is_stmt 0 discriminator 1
+ 769 00a2 0123     		movs	r3, #1
+ 770 00a4 4EE0     		b	.L63
+ 771              	.L62:
+ 217:monitor.c     **** 			if (c < '0' || c > '9') return 0;	/* invalid char */
+ 772              		.loc 1 217 0 is_stmt 1
+ 773 00a6 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 774 00a8 2F2B     		cmp	r3, #47
+ 775 00aa 02D9     		bls	.L64
+ 776              		.loc 1 217 0 is_stmt 0 discriminator 2
+ 777 00ac FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 778 00ae 392B     		cmp	r3, #57
+ 779 00b0 01D9     		bls	.L65
+ 780              	.L64:
+ 781              		.loc 1 217 0 discriminator 3
+ 782 00b2 0023     		movs	r3, #0
+ 783 00b4 46E0     		b	.L63
+ 784              	.L65:
+ 218:monitor.c     **** 			r = 8;		/* octal */
+ 785              		.loc 1 218 0 is_stmt 1
+ 786 00b6 0823     		movs	r3, #8
+ 787 00b8 BB72     		strb	r3, [r7, #10]
+ 788 00ba 09E0     		b	.L66
+ 789              	.L57:
+ 219:monitor.c     **** 		}
+ 220:monitor.c     **** 	} else {
+ 221:monitor.c     **** 		if (c < '0' || c > '9') return 0;	/* EOL or invalid char */
+ 790              		.loc 1 221 0
+ 791 00bc FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 792 00be 2F2B     		cmp	r3, #47
+ 793 00c0 02D9     		bls	.L67
+ 794              		.loc 1 221 0 is_stmt 0 discriminator 2
+ 795 00c2 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 796 00c4 392B     		cmp	r3, #57
+ 797 00c6 01D9     		bls	.L68
+ 798              	.L67:
+ 799              		.loc 1 221 0 discriminator 3
+ 800 00c8 0023     		movs	r3, #0
+ 801 00ca 3BE0     		b	.L63
+ 802              	.L68:
+ 222:monitor.c     **** 		r = 10;			/* decimal */
+ 803              		.loc 1 222 0 is_stmt 1
+ 804 00cc 0A23     		movs	r3, #10
+ 805 00ce BB72     		strb	r3, [r7, #10]
+ 806              	.L66:
+ 223:monitor.c     **** 	}
+ 224:monitor.c     **** 
+ 225:monitor.c     **** 	val = 0;
+ 807              		.loc 1 225 0
+ 808 00d0 0023     		movs	r3, #0
+ 809 00d2 FB60     		str	r3, [r7, #12]
+ 226:monitor.c     **** 	while (c > ' ') {
+ 810              		.loc 1 226 0
+ 811 00d4 29E0     		b	.L69
+ 812              	.L73:
+ 227:monitor.c     **** 		if (c >= 'a') c -= 0x20;
+ 813              		.loc 1 227 0
+ 814 00d6 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 815 00d8 602B     		cmp	r3, #96
+ 816 00da 02D9     		bls	.L70
+ 817              		.loc 1 227 0 is_stmt 0 discriminator 1
+ 818 00dc FB7A     		ldrb	r3, [r7, #11]
+ 819 00de 203B     		subs	r3, r3, #32
+ 820 00e0 FB72     		strb	r3, [r7, #11]
+ 821              	.L70:
+ 228:monitor.c     **** 		c -= '0';
+ 822              		.loc 1 228 0 is_stmt 1
+ 823 00e2 FB7A     		ldrb	r3, [r7, #11]
+ 824 00e4 303B     		subs	r3, r3, #48
+ 825 00e6 FB72     		strb	r3, [r7, #11]
+ 229:monitor.c     **** 		if (c >= 17) {
+ 826              		.loc 1 229 0
+ 827 00e8 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 828 00ea 102B     		cmp	r3, #16
+ 829 00ec 07D9     		bls	.L71
+ 230:monitor.c     **** 			c -= 7;
+ 830              		.loc 1 230 0
+ 831 00ee FB7A     		ldrb	r3, [r7, #11]
+ 832 00f0 073B     		subs	r3, r3, #7
+ 833 00f2 FB72     		strb	r3, [r7, #11]
+ 231:monitor.c     **** 			if (c <= 9) return 0;	/* invalid char */
+ 834              		.loc 1 231 0
+ 835 00f4 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 836 00f6 092B     		cmp	r3, #9
+ 837 00f8 01D8     		bhi	.L71
+ 838              		.loc 1 231 0 is_stmt 0 discriminator 1
+ 839 00fa 0023     		movs	r3, #0
+ 840 00fc 22E0     		b	.L63
+ 841              	.L71:
+ 232:monitor.c     **** 		}
+ 233:monitor.c     **** 		if (c >= r) return 0;		/* invalid char for current radix */
+ 842              		.loc 1 233 0 is_stmt 1
+ 843 00fe FA7A     		ldrb	r2, [r7, #11]	@ zero_extendqisi2
+ 844 0100 BB7A     		ldrb	r3, [r7, #10]	@ zero_extendqisi2
+ 845 0102 9A42     		cmp	r2, r3
+ 846 0104 01D3     		bcc	.L72
+ 847              		.loc 1 233 0 is_stmt 0 discriminator 1
+ 848 0106 0023     		movs	r3, #0
+ 849 0108 1CE0     		b	.L63
+ 850              	.L72:
+ 234:monitor.c     **** 		val = val * r + c;
+ 851              		.loc 1 234 0 is_stmt 1
+ 852 010a BB7A     		ldrb	r3, [r7, #10]	@ zero_extendqisi2
+ 853 010c FA68     		ldr	r2, [r7, #12]
+ 854 010e 02FB03F2 		mul	r2, r2, r3
+ 855 0112 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 856 0114 1344     		add	r3, r3, r2
+ 857 0116 FB60     		str	r3, [r7, #12]
+ 235:monitor.c     **** 		c = *(++(*str));
+ 858              		.loc 1 235 0
+ 859 0118 7B68     		ldr	r3, [r7, #4]
+ 860 011a 1B68     		ldr	r3, [r3]
+ 861 011c 5A1C     		adds	r2, r3, #1
+ 862 011e 7B68     		ldr	r3, [r7, #4]
+ 863 0120 1A60     		str	r2, [r3]
+ 864 0122 7B68     		ldr	r3, [r7, #4]
+ 865 0124 1B68     		ldr	r3, [r3]
+ 866 0126 1B78     		ldrb	r3, [r3]
+ 867 0128 FB72     		strb	r3, [r7, #11]
+ 868              	.L69:
+ 226:monitor.c     **** 		if (c >= 'a') c -= 0x20;
+ 869              		.loc 1 226 0
+ 870 012a FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 871 012c 202B     		cmp	r3, #32
+ 872 012e D2D8     		bhi	.L73
+ 236:monitor.c     **** 	}
+ 237:monitor.c     **** 	if (s) val = 0 - val;			/* apply sign if needed */
+ 873              		.loc 1 237 0
+ 874 0130 7B7A     		ldrb	r3, [r7, #9]	@ zero_extendqisi2
+ 875 0132 002B     		cmp	r3, #0
+ 876 0134 02D0     		beq	.L74
+ 877              		.loc 1 237 0 is_stmt 0 discriminator 1
+ 878 0136 FB68     		ldr	r3, [r7, #12]
+ 879 0138 5B42     		negs	r3, r3
+ 880 013a FB60     		str	r3, [r7, #12]
+ 881              	.L74:
+ 238:monitor.c     **** 
+ 239:monitor.c     **** 	*res = val;
+ 882              		.loc 1 239 0 is_stmt 1
+ 883 013c FA68     		ldr	r2, [r7, #12]
+ 884 013e 3B68     		ldr	r3, [r7]
+ 885 0140 1A60     		str	r2, [r3]
+ 240:monitor.c     **** 	return 1;
+ 886              		.loc 1 240 0
+ 887 0142 0123     		movs	r3, #1
+ 888              	.L63:
+ 241:monitor.c     **** }
+ 889              		.loc 1 241 0
+ 890 0144 1846     		mov	r0, r3
+ 891 0146 1437     		adds	r7, r7, #20
+ 892              		.cfi_def_cfa_offset 4
+ 893 0148 BD46     		mov	sp, r7
+ 894              		.cfi_def_cfa_register 13
+ 895              		@ sp needed
+ 896 014a 80BC     		pop	{r7}
+ 897              		.cfi_restore 7
+ 898              		.cfi_def_cfa_offset 0
+ 899 014c 7047     		bx	lr
+ 900              		.cfi_endproc
+ 901              	.LFE4:
+ 903              		.section	.text.get_line,"ax",%progbits
+ 904              		.align	2
+ 905              		.global	get_line
+ 906              		.thumb
+ 907              		.thumb_func
+ 909              	get_line:
+ 910              	.LFB5:
+ 242:monitor.c     **** 
+ 243:monitor.c     **** 
+ 244:monitor.c     **** /*----------------------------------------------*/
+ 245:monitor.c     **** /* Get a line from the input                    */
+ 246:monitor.c     **** /*----------------------------------------------*/
+ 247:monitor.c     **** 
+ 248:monitor.c     **** int get_line (		/* 0:End of stream, 1:A line arrived */
+ 249:monitor.c     **** 	char* buff,		/* Pointer to the buffer */
+ 250:monitor.c     **** 	int len			/* Buffer length */
+ 251:monitor.c     **** )
+ 252:monitor.c     **** {
+ 911              		.loc 1 252 0
+ 912              		.cfi_startproc
+ 913              		@ args = 0, pretend = 0, frame = 24
+ 914              		@ frame_needed = 1, uses_anonymous_args = 0
+ 915 0000 80B5     		push	{r7, lr}
+ 916              		.cfi_def_cfa_offset 8
+ 917              		.cfi_offset 7, -8
+ 918              		.cfi_offset 14, -4
+ 919 0002 86B0     		sub	sp, sp, #24
+ 920              		.cfi_def_cfa_offset 32
+ 921 0004 00AF     		add	r7, sp, #0
+ 922              		.cfi_def_cfa_register 7
+ 923 0006 7860     		str	r0, [r7, #4]
+ 924 0008 3960     		str	r1, [r7]
+ 253:monitor.c     **** 	int rv, c, i;
+ 254:monitor.c     **** 
+ 255:monitor.c     **** 	rv = i = 0;
+ 925              		.loc 1 255 0
+ 926 000a 0023     		movs	r3, #0
+ 927 000c 7B61     		str	r3, [r7, #20]
+ 928 000e 7B69     		ldr	r3, [r7, #20]
+ 929 0010 3B61     		str	r3, [r7, #16]
+ 930              	.L83:
+ 256:monitor.c     **** 	for (;;) {
+ 257:monitor.c     **** 		c = xfunc_in();				/* Get a char from the incoming stream */
+ 931              		.loc 1 257 0
+ 932 0012 244B     		ldr	r3, .L86
+ 933 0014 1B68     		ldr	r3, [r3]
+ 934 0016 9847     		blx	r3
+ 935 0018 0346     		mov	r3, r0
+ 936 001a FB60     		str	r3, [r7, #12]
+ 258:monitor.c     **** 		if (!c) return 0;			/* End of stream? */
+ 937              		.loc 1 258 0
+ 938 001c FB68     		ldr	r3, [r7, #12]
+ 939 001e 002B     		cmp	r3, #0
+ 940 0020 01D1     		bne	.L77
+ 941              		.loc 1 258 0 is_stmt 0 discriminator 1
+ 942 0022 0023     		movs	r3, #0
+ 943 0024 3AE0     		b	.L78
+ 944              	.L77:
+ 259:monitor.c     **** 		if (c == '\r') break;		/* End of line? */
+ 945              		.loc 1 259 0 is_stmt 1
+ 946 0026 FB68     		ldr	r3, [r7, #12]
+ 947 0028 0D2B     		cmp	r3, #13
+ 948 002a 2DD0     		beq	.L85
+ 260:monitor.c     **** 		if (c == '\b' && i) {		/* Back space? */
+ 949              		.loc 1 260 0
+ 950 002c FB68     		ldr	r3, [r7, #12]
+ 951 002e 082B     		cmp	r3, #8
+ 952 0030 13D1     		bne	.L81
+ 953              		.loc 1 260 0 is_stmt 0 discriminator 1
+ 954 0032 7B69     		ldr	r3, [r7, #20]
+ 955 0034 002B     		cmp	r3, #0
+ 956 0036 10D0     		beq	.L81
+ 261:monitor.c     **** 			i--;
+ 957              		.loc 1 261 0 is_stmt 1
+ 958 0038 7B69     		ldr	r3, [r7, #20]
+ 959 003a 013B     		subs	r3, r3, #1
+ 960 003c 7B61     		str	r3, [r7, #20]
+ 262:monitor.c     **** 			xputc(c);
+ 961              		.loc 1 262 0
+ 962 003e FB68     		ldr	r3, [r7, #12]
+ 963 0040 DBB2     		uxtb	r3, r3
+ 964 0042 1846     		mov	r0, r3
+ 965 0044 FFF7FEFF 		bl	xputc
+ 263:monitor.c     **** 			xputc(' '); // mthomas
+ 966              		.loc 1 263 0
+ 967 0048 2020     		movs	r0, #32
+ 968 004a FFF7FEFF 		bl	xputc
+ 264:monitor.c     **** 			xputc(c);   // mthomas
+ 969              		.loc 1 264 0
+ 970 004e FB68     		ldr	r3, [r7, #12]
+ 971 0050 DBB2     		uxtb	r3, r3
+ 972 0052 1846     		mov	r0, r3
+ 973 0054 FFF7FEFF 		bl	xputc
+ 265:monitor.c     **** 			continue;
+ 974              		.loc 1 265 0
+ 975 0058 15E0     		b	.L82
+ 976              	.L81:
+ 266:monitor.c     **** 		}
+ 267:monitor.c     **** 		if (c >= ' ' && i < len - 1) {	/* Visible chars */
+ 977              		.loc 1 267 0
+ 978 005a FB68     		ldr	r3, [r7, #12]
+ 979 005c 1F2B     		cmp	r3, #31
+ 980 005e D8DD     		ble	.L83
+ 981              		.loc 1 267 0 is_stmt 0 discriminator 1
+ 982 0060 3B68     		ldr	r3, [r7]
+ 983 0062 5A1E     		subs	r2, r3, #1
+ 984 0064 7B69     		ldr	r3, [r7, #20]
+ 985 0066 9A42     		cmp	r2, r3
+ 986 0068 D3DD     		ble	.L83
+ 268:monitor.c     **** 			buff[i++] = c;
+ 987              		.loc 1 268 0 is_stmt 1
+ 988 006a 7B69     		ldr	r3, [r7, #20]
+ 989 006c 5A1C     		adds	r2, r3, #1
+ 990 006e 7A61     		str	r2, [r7, #20]
+ 991 0070 1A46     		mov	r2, r3
+ 992 0072 7B68     		ldr	r3, [r7, #4]
+ 993 0074 1344     		add	r3, r3, r2
+ 994 0076 FA68     		ldr	r2, [r7, #12]
+ 995 0078 D2B2     		uxtb	r2, r2
+ 996 007a 1A70     		strb	r2, [r3]
+ 269:monitor.c     **** 			xputc(c);
+ 997              		.loc 1 269 0
+ 998 007c FB68     		ldr	r3, [r7, #12]
+ 999 007e DBB2     		uxtb	r3, r3
+ 1000 0080 1846     		mov	r0, r3
+ 1001 0082 FFF7FEFF 		bl	xputc
+ 1002              	.L82:
+ 270:monitor.c     **** 		}
+ 271:monitor.c     **** 	}
+ 1003              		.loc 1 271 0
+ 1004 0086 C4E7     		b	.L83
+ 1005              	.L85:
+ 259:monitor.c     **** 		if (c == '\b' && i) {		/* Back space? */
+ 1006              		.loc 1 259 0
+ 1007 0088 00BF     		nop
+ 272:monitor.c     **** 	buff[i] = 0;	/* Terminate with zero */
+ 1008              		.loc 1 272 0
+ 1009 008a 7B69     		ldr	r3, [r7, #20]
+ 1010 008c 7A68     		ldr	r2, [r7, #4]
+ 1011 008e 1344     		add	r3, r3, r2
+ 1012 0090 0022     		movs	r2, #0
+ 1013 0092 1A70     		strb	r2, [r3]
+ 273:monitor.c     **** 	xputc('\n');
+ 1014              		.loc 1 273 0
+ 1015 0094 0A20     		movs	r0, #10
+ 1016 0096 FFF7FEFF 		bl	xputc
+ 274:monitor.c     **** 	return 1;
+ 1017              		.loc 1 274 0
+ 1018 009a 0123     		movs	r3, #1
+ 1019              	.L78:
+ 275:monitor.c     **** }
+ 1020              		.loc 1 275 0
+ 1021 009c 1846     		mov	r0, r3
+ 1022 009e 1837     		adds	r7, r7, #24
+ 1023              		.cfi_def_cfa_offset 8
+ 1024 00a0 BD46     		mov	sp, r7
+ 1025              		.cfi_def_cfa_register 13
+ 1026              		@ sp needed
+ 1027 00a2 80BD     		pop	{r7, pc}
+ 1028              	.L87:
+ 1029              		.align	2
+ 1030              	.L86:
+ 1031 00a4 00000000 		.word	xfunc_in
+ 1032              		.cfi_endproc
+ 1033              	.LFE5:
+ 1035              		.section	.text.xstrlen,"ax",%progbits
+ 1036              		.align	2
+ 1037              		.global	xstrlen
+ 1038              		.thumb
+ 1039              		.thumb_func
+ 1041              	xstrlen:
+ 1042              	.LFB6:
+ 276:monitor.c     **** 
+ 277:monitor.c     **** #endif /* _USE_XFUNC_IN */
+ 278:monitor.c     **** 
+ 279:monitor.c     **** 
+ 280:monitor.c     **** #if _USE_XSTRFUNC
+ 281:monitor.c     **** /*----------------------------------------------*/
+ 282:monitor.c     **** /* Simple string functions                      */
+ 283:monitor.c     **** /*----------------------------------------------*/
+ 284:monitor.c     **** 
+ 285:monitor.c     **** int xstrlen (const char *str)
+ 286:monitor.c     **** {
+ 1043              		.loc 1 286 0
+ 1044              		.cfi_startproc
+ 1045              		@ args = 0, pretend = 0, frame = 16
+ 1046              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1047              		@ link register save eliminated.
+ 1048 0000 80B4     		push	{r7}
+ 1049              		.cfi_def_cfa_offset 4
+ 1050              		.cfi_offset 7, -4
+ 1051 0002 85B0     		sub	sp, sp, #20
+ 1052              		.cfi_def_cfa_offset 24
+ 1053 0004 00AF     		add	r7, sp, #0
+ 1054              		.cfi_def_cfa_register 7
+ 1055 0006 7860     		str	r0, [r7, #4]
+ 287:monitor.c     **** 	int n = 0;
+ 1056              		.loc 1 287 0
+ 1057 0008 0023     		movs	r3, #0
+ 1058 000a FB60     		str	r3, [r7, #12]
+ 288:monitor.c     **** 
+ 289:monitor.c     **** 	while (*str++) n++;
+ 1059              		.loc 1 289 0
+ 1060 000c 02E0     		b	.L89
+ 1061              	.L90:
+ 1062              		.loc 1 289 0 is_stmt 0 discriminator 2
+ 1063 000e FB68     		ldr	r3, [r7, #12]
+ 1064 0010 0133     		adds	r3, r3, #1
+ 1065 0012 FB60     		str	r3, [r7, #12]
+ 1066              	.L89:
+ 1067              		.loc 1 289 0 discriminator 1
+ 1068 0014 7B68     		ldr	r3, [r7, #4]
+ 1069 0016 5A1C     		adds	r2, r3, #1
+ 1070 0018 7A60     		str	r2, [r7, #4]
+ 1071 001a 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1072 001c 002B     		cmp	r3, #0
+ 1073 001e F6D1     		bne	.L90
+ 290:monitor.c     **** 	return n;
+ 1074              		.loc 1 290 0 is_stmt 1
+ 1075 0020 FB68     		ldr	r3, [r7, #12]
+ 291:monitor.c     **** }
+ 1076              		.loc 1 291 0
+ 1077 0022 1846     		mov	r0, r3
+ 1078 0024 1437     		adds	r7, r7, #20
+ 1079              		.cfi_def_cfa_offset 4
+ 1080 0026 BD46     		mov	sp, r7
+ 1081              		.cfi_def_cfa_register 13
+ 1082              		@ sp needed
+ 1083 0028 80BC     		pop	{r7}
+ 1084              		.cfi_restore 7
+ 1085              		.cfi_def_cfa_offset 0
+ 1086 002a 7047     		bx	lr
+ 1087              		.cfi_endproc
+ 1088              	.LFE6:
+ 1090              		.section	.text.xstrcpy,"ax",%progbits
+ 1091              		.align	2
+ 1092              		.global	xstrcpy
+ 1093              		.thumb
+ 1094              		.thumb_func
+ 1096              	xstrcpy:
+ 1097              	.LFB7:
+ 292:monitor.c     **** 
+ 293:monitor.c     **** 
+ 294:monitor.c     **** char *xstrcpy (char* dst, const char* src)
+ 295:monitor.c     **** {
+ 1098              		.loc 1 295 0
+ 1099              		.cfi_startproc
+ 1100              		@ args = 0, pretend = 0, frame = 16
+ 1101              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1102              		@ link register save eliminated.
+ 1103 0000 80B4     		push	{r7}
+ 1104              		.cfi_def_cfa_offset 4
+ 1105              		.cfi_offset 7, -4
+ 1106 0002 85B0     		sub	sp, sp, #20
+ 1107              		.cfi_def_cfa_offset 24
+ 1108 0004 00AF     		add	r7, sp, #0
+ 1109              		.cfi_def_cfa_register 7
+ 1110 0006 7860     		str	r0, [r7, #4]
+ 1111 0008 3960     		str	r1, [r7]
+ 296:monitor.c     **** 	char c, *d = dst;
+ 1112              		.loc 1 296 0
+ 1113 000a 7B68     		ldr	r3, [r7, #4]
+ 1114 000c FB60     		str	r3, [r7, #12]
+ 1115              	.L93:
+ 297:monitor.c     **** 
+ 298:monitor.c     **** 	do {
+ 299:monitor.c     **** 		c = *src++;
+ 1116              		.loc 1 299 0 discriminator 1
+ 1117 000e 3B68     		ldr	r3, [r7]
+ 1118 0010 5A1C     		adds	r2, r3, #1
+ 1119 0012 3A60     		str	r2, [r7]
+ 1120 0014 1B78     		ldrb	r3, [r3]
+ 1121 0016 FB72     		strb	r3, [r7, #11]
+ 300:monitor.c     **** 		*d++ = c;
+ 1122              		.loc 1 300 0 discriminator 1
+ 1123 0018 FB68     		ldr	r3, [r7, #12]
+ 1124 001a 5A1C     		adds	r2, r3, #1
+ 1125 001c FA60     		str	r2, [r7, #12]
+ 1126 001e FA7A     		ldrb	r2, [r7, #11]
+ 1127 0020 1A70     		strb	r2, [r3]
+ 301:monitor.c     **** 	} while (c);
+ 1128              		.loc 1 301 0 discriminator 1
+ 1129 0022 FB7A     		ldrb	r3, [r7, #11]	@ zero_extendqisi2
+ 1130 0024 002B     		cmp	r3, #0
+ 1131 0026 F2D1     		bne	.L93
+ 302:monitor.c     **** 
+ 303:monitor.c     **** 	return dst;
+ 1132              		.loc 1 303 0
+ 1133 0028 7B68     		ldr	r3, [r7, #4]
+ 304:monitor.c     **** }
+ 1134              		.loc 1 304 0
+ 1135 002a 1846     		mov	r0, r3
+ 1136 002c 1437     		adds	r7, r7, #20
+ 1137              		.cfi_def_cfa_offset 4
+ 1138 002e BD46     		mov	sp, r7
+ 1139              		.cfi_def_cfa_register 13
+ 1140              		@ sp needed
+ 1141 0030 80BC     		pop	{r7}
+ 1142              		.cfi_restore 7
+ 1143              		.cfi_def_cfa_offset 0
+ 1144 0032 7047     		bx	lr
+ 1145              		.cfi_endproc
+ 1146              	.LFE7:
+ 1148              		.section	.text.xmemset,"ax",%progbits
+ 1149              		.align	2
+ 1150              		.global	xmemset
+ 1151              		.thumb
+ 1152              		.thumb_func
+ 1154              	xmemset:
+ 1155              	.LFB8:
+ 305:monitor.c     **** 
+ 306:monitor.c     **** 
+ 307:monitor.c     **** void *xmemset (void *p, int c, int sz)
+ 308:monitor.c     **** {
+ 1156              		.loc 1 308 0
+ 1157              		.cfi_startproc
+ 1158              		@ args = 0, pretend = 0, frame = 24
+ 1159              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1160              		@ link register save eliminated.
+ 1161 0000 80B4     		push	{r7}
+ 1162              		.cfi_def_cfa_offset 4
+ 1163              		.cfi_offset 7, -4
+ 1164 0002 87B0     		sub	sp, sp, #28
+ 1165              		.cfi_def_cfa_offset 32
+ 1166 0004 00AF     		add	r7, sp, #0
+ 1167              		.cfi_def_cfa_register 7
+ 1168 0006 F860     		str	r0, [r7, #12]
+ 1169 0008 B960     		str	r1, [r7, #8]
+ 1170 000a 7A60     		str	r2, [r7, #4]
+ 309:monitor.c     **** 	char *pf = (char*)p;
+ 1171              		.loc 1 309 0
+ 1172 000c FB68     		ldr	r3, [r7, #12]
+ 1173 000e 7B61     		str	r3, [r7, #20]
+ 310:monitor.c     **** 
+ 311:monitor.c     **** 	while (sz--) *pf++ = (char)c;
+ 1174              		.loc 1 311 0
+ 1175 0010 05E0     		b	.L96
+ 1176              	.L97:
+ 1177              		.loc 1 311 0 is_stmt 0 discriminator 2
+ 1178 0012 7B69     		ldr	r3, [r7, #20]
+ 1179 0014 5A1C     		adds	r2, r3, #1
+ 1180 0016 7A61     		str	r2, [r7, #20]
+ 1181 0018 BA68     		ldr	r2, [r7, #8]
+ 1182 001a D2B2     		uxtb	r2, r2
+ 1183 001c 1A70     		strb	r2, [r3]
+ 1184              	.L96:
+ 1185              		.loc 1 311 0 discriminator 1
+ 1186 001e 7B68     		ldr	r3, [r7, #4]
+ 1187 0020 5A1E     		subs	r2, r3, #1
+ 1188 0022 7A60     		str	r2, [r7, #4]
+ 1189 0024 002B     		cmp	r3, #0
+ 1190 0026 F4D1     		bne	.L97
+ 312:monitor.c     **** 	return p;
+ 1191              		.loc 1 312 0 is_stmt 1
+ 1192 0028 FB68     		ldr	r3, [r7, #12]
+ 313:monitor.c     **** }
+ 1193              		.loc 1 313 0
+ 1194 002a 1846     		mov	r0, r3
+ 1195 002c 1C37     		adds	r7, r7, #28
+ 1196              		.cfi_def_cfa_offset 4
+ 1197 002e BD46     		mov	sp, r7
+ 1198              		.cfi_def_cfa_register 13
+ 1199              		@ sp needed
+ 1200 0030 80BC     		pop	{r7}
+ 1201              		.cfi_restore 7
+ 1202              		.cfi_def_cfa_offset 0
+ 1203 0032 7047     		bx	lr
+ 1204              		.cfi_endproc
+ 1205              	.LFE8:
+ 1207              		.section	.text.xstrchr,"ax",%progbits
+ 1208              		.align	2
+ 1209              		.global	xstrchr
+ 1210              		.thumb
+ 1211              		.thumb_func
+ 1213              	xstrchr:
+ 1214              	.LFB9:
+ 314:monitor.c     **** 
+ 315:monitor.c     **** 
+ 316:monitor.c     **** char *xstrchr (/*const*/ char *str, int c)
+ 317:monitor.c     **** {
+ 1215              		.loc 1 317 0
+ 1216              		.cfi_startproc
+ 1217              		@ args = 0, pretend = 0, frame = 8
+ 1218              		@ frame_needed = 1, uses_anonymous_args = 0
+ 1219              		@ link register save eliminated.
+ 1220 0000 80B4     		push	{r7}
+ 1221              		.cfi_def_cfa_offset 4
+ 1222              		.cfi_offset 7, -4
+ 1223 0002 83B0     		sub	sp, sp, #12
+ 1224              		.cfi_def_cfa_offset 16
+ 1225 0004 00AF     		add	r7, sp, #0
+ 1226              		.cfi_def_cfa_register 7
+ 1227 0006 7860     		str	r0, [r7, #4]
+ 1228 0008 3960     		str	r1, [r7]
+ 318:monitor.c     **** 	while (*str) {
+ 1229              		.loc 1 318 0
+ 1230 000a 0BE0     		b	.L100
+ 1231              	.L103:
+ 319:monitor.c     **** 		if (*str == (char)c) {
+ 1232              		.loc 1 319 0
+ 1233 000c 7B68     		ldr	r3, [r7, #4]
+ 1234 000e 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1235 0010 1A46     		mov	r2, r3
+ 1236 0012 3B68     		ldr	r3, [r7]
+ 1237 0014 DBB2     		uxtb	r3, r3
+ 1238 0016 9A42     		cmp	r2, r3
+ 1239 0018 01D1     		bne	.L101
+ 320:monitor.c     **** 			return (char*)str;
+ 1240              		.loc 1 320 0
+ 1241 001a 7B68     		ldr	r3, [r7, #4]
+ 1242 001c 07E0     		b	.L102
+ 1243              	.L101:
+ 321:monitor.c     **** 		}
+ 322:monitor.c     **** 		str++;
+ 1244              		.loc 1 322 0
+ 1245 001e 7B68     		ldr	r3, [r7, #4]
+ 1246 0020 0133     		adds	r3, r3, #1
+ 1247 0022 7B60     		str	r3, [r7, #4]
+ 1248              	.L100:
+ 318:monitor.c     **** 		if (*str == (char)c) {
+ 1249              		.loc 1 318 0
+ 1250 0024 7B68     		ldr	r3, [r7, #4]
+ 1251 0026 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
+ 1252 0028 002B     		cmp	r3, #0
+ 1253 002a EFD1     		bne	.L103
+ 323:monitor.c     **** 	}
+ 324:monitor.c     **** 	return 0;
+ 1254              		.loc 1 324 0
+ 1255 002c 0023     		movs	r3, #0
+ 1256              	.L102:
+ 325:monitor.c     **** }
+ 1257              		.loc 1 325 0
+ 1258 002e 1846     		mov	r0, r3
+ 1259 0030 0C37     		adds	r7, r7, #12
+ 1260              		.cfi_def_cfa_offset 4
+ 1261 0032 BD46     		mov	sp, r7
+ 1262              		.cfi_def_cfa_register 13
+ 1263              		@ sp needed
+ 1264 0034 80BC     		pop	{r7}
+ 1265              		.cfi_restore 7
+ 1266              		.cfi_def_cfa_offset 0
+ 1267 0036 7047     		bx	lr
+ 1268              		.cfi_endproc
+ 1269              	.LFE9:
+ 1271              		.text
+ 1272              	.Letext0:
+ 1273              		.file 2 "c:\\program files (x86)\\gnu tools arm embedded\\5.4 2016q2\\lib\\gcc\\arm-none-eabi\\5.4
+ 1274              		.file 3 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 monitor.c
+                            *COM*:00000004 xfunc_in
+                            *COM*:00000004 xfunc_out
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:22     .text.xputc:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:27     .text.xputc:00000000 xputc
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:71     .text.xputc:0000002c $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:76     .text.xputs:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:81     .text.xputs:00000000 xputs
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:124    .text.xprintf:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:129    .text.xprintf:00000000 xprintf
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:264    .text.xprintf:000000b8 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:287    .text.xprintf:00000114 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:526    .rodata:00000000 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:533    .text.put_dump:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:538    .text.put_dump:00000000 put_dump
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:644    .text.put_dump:00000090 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:650    .text.xatoi:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:655    .text.xatoi:00000000 xatoi
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:904    .text.get_line:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:909    .text.get_line:00000000 get_line
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1031   .text.get_line:000000a4 $d
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1036   .text.xstrlen:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1041   .text.xstrlen:00000000 xstrlen
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1091   .text.xstrcpy:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1096   .text.xstrcpy:00000000 xstrcpy
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1149   .text.xmemset:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1154   .text.xmemset:00000000 xmemset
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1208   .text.xstrchr:00000000 $t
+C:\Users\KHUSHA~1\AppData\Local\Temp\ccvod69O.s:1213   .text.xstrchr:00000000 xstrchr
+                     .debug_frame:00000010 $d
+
+NO UNDEFINED SYMBOLS
